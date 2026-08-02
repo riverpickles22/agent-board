@@ -1,0 +1,32 @@
+{
+  "overview": {
+    "summary": "This demo shows the context stack: an overview of the system you're building, milestones stating what each stage accomplishes, and deliverables linking down to epics on the board.",
+    "context_docs": [
+      {
+        "label": "Example doc",
+        "path": "docs/architecture.md",
+        "note": "paths are relative to your system-design repo root"
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "First release",
+      "tagline": "The smallest thing worth shipping.",
+      "summary": "What we seek to accomplish in this milestone, in a paragraph a stranger could follow.",
+      "gate": "Exit: the example criterion that proves this milestone is done.",
+      "deliverables": [
+        {
+          "name": "Example deliverable",
+          "description": "What it is and why it matters.",
+          "epics": [
+            "EX1",
+            "EX2"
+          ]
+        }
+      ],
+      "context_docs": []
+    }
+  ]
+}

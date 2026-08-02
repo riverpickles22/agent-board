@@ -18,11 +18,24 @@ view over them; you do not need it running. Edit the JSON directly.
 
 ```
 <data-dir>/
-├── config.json    # vocabularies: lanes, priorities, themes, milestones, open_gates, wip_limits
-├── ideas.json     # the inbox: not-yet-decided requests
-├── epics.json     # decided work, by theme + milestone
-└── stories.json   # buildable slices under epics
+├── config.json      # vocabularies: lanes, priorities, themes, milestones, open_gates, wip_limits, view
+├── ideas.json       # the inbox: not-yet-decided requests
+├── epics.json       # decided work, by theme + milestone
+├── stories.json     # buildable slices under epics
+└── milestones.json  # what each milestone accomplishes; deliverables -> epics; context docs
 ```
+
+**The context directory.** The git repo containing the data dir (the
+project's `*-system-design` repo) is the project's *context directory*:
+architecture, strategy, PRFAQ, design proposals. Every `context_docs`
+path below is **relative to that repo's root**. Its git history is the
+versioning of the system/business story — when a ratified change updates
+a design doc, that commit *is* the record of how the plan evolved.
+
+**The context stack**, top to bottom: system (context docs) → milestone
+(what we seek to accomplish) → epic/story (the work) → idea (the inbox).
+Cards link upward via `milestone` and `context_docs`; keep those links
+real — they are what makes "read the context before building" possible.
 
 ## 2. Schemas
 
@@ -52,13 +65,23 @@ default view") — never as a side effect of other edits; the UI's
 { "id": "F1", "name": "…", "description": "…", "notes": "",
   "theme": "T1 Foundation & Contracts", "milestone": "M0 Reliable foundation",
   "priority": "Now", "status": "free-text maturity tag", "tags": ["extras"],
+  "systems": ["chaim-server", "chaim-ui"],
+  "context_docs": [ {"label": "…", "path": "architecture/….md", "note": "§5"} ],
   "gate": "none", "deps": ["other-epic-ids"], "column": "Backlog",
   "claimed_by": null, "claimed_at": null, "updated_at": null }
 ```
 `theme` and `milestone` must come from config vocab (empty string allowed).
 `gate` other than `"none"` means the epic is closed until that gate appears
 in config `open_gates` — a human records that; you never flip it. `status`
-is informational maturity, independent of `column`.
+is informational maturity, independent of `column`. `systems` names the
+repos/services the change touches (free strings, edited in the UI);
+`context_docs` is edited via file/skill only — the modal deliberately
+doesn't grow a widget for it.
+
+**Workflow impact (a notes convention, not a field):** when a change
+alters how a user or system flow works, write a paragraph starting
+`Workflow impact:` into the epic's `notes` — what flow changes, before →
+after. Grooming and curation add it; builders read it.
 
 **Story**:
 ```json
@@ -66,6 +89,7 @@ is informational maturity, independent of `column`.
   "kind": "feature",
   "acceptance_criteria": ["testable statement", "…"],
   "context": "repos, paths, docs the builder should read",
+  "systems": ["chaim-server"],
   "ready": false, "column": "Backlog", "priority": "Now",
   "claimed_by": null, "claimed_at": null, "updated_at": null }
 ```
@@ -73,6 +97,26 @@ is informational maturity, independent of `column`.
 `<epic_id>-<n>`. **`ready` is the definition-of-ready flag: only the human
 sets it to true.** A story you drafted while grooming always lands
 `ready: false`.
+
+**Milestones** (`milestones.json` — a single object, like config):
+```json
+{ "overview": {
+    "summary": "one paragraph: the system we're building",
+    "context_docs": [ {"label": "Architecture", "path": "architecture/….md", "note": "…"} ] },
+  "milestones": [ {
+    "id": "M1", "name": "…", "tagline": "…",
+    "summary": "what we seek to accomplish",
+    "user_outcome": "…", "gate": "exit criteria / evidence gate", "roi": "…",
+    "deliverables": [ {"name": "…", "description": "…", "epics": ["D1","D2"]} ],
+    "context_docs": [], 
+    "architecture": { "summary": "…", "subsystems": [ {"name": "…", "state": "new|changed|existing", "note": "…"} ] }
+  } ] }
+```
+`id` is the *short* form of a config milestone vocab entry (`M1`,
+`Phase 2`). `user_outcome`, `roi`, and `architecture` are optional — the
+Milestones page renders them only when present. Deliverable `epics` ids
+must exist in `epics.json`; the page rolls up done-counts from them, so
+keep the links current when scope changes.
 
 **Idea**:
 ```json
@@ -151,10 +195,52 @@ When the user says to build a story (e.g. "begin O1-2"):
 An epic is "begin"-able too: work its ready stories in dependency/priority
 order, one at a time, reporting between stories.
 
-## 7. Selection ("what's next")
+## 7. Curating the backlog
+
+When the user asks to "clean up the backlog" / "curate" / "tidy the
+board", run these passes over the whole data dir plus the context
+directory. Everything is **propose → user approves → apply**; merges and
+re-parenting are destructive, so never apply them without an explicit
+yes.
+
+1. **Group.** Find stories attached to the wrong epic, epics that are
+   really stories of another epic, and duplicate or overlapping
+   ideas/epics. Present a table: what, where it is, where it should go,
+   why. Apply approved moves (story `epic_id` changes keep the old id
+   unless it collides; merged epics fold `deps`/stories into the
+   survivor and the loser is deleted with its content preserved in the
+   survivor's notes).
+2. **Enrich.** For each epic/story whose description or context is too
+   thin to build from, draft: *what is the change* (description), *systems
+   involved* (`systems`), *what to read first* (`context_docs` for epics,
+   `context` for stories) — sourced from the context directory and the
+   code repos, not invented. Show per-card before/after; apply approved.
+3. **Workflow impact.** For changes that alter a user or system flow, add
+   the `Workflow impact:` note (§2). Flag flows the backlog changes that
+   no story covers.
+4. **Milestone alignment.** Epics with no `milestone` → propose one.
+   Deliverables whose `epics` lists have drifted from reality → flag.
+   Milestone summaries that no longer describe their epics → propose
+   rewording (milestone text is the human's narrative; propose, don't
+   rewrite silently).
+5. **Context drift.** Compare recently-Done work against the linked
+   context docs: does the architecture doc still describe the system as
+   built? Do strategy/business claims still hold (chaim:
+   `strategy/strategy.md`, the PRFAQ; arc: `prfaq.md`, `roadmap.md`)?
+   Report findings; draft proposed doc edits **as proposals only — never
+   silently edit strategy or architecture docs.** Each ratified doc
+   update is its own commit in the context directory, so `git log` on
+   those files is the record of how the plan evolved during development.
+
+End every curation with a summary of what changed, what was proposed and
+declined, and what needs the user's decision.
+
+## 8. Selection ("what's next")
 
 Defined in [`PROTOCOL.md`](PROTOCOL.md) §3 — pickable = first-lane, deps
 done, gate open, unclaimed, WIP under limit; rank by priority tier, then
 unblock count, then file order. For stories, add: `ready: true` and its
 epic not gated. An empty selection is an answer — report *why* nothing is
-pickable, don't force a pick.
+pickable, don't force a pick. When you report a pick, name the milestone
+it serves (via its epic's `milestone`), so the user hears *what the work
+is for*, not just its id.

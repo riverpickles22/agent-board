@@ -26,7 +26,11 @@ const FILES = {
   stories: "stories.json",
   ideas: "ideas.json",
   config: "config.json",
+  milestones: "milestones.json",
 };
+
+// Resources whose whole value is an object rather than an array.
+const OBJECT_RESOURCES = new Set(["config", "milestones"]);
 
 // Sensible defaults when a project's data dir doesn't have a file yet —
 // so a brand-new project can point BOARD_DATA_DIR at an empty directory
@@ -44,6 +48,7 @@ const DEFAULTS = {
     wip_limits: {},
     view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
   },
+  milestones: { overview: null, milestones: [] },
 };
 
 function readData(key) {
@@ -90,15 +95,16 @@ const server = http.createServer(async (req, res) => {
         stories: readData("stories"),
         ideas: readData("ideas"),
         config: readData("config"),
+        milestones: readData("milestones"),
       });
     }
-    // Whole-array (or whole-object, for config) writes: the single-user
-    // client owns state and sends the full value back.
+    // Whole-array (or whole-object) writes: the single-user client owns
+    // state and sends the full value back.
     if (req.method === "PUT" && url.startsWith("/api/")) {
       const key = url.slice("/api/".length);
       if (FILES[key]) {
         const body = await readBody(req);
-        const expectArray = key !== "config";
+        const expectArray = !OBJECT_RESOURCES.has(key);
         if (expectArray && !Array.isArray(body)) return sendJSON(res, 400, { error: "expected a JSON array" });
         if (!expectArray && (typeof body !== "object" || body === null)) return sendJSON(res, 400, { error: "expected a JSON object" });
         writeData(key, body);

@@ -40,19 +40,29 @@ Saving your backlog **is** a git commit in the project's repo — there is no
 other persistence layer, no database, no sync service. Diffs of board
 changes show up in normal review like any other file.
 
-## What's on a board
+## What's on a board — the context stack
 
-- **Ideas** — the inbox. Anything worth remembering, before it's decided.
-  Ideas move `idea → considering → planned → building → done`, or
-  `rejected` (kept with a reason, never silently deleted).
-- **Epics** — decided work, organized by **theme** (what area it belongs
-  to) and **milestone** (when it should roll out), with priorities,
-  dependencies, and six-or-fewer lanes you configure per project.
-- **Stories** — the buildable slices under an epic, each with acceptance
-  criteria, context for whoever builds it, a kind
-  (`feature / test / integration / chore / docs`), and a **ready** flag:
-  your recorded judgment that there's enough context for an agent to go
-  build it.
+Four layers, each answering a different question:
+
+1. **The system** (*what are we building?*) — the project's
+   `*-system-design` repo is the **context directory**: architecture,
+   strategy, PRFAQ. The Milestones page opens with a one-paragraph
+   overview linking those docs. Git history of that repo is the record of
+   how the plan evolved.
+2. **Milestones** (*what do we seek to accomplish, when?*) — one place
+   per milestone: summary, gate/exit criteria, and deliverables that link
+   down to epic chips with a live done-count. Rendered on the
+   **Milestones** page from `milestones.json`.
+3. **Epics & stories** (*the work*) — epics organized by **theme** and
+   **milestone**, with priorities, dependencies, and the **systems** each
+   change touches. Stories are the buildable slices: acceptance criteria,
+   context for whoever builds it, a kind
+   (`feature / test / integration / chore / docs`), and a **ready** flag —
+   your recorded judgment that there's enough context for an agent to go
+   build it.
+4. **Ideas** (*the inbox*) — anything worth remembering, before it's
+   decided. `idea → considering → planned → building → done`, or
+   `rejected` (kept with a reason, never silently deleted).
 
 Themes, milestones, lanes, and priority tiers are all defined per project
 in that project's `config.json` — the app has no hardcoded vocabulary.
@@ -95,17 +105,24 @@ project needs.
 
 ## Working with AI (the point of all this)
 
-The `agent-board` Claude skill gives a Claude Code session four abilities:
+The `agent-board` Claude skill gives a Claude Code session five abilities:
 
-1. **Operate** — "what should I work on next?", move cards, triage ideas.
+1. **Operate** — "what should I work on next?", move cards, triage ideas,
+   "where are we on M1?" answered from the milestone's deliverable
+   roll-up.
 2. **Groom** — brainstorm with you, then break a request down into an epic
    and stories with acceptance criteria, landed on the board for you to
    review. Nothing is marked ready by the AI — that's your call.
-3. **Build** — when you say a story is ready ("ok, begin O1-2"), the agent
+3. **Curate** — "clean up the backlog": group related work, enrich thin
+   cards (what the change is, systems involved, what to read first), note
+   workflow impact, re-align milestones with their epics, and flag when
+   finished work has drifted from the architecture or strategy docs —
+   proposing doc updates for you to ratify, never silently editing them.
+4. **Build** — when you say a story is ready ("ok, begin O1-2"), the agent
    claims it, reads its context, implements it in the target code repo,
    writes the tests the story calls for, moves the card, and asks before
    committing.
-4. **Save** — board edits happen freely; git commits happen when you say
+5. **Save** — board edits happen freely; git commits happen when you say
    "save" — that's the ratification step.
 
 ## Wiring a new project
