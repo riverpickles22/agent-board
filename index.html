@@ -724,7 +724,7 @@ function updateFooter(page){
   fn.innerHTML = page==="board"
     ? '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>'
     : page==="milestones"
-    ? 'what each milestone delivers · <b>click an epic chip</b> to jump to it on the board'
+    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it on the board'
     : '<b>click</b> an idea to edit · <b>+ new idea</b> to capture one';
 }
 function route(){
@@ -737,6 +737,21 @@ function route(){
   else if(page==="milestones") renderMilestones(param);
 }
 window.addEventListener("hashchange", route);
+
+// ←/→ step through milestones on the Milestones page (ignored while typing
+// in a field or while a modal is open).
+document.addEventListener("keydown", ev => {
+  if(ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+  if(currentRoute().page !== "milestones") return;
+  if(document.getElementById("scrim").classList.contains("on")) return;
+  const t = ev.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
+  const list = state.milestones.milestones || [];
+  if(!list.length) return;
+  const i = Math.max(0, list.findIndex(m => m.id === msSel));
+  const j = ev.key === "ArrowLeft" ? Math.max(0, i - 1) : Math.min(list.length - 1, i + 1);
+  if(j !== i){ ev.preventDefault(); navigate("milestones", list[j].id); }
+});
 
 /* ================= milestones view ================= */
 let msSel = null;
