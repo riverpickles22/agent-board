@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-board</title>
+<style>
+  :root{
+    --ground:#EEF2F3; --panel:#FFFFFF; --card:#FFFFFF; --card-2:#F3F7F8;
+    --ink:#152229; --ink-2:#3F5158; --ink-3:#5F7076; --line:#D3DCDE; --line-2:#E5ECED;
+    --accent:#0E7E8B; --accent-soft:rgba(14,126,139,.10);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    /* per-lane identity colours, cycled if there are more lanes than colours */
+    --lane-0:#5C7488; --lane-1:#6B4FC4; --lane-2:#A56E12; --lane-3:#0E7E8B; --lane-4:#C8481F; --lane-5:#2F7E5A;
+    --shadow:0 1px 2px rgba(16,36,43,.05), 0 10px 26px rgba(16,36,43,.09);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0E1518; --panel:#162126; --card:#1B282E; --card-2:#212F35;
+      --ink:#F0F5F6; --ink-2:#B7C6CC; --ink-3:#8D9CA3; --line:#2A3A41; --line-2:#233238;
+      --accent:#43C2CC; --accent-soft:rgba(67,194,204,.14);
+      --lane-0:#98ADC2; --lane-1:#B2A2EE; --lane-2:#E0AC55; --lane-3:#43C2CC; --lane-4:#F58063; --lane-5:#5FB68C;
+      --shadow:0 1px 2px rgba(0,0,0,.32), 0 12px 32px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#EEF2F3; --panel:#FFFFFF; --card:#FFFFFF; --card-2:#F3F7F8;
+    --ink:#152229; --ink-2:#3F5158; --ink-3:#5F7076; --line:#D3DCDE; --line-2:#E5ECED;
+    --accent:#0E7E8B; --accent-soft:rgba(14,126,139,.10);
+    --lane-0:#5C7488; --lane-1:#6B4FC4; --lane-2:#A56E12; --lane-3:#0E7E8B; --lane-4:#C8481F; --lane-5:#2F7E5A;
+    --shadow:0 1px 2px rgba(16,36,43,.05), 0 10px 26px rgba(16,36,43,.09);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E1518; --panel:#162126; --card:#1B282E; --card-2:#212F35;
+    --ink:#F0F5F6; --ink-2:#B7C6CC; --ink-3:#8D9CA3; --line:#2A3A41; --line-2:#233238;
+    --accent:#43C2CC; --accent-soft:rgba(67,194,204,.14);
+    --lane-0:#98ADC2; --lane-1:#B2A2EE; --lane-2:#E0AC55; --lane-3:#43C2CC; --lane-4:#F58063; --lane-5:#5FB68C;
+    --shadow:0 1px 2px rgba(0,0,0,.32), 0 12px 32px rgba(0,0,0,.34);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  header{padding:16px 22px 12px;border-bottom:1px solid var(--line-2);flex:0 0 auto}
+  .hrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .sub{font-size:13px;color:var(--ink-2);margin-left:auto;display:flex;align-items:center;gap:16px}
+  #counts{font-variant-numeric:tabular-nums}
+  .save{font-size:12.5px;display:flex;align-items:center;gap:7px;color:var(--ink-2)}
+  .save .d{width:8px;height:8px;border-radius:50%;background:var(--lane-5);transition:background .2s}
+  .save.saving .d{background:var(--lane-2);animation:pulse 1s infinite}
+  .save.err .d{background:var(--lane-4)}
+
+  .filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:13px;padding:0 22px}
+  .flabel{font-size:12px;color:var(--ink-3);margin-right:3px}
+  .chip{font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 13px;border-radius:20px;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer;transition:all .12s ease}
+  .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  :root[data-theme="dark"] .chip[aria-pressed="true"]{color:#07161a}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#07161a}}
+
+  .board{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
+  .col{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;background:var(--panel);
+    border:1px solid var(--line);border-top:2px solid var(--lc);border-radius:12px;min-height:0}
+  .col-h{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line-2);flex:0 0 auto;
+    background:color-mix(in srgb, var(--lc) 10%, var(--panel));border-radius:11px 11px 0 0}
+  .col-h .sw{width:10px;height:10px;border-radius:3px;background:var(--lc);flex:0 0 auto}
+  .col-h .nm{font-size:14px;font-weight:600;color:var(--lc);letter-spacing:-.01em}
+  .col-h .ct{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;font-weight:500}
+  .col-body{flex:1 1 auto;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px;min-height:60px}
+  .col.drop-hover{border-color:var(--accent)}
+  .col.drop-hover .col-body{background:var(--accent-soft)}
+  body.is-dragging .col.no-drop{opacity:.4}
+  .addcard{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink-3);background:transparent;
+    border:1px dashed var(--line);border-radius:8px;padding:9px;width:100%;cursor:pointer;transition:all .12s ease;flex:0 0 auto}
+  .addcard:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 12px;cursor:grab;
+    transition:transform .1s ease,border-color .1s ease,box-shadow .1s ease}
+  .card:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+  .card:active{cursor:grabbing}
+  .card.dragging{opacity:.4;box-shadow:none}
+  body.is-dragging .card:not(.dragging){pointer-events:none}
+  .card .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .card .id{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent)}
+  .card .title{font-size:14px;line-height:1.4;margin:7px 0 0;font-weight:550;color:var(--ink);letter-spacing:-.005em}
+  .meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .tagpill{font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:20px;letter-spacing:.01em;background:var(--card-2);color:var(--ink-2);border:1px solid var(--line)}
+  .st{font-size:11px;font-weight:500;padding:2px 8px;border-radius:5px;border:1px solid var(--line);color:var(--ink-2)}
+  .prio{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;flex:0 0 auto}
+  .prio.p0{background:var(--accent);color:#fff} :root[data-theme="dark"] .prio.p0{color:#07161a}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .prio.p0{color:#07161a}}
+  .prio.p1{border:1px solid var(--ink-3);color:var(--ink-2)}
+  .prio.p2{color:var(--ink-3)} .prio.p3{color:var(--ink-3);opacity:.75}
+  .card .dep{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .card .dep.warn{color:var(--lane-4);font-weight:600}
+  .claim{font-size:11px;color:var(--accent);font-weight:600}
+
+  /* ---- tabs + views ---- */
+  .tabs{display:flex;gap:4px;margin-left:6px}
+  .tab{font-family:var(--sans);font-size:13.5px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid transparent;
+    background:transparent;color:var(--ink-3);cursor:pointer;transition:all .12s ease}
+  .tab:hover{color:var(--ink);background:var(--card-2)}
+  .tab[aria-selected="true"]{color:var(--accent);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .view[hidden]{display:none}
+  .view.scroll{display:block;overflow-y:auto;padding:24px 26px 48px}
+  .vhead{max-width:760px;margin:0 0 20px}
+  .vhead h2{font-size:21px;margin:0 0 5px;letter-spacing:-.015em}
+  .vhead p{color:var(--ink-2);font-size:14px;margin:0;line-height:1.55}
+
+  /* ---- ideas ---- */
+  .ideas-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .ideas-col>h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 10px;font-weight:600;display:flex;gap:8px;align-items:center}
+  .ideas-col .cnt{font-family:var(--mono);color:var(--ink-3)}
+  .idea{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--panel);margin-bottom:10px;cursor:pointer;transition:all .12s}
+  .idea:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+  .idea .it{font-size:14px;font-weight:600;color:var(--ink)}
+  .idea .ia{font-size:12.5px;color:var(--ink-2);margin-top:5px;line-height:1.45}
+  .idea .irel{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:9px}
+  .card.flash{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)}
+  @media (max-width:820px){.ideas-cols{grid-template-columns:1fr}}
+
+  /* ---- modal ---- */
+  .scrim{position:fixed;inset:0;background:rgba(6,14,17,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .scrim.on{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+    width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px 24px}
+  .modal h2{margin:0;font-size:16px;display:flex;align-items:center;gap:10px}
+  .modal h2 .id{font-family:var(--mono);color:var(--accent);font-size:14px}
+  .field{margin-top:15px}
+  .field label{font-size:12px;font-weight:500;color:var(--ink-3);display:block;margin-bottom:6px}
+  .field input,.field textarea,.field select{width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);
+    background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  .field input[readonly]{color:var(--ink-3);cursor:not-allowed}
+  .field textarea{min-height:88px;resize:vertical;line-height:1.5}
+  .field.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field.mono input{font-family:var(--mono);font-size:13px}
+  .actions{display:flex;gap:10px;margin-top:22px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:var(--sans);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card-2);color:var(--ink);cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{border-color:color-mix(in srgb,var(--lane-4) 50%,transparent);color:var(--lane-4);background:transparent;margin-left:auto}
+  .btn.danger:hover{background:color-mix(in srgb,var(--lane-4) 12%,transparent)}
+  :root[data-theme="dark"] .btn.primary{color:#07161a}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{color:#07161a}}
+  .btn:focus-visible,.card:focus-visible,.chip:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .m-err{font-size:12.5px;color:var(--lane-4);min-height:16px;margin-top:8px}
+
+  footer{flex:0 0 auto;padding:9px 22px;border-top:1px solid var(--line-2);font-size:12px;color:var(--ink-3);
+    display:flex;gap:16px;flex-wrap:wrap}
+  footer b{color:var(--ink-2)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);max-width:min(560px,92vw);
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);border-left:3px solid var(--lane-4);
+    border-radius:10px;padding:12px 16px;font-size:13.5px;line-height:1.45;box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:60}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <header>
+    <div class="hrow">
+      <span class="eyebrow">Local · agent-board</span>
+      <h1 id="board-title">Board</h1>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Views"></nav>
+      <div class="sub">
+        <span id="counts"></span>
+        <span class="save" id="save"><span class="d"></span><span id="save-t">saved</span></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="view" id="view-board" hidden>
+    <div class="filters" id="filters"></div>
+    <main class="board" id="board" aria-label="Kanban board"></main>
+  </section>
+  <section class="view scroll" id="view-ideas" hidden></section>
+
+  <footer>
+    <span id="footer-note"></span>
+    <span id="stories-note"></span>
+    <span style="margin-left:auto">data → <b id="data-path">./data</b></span>
+  </footer>
+
+  <div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const opts = (arr,sel) => arr.map(x=>'<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>').join("");
+const today = () => new Date().toISOString().slice(0,10);
+
+let state = { epics: [], stories: [], ideas: [], config: {} };
+let COLUMNS = [], PRIOS = [];
+let filterTag = "all";
+let modalMode = "edit";
+let editingId = null;
+const byId = () => Object.fromEntries(state.epics.map(e => [e.id, e]));
+const laneVar = col => "var(--lane-"+(COLUMNS.indexOf(col)%6)+")";
+const prioClass = p => "p"+Math.max(0, PRIOS.indexOf(p));
+
+/* ---- dependency ordering guard ---- */
+// The last configured lane is the "done" lane; a card can't enter it until
+// every dependency has, and a dependency can't leave it while a dependent
+// is already there.
+function doneLane(){ return COLUMNS[COLUMNS.length-1]; }
+function depsOf(e){ return (e.deps||[]).map(d=>byId()[d]).filter(Boolean); }
+function checkMove(e, target){
+  if(target === doneLane()){
+    const waiting = depsOf(e).filter(d => d.column !== doneLane());
+    if(waiting.length) return { ok:false,
+      reason: e.id+" can't enter "+target+" — waiting on "+waiting.map(d=>d.id+" ("+d.column+")").join(", ")+" to reach "+doneLane()+"." };
+  }
+  if(target !== doneLane()){
+    const shipped = state.epics.filter(x => (x.deps||[]).includes(e.id) && x.column === doneLane());
+    if(shipped.length) return { ok:false,
+      reason: e.id+" can't move to "+target+" — "+shipped.map(d=>d.id).join(", ")+" depend on it and are already "+doneLane()+". Move them back first." };
+  }
+  return { ok:true };
+}
+
+async function load(){
+  const r = await fetch("/api/board");
+  state = await r.json();
+  state.stories = state.stories || [];
+  state.ideas = state.ideas || [];
+  state.config = state.config || {};
+  COLUMNS = state.config.lanes && state.config.lanes.length ? state.config.lanes : ["Backlog","In Progress","Review","Done"];
+  PRIOS = state.config.priorities && state.config.priorities.length ? state.config.priorities : ["Now","Next","Later","Someday"];
+  state.epics.forEach(e => { if(!COLUMNS.includes(e.column)) e.column = COLUMNS[0]; });
+  renderFilters();
+  render();
+  renderTabs();
+  route();
+}
+
+function allTags(){
+  const s = new Set();
+  state.epics.forEach(e => (e.tags||[]).forEach(t => s.add(t)));
+  return [...s].sort();
+}
+function renderFilters(){
+  const f = document.getElementById("filters");
+  const tags = allTags();
+  if(!tags.length){ f.innerHTML = ""; return; }
+  let html = '<span class="flabel">Tag</span>' + chip("all","All");
+  tags.forEach(t => html += chip(t, t));
+  f.innerHTML = html;
+  f.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+    filterTag = c.dataset.tag;
+    f.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x.dataset.tag===filterTag));
+    render();
+  }));
+  function chip(v,label){ return '<button class="chip" data-tag="'+esc(v)+'" aria-pressed="'+(v===filterTag)+'">'+esc(label)+'</button>'; }
+}
+
+function render(){
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const shown = state.epics.filter(e => filterTag==="all" || (e.tags||[]).includes(filterTag));
+  COLUMNS.forEach(col => {
+    const items = shown.filter(e => e.column === col);
+    const sec = document.createElement("section");
+    sec.className = "col";
+    sec.dataset.col = col;
+    sec.style.setProperty("--lc", laneVar(col));
+    sec.innerHTML =
+      '<div class="col-h"><span class="sw"></span>'+
+        '<span class="nm">'+esc(col)+'</span><span class="ct">'+items.length+'</span></div>'+
+      '<div class="col-body"></div>';
+    const body = sec.querySelector(".col-body");
+    const add = document.createElement("button");
+    add.className = "addcard"; add.type = "button"; add.textContent = "+ add card";
+    add.addEventListener("click", () => openCreate(col));
+    body.appendChild(add);
+    items.forEach(e => body.appendChild(cardEl(e)));
+    wireDrop(sec);
+    board.appendChild(sec);
+  });
+  const total = state.epics.length, done = state.epics.filter(e=>e.column===doneLane()).length;
+  document.getElementById("counts").textContent =
+    filterTag==="all" ? (total + " cards · " + done + " done")
+                       : (shown.length + " of " + total + " · " + filterTag);
+  document.getElementById("stories-note").innerHTML = state.stories.length
+    ? "<b>"+state.stories.length+"</b> stories" : "";
+}
+
+function cardEl(e){
+  const el = document.createElement("article");
+  el.className = "card"; el.tabIndex = 0; el.draggable = true; el.dataset.id = e.id;
+  const unmet = depsOf(e).filter(d => d.column !== doneLane()).map(d => d.id);
+  const depBits = e.deps && e.deps.length
+    ? (unmet.length
+        ? '<span class="dep warn" title="Must reach '+esc(doneLane())+' before this can move">↯ needs '+esc(unmet.join(" "))+'</span>'
+        : '<span class="dep">⊸ '+esc(e.deps.join(" "))+'</span>')
+    : "";
+  const claimBit = e.claimed_by ? '<span class="claim">claimed: '+esc(e.claimed_by)+'</span>' : "";
+  el.innerHTML =
+    '<div class="top"><span class="id">'+esc(e.id)+'</span><span class="prio '+prioClass(e.priority)+'">'+esc(e.priority)+'</span></div>'+
+    '<p class="title">'+esc(e.name)+'</p>'+
+    '<div class="meta">'+(e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
+      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+depBits+claimBit+'</div>';
+  el.addEventListener("dragstart", ev => {
+    ev.dataTransfer.setData("text/plain", e.id);
+    ev.dataTransfer.effectAllowed = "move";
+    el.classList.add("dragging"); document.body.classList.add("is-dragging");
+    document.querySelectorAll(".col").forEach(sec => { if(!checkMove(e, sec.dataset.col).ok) sec.classList.add("no-drop"); });
+  });
+  el.addEventListener("dragend", () => {
+    el.classList.remove("dragging"); document.body.classList.remove("is-dragging");
+    document.querySelectorAll(".col").forEach(c=>c.classList.remove("drop-hover","no-drop"));
+  });
+  el.addEventListener("click", () => openEdit(e.id));
+  el.addEventListener("keydown", ev => { if(ev.key==="Enter"){ev.preventDefault();openEdit(e.id);} });
+  return el;
+}
+
+function wireDrop(sec){
+  sec.addEventListener("dragover", ev => {
+    ev.preventDefault();
+    if(sec.classList.contains("no-drop")){ ev.dataTransfer.dropEffect="none"; return; }
+    ev.dataTransfer.dropEffect="move"; sec.classList.add("drop-hover");
+  });
+  sec.addEventListener("dragleave", ev => { if(!sec.contains(ev.relatedTarget)) sec.classList.remove("drop-hover"); });
+  sec.addEventListener("drop", ev => {
+    ev.preventDefault(); sec.classList.remove("drop-hover");
+    const id = ev.dataTransfer.getData("text/plain");
+    const ep = byId()[id];
+    if(!ep || ep.column === sec.dataset.col) return;
+    const chk = checkMove(ep, sec.dataset.col);
+    if(!chk.ok){ showToast(chk.reason); return; }
+    ep.column = sec.dataset.col; ep.updated_at = new Date().toISOString();
+    render(); persist();
+  });
+}
+
+/* ---- modal (edit + create + delete) ---- */
+function blankEpic(col){
+  return { id: suggestId(), name:"", description:"", notes:"", priority:PRIOS[0], status:"", gate:"none",
+    tags:[], deps:[], column:col||COLUMNS[0], claimed_by:null, claimed_at:null, updated_at:null };
+}
+function suggestId(){ const ids=new Set(state.epics.map(e=>e.id)); let n=1; while(ids.has("NEW"+n)) n++; return "NEW"+n; }
+function openEdit(id){ const e = byId()[id]; if(!e) return; modalMode="edit"; editingId=id; renderModal(e); }
+function openCreate(col){ modalMode="create"; editingId=null; renderModal(blankEpic(col)); }
+
+function renderModal(e){
+  const create = modalMode==="create";
+  const modal = document.getElementById("modal");
+  modal.innerHTML =
+    '<h2 id="m-title"><span class="id">'+esc(e.id)+'</span> <span>'+(create?"New card":"Edit card")+'</span></h2>'+
+    '<div class="field row2">'+
+      '<div class="mono"><label for="f-id">ID</label><input id="f-id" value="'+esc(e.id)+'"'+(create?'':' readonly')+'></div>'+
+      '<div><label for="f-lane">Lane</label><select id="f-lane">'+opts(COLUMNS,e.column)+'</select></div>'+
+    '</div>'+
+    '<div class="field"><label for="f-name">Name</label><input id="f-name" value="'+esc(e.name)+'"></div>'+
+    '<div class="field"><label for="f-desc">Description</label><textarea id="f-desc">'+esc(e.description)+'</textarea></div>'+
+    '<div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" style="min-height:60px">'+esc(e.notes||"")+'</textarea></div>'+
+    '<div class="field row2">'+
+      '<div><label for="f-prio">Priority</label><select id="f-prio">'+opts(PRIOS,e.priority)+'</select></div>'+
+      '<div class="mono"><label for="f-status">Status (free text)</label><input id="f-status" value="'+esc(e.status||"")+'"></div>'+
+    '</div>'+
+    '<div class="field row2">'+
+      '<div class="mono"><label for="f-tags">Tags (space-separated)</label><input id="f-tags" value="'+esc((e.tags||[]).join(" "))+'"></div>'+
+      '<div class="mono"><label for="f-gate">Gate (\"none\" = always open)</label><input id="f-gate" value="'+esc(e.gate||"none")+'"></div>'+
+    '</div>'+
+    '<div class="field mono"><label for="f-deps">Depends on (space-separated ids)</label><input id="f-deps" value="'+esc((e.deps||[]).join(" "))+'"></div>'+
+    '<div class="field row2">'+
+      '<div class="mono"><label for="f-claim">Claimed by</label><input id="f-claim" value="'+esc(e.claimed_by||"")+'" placeholder="agent/session id"></div>'+
+      '<div class="mono"><label for="f-claimed-at">Claimed at</label><input id="f-claimed-at" value="'+esc(e.claimed_at||"")+'" readonly></div>'+
+    '</div>'+
+    '<div class="m-err" id="m-err"></div>'+
+    '<div class="actions">'+
+      '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
+      '<button class="btn" id="m-cancel">Cancel</button>'+
+      (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
+    '</div>';
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("m-save").addEventListener("click", saveModal);
+  document.getElementById("m-cancel").addEventListener("click", closeModal);
+  if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
+  document.getElementById(create?"f-id":"f-name").focus();
+}
+
+function saveModal(){
+  const g = id => document.getElementById(id);
+  const create = modalMode==="create";
+  const claimField = g("f-claim").value.trim();
+  const prevClaim = modalMode==="edit" ? (byId()[editingId]||{}).claimed_by : null;
+  const vals = {
+    id: g("f-id").value.trim(), name: g("f-name").value.trim(), description: g("f-desc").value,
+    notes: g("f-notes").value, priority: g("f-prio").value, status: g("f-status").value.trim(),
+    tags: g("f-tags").value.split(/\s+/).filter(Boolean),
+    gate: g("f-gate").value.trim() || "none", column: g("f-lane").value,
+    deps: g("f-deps").value.split(/[\s,]+/).filter(Boolean),
+    claimed_by: claimField || null,
+    claimed_at: claimField ? (claimField===prevClaim ? g("f-claimed-at").value || new Date().toISOString() : new Date().toISOString()) : null,
+  };
+  const err = g("m-err");
+  if(!vals.name){ err.textContent="Name is required."; g("f-name").focus(); return; }
+  const oldCol = modalMode==="edit" ? (byId()[editingId]||{}).column : null;
+  if(vals.column !== oldCol){
+    const chk = checkMove({ id: vals.id, deps: vals.deps }, vals.column);
+    if(!chk.ok){ err.textContent = chk.reason; return; }
+  }
+  if(create){
+    if(!vals.id){ err.textContent="ID is required."; g("f-id").focus(); return; }
+    if(byId()[vals.id]){ err.textContent='ID "'+vals.id+'" already exists — pick a unique one.'; g("f-id").focus(); return; }
+    state.epics.push(Object.assign(vals, { updated_at: new Date().toISOString() }));
+  } else {
+    const e = byId()[editingId]; if(!e) return closeModal();
+    Object.assign(e, vals, { id: e.id, updated_at: new Date().toISOString() });
+  }
+  closeModal(); render(); persist();
+}
+
+function deleteEpic(id){
+  const e = byId()[id]; if(!e) return;
+  const dependents = state.epics.filter(x => (x.deps||[]).includes(id)).map(x=>x.id);
+  let msg = 'Delete card '+id+' — "'+e.name+'"?';
+  if(dependents.length) msg += "\n\nHeads up: "+dependents.join(", ")+" list it as a dependency.";
+  msg += "\n\nThis writes to epics.json (recoverable via git).";
+  if(!window.confirm(msg)) return;
+  state.epics = state.epics.filter(x => x.id !== id);
+  closeModal(); render(); persist();
+}
+
+function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; }
+document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.id==="scrim") closeModal(); });
+document.addEventListener("keydown", ev => { if(ev.key==="Escape") closeModal(); });
+
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("on"), 4500);
+}
+
+/* ---- persistence ---- */
+let saveTimer=null;
+function persistResource(resource, val){
+  const s = document.getElementById("save"), t = document.getElementById("save-t");
+  s.className = "save saving"; t.textContent = "saving…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try{
+      const r = await fetch("/api/"+resource, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      s.className="save"; t.textContent="saved";
+    }catch(err){
+      s.className="save err"; t.textContent="save failed — is the server running?";
+    }
+  }, 150);
+}
+function persist(){ persistResource("epics", state.epics); }
+
+/* ================= routing (hash-based SPA) ================= */
+const PAGES = ["board","ideas"];
+const PAGE_LABELS = { board:"Board", ideas:"Ideas" };
+function currentRoute(){
+  const h = (location.hash || "").replace(/^#\/?/, "");
+  const [page] = h.split("/");
+  return { page: PAGES.includes(page) ? page : "board" };
+}
+function navigate(page){ location.hash = "#/" + page; }
+function renderTabs(){
+  const { page } = currentRoute();
+  const t = document.getElementById("tabs");
+  t.innerHTML = PAGES.map(p => '<button class="tab" role="tab" data-page="'+p+'" aria-selected="'+(p===page)+'">'+PAGE_LABELS[p]+'</button>').join("");
+  t.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => navigate(b.dataset.page)));
+}
+function updateFooter(page){
+  const fn = document.getElementById("footer-note"); if(!fn) return;
+  fn.innerHTML = page==="board"
+    ? '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>'
+    : '<b>click</b> an idea to edit · <b>+ new idea</b> to capture one';
+}
+function route(){
+  const { page } = currentRoute();
+  PAGES.forEach(p => { const el = document.getElementById("view-"+p); if(el) el.hidden = p!==page; });
+  document.querySelectorAll("#tabs .tab").forEach(b => b.setAttribute("aria-selected", b.dataset.page===page));
+  const counts = document.getElementById("counts"); if(counts) counts.style.display = page==="board" ? "" : "none";
+  updateFooter(page);
+  if(page==="ideas") renderIdeas();
+}
+window.addEventListener("hashchange", route);
+
+/* ================= ideas view ================= */
+const IDEA_STATUS = ["idea","considering","planned","building","done","rejected"];
+const IDEA_STATUS_LABEL = { idea:"Idea", considering:"Considering", planned:"Planned", building:"Building", done:"Done", rejected:"Rejected" };
+let editingIdea = null, ideaMode = "edit";
+
+function renderIdeas(){
+  const v = document.getElementById("view-ideas");
+  const ideas = state.ideas || [];
+  const cols = ["idea","considering","planned"]; // building/done/rejected shown via status label on the card itself when filtered later; keep the default view to the three "still deciding/queued" lanes plus an "active+resolved" summary
+  let html = '<div class="vhead" style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">'+
+    '<div><h2>Ideas backlog</h2><p>Capture, triage, and reorder ideas. Promote good ones onto the board as cards; reject the rest without deleting them.</p></div>'+
+    '<button class="btn primary" id="new-idea" style="flex:0 0 auto">+ New idea</button></div>';
+  html += '<div class="ideas-cols">'+IDEA_STATUS.map(st => {
+    const items = ideas.filter(i => i.status===st);
+    return '<div class="ideas-col"><h3>'+IDEA_STATUS_LABEL[st]+' <span class="cnt">'+items.length+'</span></h3>'+
+      (items.length ? items.map(i => '<div class="idea" data-id="'+esc(i.id)+'"><div class="it">'+esc(i.title)+'</div>'+
+        (i.description ? '<div class="ia">'+esc(i.description)+'</div>' : '')+
+        ((i.tags||[]).length ? '<div class="irel">'+esc((i.tags||[]).join(" · "))+'</div>' : '')+
+        '</div>').join("") : '<div style="font-size:12.5px;color:var(--ink-3)">none</div>')+'</div>';
+  }).join("")+'</div>';
+  v.innerHTML = html;
+  document.getElementById("new-idea").addEventListener("click", () => openIdea(null));
+  v.querySelectorAll(".idea").forEach(el => el.addEventListener("click", () => openIdea(el.dataset.id)));
+}
+
+function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", tags:[], status:"idea", priority:PRIOS[0], rejected_reason:null, created_at:today(), updated_at:null }; }
+function openIdea(id){
+  ideaMode = id ? "edit" : "create";
+  const i = id ? (state.ideas||[]).find(x=>x.id===id) : blankIdea();
+  if(!i) return;
+  editingIdea = i.id;
+  const modal = document.getElementById("modal");
+  modal.innerHTML = '<h2 id="m-title"><span>'+(id?"Edit idea":"New idea")+'</span></h2>'+
+    '<div class="field"><label for="i-title">Title</label><input id="i-title" value="'+esc(i.title)+'"></div>'+
+    '<div class="field"><label for="i-desc">Description</label><textarea id="i-desc" style="min-height:70px">'+esc(i.description||"")+'</textarea></div>'+
+    '<div class="field row2">'+
+      '<div><label for="i-status">Status</label><select id="i-status">'+IDEA_STATUS.map(s=>'<option value="'+s+'"'+(s===i.status?' selected':'')+'>'+IDEA_STATUS_LABEL[s]+'</option>').join("")+'</select></div>'+
+      '<div><label for="i-prio">Priority</label><select id="i-prio">'+opts(PRIOS,i.priority)+'</select></div>'+
+    '</div>'+
+    '<div class="field mono"><label for="i-tags">Tags (space-separated)</label><input id="i-tags" value="'+esc((i.tags||[]).join(" "))+'"></div>'+
+    '<div class="field"><label for="i-reject">Rejected reason (if rejecting)</label><textarea id="i-reject" style="min-height:50px">'+esc(i.rejected_reason||"")+'</textarea></div>'+
+    '<div class="m-err" id="m-err"></div>'+
+    '<div class="actions"><button class="btn primary" id="i-save">'+(id?"Save":"Create")+'</button><button class="btn" id="i-cancel">Cancel</button>'+(id?'<button class="btn danger" id="i-del">Delete</button>':'')+'</div>';
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("i-save").addEventListener("click", saveIdea);
+  document.getElementById("i-cancel").addEventListener("click", closeModal);
+  if(id) document.getElementById("i-del").addEventListener("click", () => deleteIdea(i.id));
+  document.getElementById("i-title").focus();
+}
+function saveIdea(){
+  const g = id => document.getElementById(id);
+  const title = g("i-title").value.trim();
+  if(!title){ g("m-err").textContent = "Title is required."; g("i-title").focus(); return; }
+  const vals = { title, description:g("i-desc").value, status:g("i-status").value, priority:g("i-prio").value,
+    tags:g("i-tags").value.split(/\s+/).filter(Boolean), rejected_reason:g("i-reject").value.trim()||null, updated_at:today() };
+  if(ideaMode==="create"){ state.ideas.push(Object.assign(blankIdea(), vals)); }
+  else { const i = (state.ideas||[]).find(x=>x.id===editingIdea); if(i) Object.assign(i, vals); }
+  closeModal(); renderIdeas(); persistResource("ideas", state.ideas);
+}
+function deleteIdea(id){
+  if(!window.confirm("Delete this idea? Consider setting status to Rejected instead, so the reason survives. (recoverable via git either way)")) return;
+  state.ideas = (state.ideas||[]).filter(x=>x.id!==id);
+  closeModal(); renderIdeas(); persistResource("ideas", state.ideas);
+}
+
+load().catch(() => {
+  document.getElementById("board").innerHTML =
+    '<div style="padding:40px;color:var(--ink-3)">Could not load the board. Start the server with <b style="color:var(--ink)">node server.js</b> and reload.</div>';
+});
+</script>
+</body>
+</html>

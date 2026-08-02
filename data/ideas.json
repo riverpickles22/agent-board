@@ -1,0 +1,14 @@
+[
+  {
+    "id": "idea-example",
+    "title": "Example idea — replace or delete me",
+    "description": "Ideas start here before they're worth a card. Promote a good one into epics.json when it's decided and ordered.",
+    "status": "idea",
+    "priority": "Later",
+    "tags": ["example"],
+    "notes": "",
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-02"
+  }
+]

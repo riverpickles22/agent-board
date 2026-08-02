@@ -1,0 +1,6 @@
+{
+  "lanes": ["Backlog", "In Progress", "Review", "Done"],
+  "priorities": ["Now", "Next", "Later", "Someday"],
+  "open_gates": [],
+  "wip_limits": {}
+}
