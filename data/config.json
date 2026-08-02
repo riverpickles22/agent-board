@@ -18,5 +18,11 @@
     "M1 First release"
   ],
   "open_gates": [],
-  "wip_limits": {}
+  "wip_limits": {},
+  "view": {
+    "title": "Demo Board",
+    "default_page": "board",
+    "default_milestone": "all",
+    "default_theme": "all"
+  }
 }

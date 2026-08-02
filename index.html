@@ -59,6 +59,8 @@
   .chip{font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 13px;border-radius:20px;
     border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer;transition:all .12s ease}
   .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .chip.savev{border-style:dashed;color:var(--accent);margin-left:10px}
+  .chip.savev:hover{background:var(--accent-soft)}
   .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   :root[data-theme="dark"] .chip[aria-pressed="true"]{color:#07161a}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#07161a}}
@@ -262,6 +264,14 @@ async function load(){
   PRIOS = state.config.priorities && state.config.priorities.length ? state.config.priorities : ["Now","Next","Later","Someday"];
   THEMES = state.config.themes || [];
   MILESTONES = state.config.milestones || [];
+  // per-project view config: title + the filters/page applied on open.
+  // An explicit hash in the URL wins over default_page so bookmarks keep working.
+  const view = state.config.view || {};
+  document.title = view.title || "agent-board";
+  document.getElementById("board-title").textContent = view.title || "Board";
+  const d = viewDefaults();
+  filterMS = d.ms; filterTheme = d.theme;
+  if(!location.hash && d.page !== "board") location.hash = "#/" + d.page;
   state.epics.forEach(e => { if(!COLUMNS.includes(e.column)) e.column = COLUMNS[0]; });
   renderFilters();
   render();
@@ -274,6 +284,15 @@ function allTags(){
   state.epics.forEach(e => (e.tags||[]).forEach(t => s.add(t)));
   return [...s].sort();
 }
+// The saved default view, validated against current vocab (bad values -> "all").
+function viewDefaults(){
+  const v = state.config.view || {};
+  return {
+    ms:    (v.default_milestone && MILESTONES.includes(v.default_milestone)) ? v.default_milestone : "all",
+    theme: (v.default_theme && THEMES.includes(v.default_theme)) ? v.default_theme : "all",
+    page:  PAGES.includes(v.default_page) ? v.default_page : "board",
+  };
+}
 function renderFilters(){
   const f = document.getElementById("filters");
   const tags = allTags();
@@ -285,14 +304,30 @@ function renderFilters(){
   if(MILESTONES.length) html += row("Milestone","ms",MILESTONES,filterMS,false);
   if(THEMES.length)     html += row("Theme","theme",THEMES,filterTheme,false);
   if(tags.length)       html += row("Tag","tag",tags,filterTag,true);
+  // Offer to save the current view as this project's default, only when it differs.
+  const d = viewDefaults();
+  if(filterMS!==d.ms || filterTheme!==d.theme)
+    html += '<button class="chip savev" id="save-view" title="Save the current filters as this project\'s default view (writes config.json)">★ set as default view</button>';
   f.innerHTML = html;
-  f.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  f.querySelectorAll(".chip[data-k]").forEach(c => c.addEventListener("click", () => {
     const v = c.dataset.v;
     if(c.dataset.k==="ms") filterMS = v;
     else if(c.dataset.k==="theme") filterTheme = v;
     else filterTag = v;
     renderFilters(); render();
   }));
+  const sv = document.getElementById("save-view");
+  if(sv) sv.addEventListener("click", () => {
+    state.config.view = Object.assign({}, state.config.view, {
+      title: (state.config.view||{}).title || document.getElementById("board-title").textContent,
+      default_page: currentRoute().page,
+      default_milestone: filterMS,
+      default_theme: filterTheme,
+    });
+    persistResource("config", state.config);
+    showToast("Default view saved — this is what loads on open now.");
+    renderFilters();
+  });
 }
 function epicShown(e){
   if(filterMS!=="all" && e.milestone!==filterMS) return false;

@@ -57,10 +57,45 @@ changes show up in normal review like any other file.
 Themes, milestones, lanes, and priority tiers are all defined per project
 in that project's `config.json` — the app has no hardcoded vocabulary.
 
+**Each project also owns its view** (`config.json` → `"view"`): the board
+`title` shown in the header and browser tab — so you always know *which*
+project you're looking at — and the default page, milestone, and theme
+filters applied when the board opens. Set up the filters you like and
+click **★ set as default view** in the filter bar to save them; the button
+only appears when your current view differs from the saved one.
+
+## Set up the Claude skill
+
+One-time, idempotent — safe to run whenever, it does nothing if already
+installed:
+
+```sh
+./board setup
+```
+
+This symlinks the skill into `~/.claude/skills/agent-board` (the repo copy
+stays the source of truth, so `git pull` updates the skill too). If
+something else already occupies that path it refuses and tells you, rather
+than overwriting. Manual equivalent:
+
+```sh
+ln -s "$(pwd)/.claude/skills/agent-board" ~/.claude/skills/agent-board
+```
+
+**Activating it:** nothing to do — new Claude Code sessions in *any* repo
+discover user-level skills automatically, and this one activates when you
+talk about backlog work: "what should I work on next?", "break this
+request down into stories", "begin O1-2", "save the board".
+
+**Linking it to the project you're working with:** the session resolves
+which board you mean in this order — `BOARD_DATA_DIR` env var if set, then
+`projects.json` matched against the repo you're sitting in, then asking
+you. So registering a project in `projects.json` is all the linking a new
+project needs.
+
 ## Working with AI (the point of all this)
 
-The `agent-board` Claude skill (installed at user level, so it works from
-any repo) gives a Claude Code session four abilities:
+The `agent-board` Claude skill gives a Claude Code session four abilities:
 
 1. **Operate** — "what should I work on next?", move cards, triage ideas.
 2. **Groom** — brainstorm with you, then break a request down into an epic

@@ -31,10 +31,21 @@ view over them; you do not need it running. Edit the JSON directly.
 { "lanes": ["Backlog","In Progress","Done"],
   "priorities": ["Now","Next","Later","Someday"],
   "themes": ["T1 …"], "milestones": ["M0 …"],
-  "open_gates": [], "wip_limits": {} }
+  "open_gates": [], "wip_limits": {},
+  "view": { "title": "Chaim Build Board", "default_page": "board",
+            "default_milestone": "M0 Reliable foundation", "default_theme": "all" } }
 ```
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
+
+`view` is the project's saved view: `title` names the board in the UI
+header and browser tab (when you report which board you're operating on,
+use it); `default_page` (`board`|`ideas`), `default_milestone`, and
+`default_theme` are applied when the board opens (`"all"` or a vocab
+entry). Rules: when wiring or renaming a project, set `view.title` so
+boards are tellable apart. Update `view` when the user asks ("make M1 my
+default view") — never as a side effect of other edits; the UI's
+"★ set as default view" button writes the same fields.
 
 **Epic**:
 ```json

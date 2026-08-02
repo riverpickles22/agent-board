@@ -4,6 +4,7 @@
 #   ./board            list registered projects
 #   ./board arc        serve arc's board on :4300
 #   PORT=4301 ./board chaim   second board on another port
+#   ./board setup      install the Claude skill (idempotent)
 #
 # Projects are registered in projects.json (name -> data directory).
 set -euo pipefail
@@ -20,11 +21,44 @@ list() {
       console.log(`  ${name.padEnd(12)} ${dir}${ok}`);
     }' "$REGISTRY"
   echo
-  echo "Run one with:  ./board <name>"
+  echo "Run one with:   ./board <name>"
+  echo "Claude skill:   ./board setup"
+}
+
+setup() {
+  local SKILLS_DIR="$HOME/.claude/skills"
+  local LINK="$SKILLS_DIR/agent-board"
+  local TARGET="$HERE/.claude/skills/agent-board"
+  mkdir -p "$SKILLS_DIR"
+  if [ -L "$LINK" ] && [ "$(readlink "$LINK")" = "$TARGET" ]; then
+    echo "Claude skill already installed: $LINK -> $TARGET"
+  elif [ -e "$LINK" ]; then
+    echo "Something else exists at $LINK — not touching it." >&2
+    echo "Remove it and re-run ./board setup to install the skill." >&2
+    exit 1
+  else
+    ln -s "$TARGET" "$LINK"
+    echo "Claude skill installed: $LINK -> $TARGET"
+  fi
+  cat <<'EOT'
+
+How it works:
+  - New Claude Code sessions in ANY repo discover the "agent-board" skill
+    automatically; it activates when you talk about the backlog ("what's
+    next?", "break this down into stories", "begin O1-2", "save the board").
+  - Sessions find the right project via projects.json (matched against the
+    repo you're in), or BOARD_DATA_DIR if you set it.
+  - Link a new project by adding it to projects.json — name -> data dir.
+EOT
 }
 
 if [ $# -eq 0 ]; then
   list
+  exit 0
+fi
+
+if [ "$1" = "setup" ]; then
+  setup
   exit 0
 fi
 

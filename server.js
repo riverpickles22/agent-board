@@ -42,6 +42,7 @@ const DEFAULTS = {
     milestones: [],
     open_gates: [],
     wip_limits: {},
+    view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
   },
 };
 
@@ -109,6 +110,15 @@ const server = http.createServer(async (req, res) => {
   } catch (err) {
     sendJSON(res, 500, { error: String(err && err.message || err) });
   }
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n  Port ${PORT} is already in use — another board is probably running.`);
+    console.error(`  Run the second board on another port:  PORT=${Number(PORT) + 1} ./board <name>\n`);
+    process.exit(1);
+  }
+  throw err;
 });
 
 server.listen(PORT, HOST, () => {
