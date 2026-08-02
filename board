@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# agent-board launcher. One board codebase, many projects.
+#
+#   ./board            list registered projects
+#   ./board arc        serve arc's board on :4300
+#   PORT=4301 ./board chaim   second board on another port
+#
+# Projects are registered in projects.json (name -> data directory).
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+REGISTRY="$HERE/projects.json"
+
+list() {
+  echo "Registered projects (projects.json):"
+  node -e '
+    const p = require(process.argv[1]);
+    for (const [name, dir] of Object.entries(p)) {
+      const ok = require("fs").existsSync(dir) ? "" : "   (MISSING: directory not found)";
+      console.log(`  ${name.padEnd(12)} ${dir}${ok}`);
+    }' "$REGISTRY"
+  echo
+  echo "Run one with:  ./board <name>"
+}
+
+if [ $# -eq 0 ]; then
+  list
+  exit 0
+fi
+
+NAME="$1"
+DIR="$(node -e 'console.log(require(process.argv[1])[process.argv[2]] ?? "")' "$REGISTRY" "$NAME")"
+
+if [ -z "$DIR" ]; then
+  echo "Unknown project: $NAME" >&2
+  echo >&2
+  list >&2
+  exit 1
+fi
+if [ ! -d "$DIR" ]; then
+  echo "Data directory for '$NAME' not found: $DIR" >&2
+  echo "Fix the path in $REGISTRY" >&2
+  exit 1
+fi
+
+echo "Serving '$NAME' from $DIR"
+exec env BOARD_DATA_DIR="$DIR" node "$HERE/server.js"

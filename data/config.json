@@ -1,6 +1,22 @@
 {
-  "lanes": ["Backlog", "In Progress", "Review", "Done"],
-  "priorities": ["Now", "Next", "Later", "Someday"],
+  "lanes": [
+    "Backlog",
+    "In Progress",
+    "Review",
+    "Done"
+  ],
+  "priorities": [
+    "Now",
+    "Next",
+    "Later",
+    "Someday"
+  ],
+  "themes": [
+    "Example theme"
+  ],
+  "milestones": [
+    "M1 First release"
+  ],
   "open_gates": [],
   "wip_limits": {}
 }

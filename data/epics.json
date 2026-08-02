@@ -4,9 +4,13 @@
     "name": "Example: replace this with your own first card",
     "description": "This demo dataset shows the schema. Point BOARD_DATA_DIR at your own project's data directory to replace it, or edit these files directly.",
     "notes": "",
+    "theme": "Example theme",
+    "milestone": "M1 First release",
     "priority": "Now",
     "status": "",
-    "tags": ["example"],
+    "tags": [
+      "example"
+    ],
     "gate": "none",
     "deps": [],
     "column": "Backlog",
@@ -17,13 +21,19 @@
   {
     "id": "EX2",
     "name": "Example: a card that depends on EX1",
-    "description": "Demonstrates dependency gating — EX2 can't be dragged into Done until EX1 is Done.",
+    "description": "Demonstrates dependency gating \u2014 EX2 can't be dragged into Done until EX1 is Done.",
     "notes": "",
+    "theme": "Example theme",
+    "milestone": "M1 First release",
     "priority": "Next",
     "status": "",
-    "tags": ["example"],
+    "tags": [
+      "example"
+    ],
     "gate": "none",
-    "deps": ["EX1"],
+    "deps": [
+      "EX1"
+    ],
     "column": "Backlog",
     "claimed_by": null,
     "claimed_at": null,

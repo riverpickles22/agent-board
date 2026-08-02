@@ -1,127 +1,95 @@
 # agent-board
 
-A local, zero-dependency kanban board — and a protocol for letting any AI
-coding agent read it, understand priority, and self-dispatch work — meant to
-be used by more than one project instead of being rebuilt into each.
+A local kanban board for feature backlogs, shared by every project you
+point it at — plus a protocol and a Claude skill that let AI coding agents
+read the same board, break requests into epics and stories, and build the
+ones you've marked ready.
 
-**Origin:** generalized from a board built inside
-`chaim-app/chaim-system-design/roadmap/` (see that repo's
-`agent-kanban-mvp.md` for the original design thinking). This repo pulls out
-the parts that were already project-agnostic — the server, the Board and
-Ideas views, the epic/story/idea schema, and the agent selection-rule
-protocol — and drops the parts that were specific to that project (a
-customer action-item × automation-level dashboard, milestone PRD pages, a
-PRFAQ-sourced overview page). Chaim's own board is untouched and keeps
-those extra pages; this tool is the shared subset.
+This file is for **humans**: what it is and how to run it. If you are an AI
+agent, read [`AGENTS.md`](AGENTS.md) and [`PROTOCOL.md`](PROTOCOL.md)
+instead — schemas, edit rules, and the work-selection protocol live there.
 
-## What's here
-
-| File | What it is |
-|---|---|
-| `server.js` | Zero-dependency Node server: serves the UI, reads/writes a project's `data/*.json`. |
-| `index.html` | The whole UI — a single-page app, hash-routed (`#/board`, `#/ideas`), inline CSS/JS, no build step, no `node_modules`. |
-| `PROTOCOL.md` | The agent-facing spec: what makes a card pickable, and the claim/work/move loop. Read this before wiring a coding agent to a project's board. |
-| `data/` | A demo dataset (two example cards, one example idea) showing the schema. Point `BOARD_DATA_DIR` at a real project instead of using this. |
-| `.claude/skills/agent-board/` | A Claude Code skill so any session can read/update a project's board directly, without the server running. |
-
-## Running it
+## Quick start
 
 ```sh
-node server.js                                    # uses ./data (the demo dataset)
-BOARD_DATA_DIR=/path/to/project/data node server.js  # uses a real project's data
-PORT=5000 node server.js                           # override the port (default 4300)
+./board            # list registered projects
+./board arc        # serve arc's backlog
+./board chaim      # serve chaim's backlog
 ```
 
-Then open `http://localhost:4300`. No install step — needs only Node.js
-(v18+).
+Then open **http://localhost:4300**. Ctrl+C stops it. Run a second board at
+the same time with `PORT=4301 ./board chaim`. Needs only Node.js (v18+) —
+no install step, no dependencies, and it binds to `127.0.0.1` only.
 
-## Wiring a project to it
+`./board` reads [`projects.json`](projects.json), a simple name → data-directory
+map. The paths in it are machine-specific on purpose — this is a personal,
+single-user tool.
 
-Each project that wants a board gets its own **data directory** —
-`epics.json`, `stories.json`, `ideas.json`, and an optional `config.json`
-(lane names, priority tiers, open gates, WIP limits — see `server.js`'s
-`DEFAULTS` for what applies if a file is missing). This tool has no opinion
-about where that directory lives; point `BOARD_DATA_DIR` at it. Two data
-directories in use today:
+## How it's organized
 
-- **arc** — `arc/arc-research-design/roadmap/` (currently just
-  `ideas.json`; add `epics.json`/`config.json` there when arc wants the
-  full board, not just the idea backlog).
-- **chaim** — not migrated. Chaim's existing board at
-  `chaim-app/chaim-system-design/roadmap/board/` keeps running as-is; it has
-  Dashboard/Milestones/Overview pages this tool intentionally doesn't
-  generalize. Point it at this tool later only if that's a deliberate
-  choice, not a default.
+**This repo is the app; each project owns its data.** The board code lives
+here once. A project's backlog lives in that project's own `*-system-design`
+repo as plain JSON, versioned by that repo's normal git history:
 
-Adding a third project: create a data directory with the files above (or
-none, if starting empty — every resource defaults to sensible empty state,
-see `server.js`), then run the server with `BOARD_DATA_DIR` pointed at it.
+| Project | Data directory |
+|---|---|
+| arc | `arc/arc-system-design/roadmap/` |
+| chaim | `chaim/chaim-app/chaim-system-design/roadmap/board/data/` |
 
-## Schema
+Saving your backlog **is** a git commit in the project's repo — there is no
+other persistence layer, no database, no sync service. Diffs of board
+changes show up in normal review like any other file.
 
-**Epic** (`epics.json`):
-```json
-{
-  "id": "F1",
-  "name": "Short name",
-  "description": "What it is.",
-  "notes": "",
-  "priority": "Now",
-  "status": "",
-  "tags": ["theme-or-milestone-or-whatever-a-project-wants"],
-  "gate": "none",
-  "deps": [],
-  "column": "Backlog",
-  "claimed_by": null,
-  "claimed_at": null,
-  "updated_at": null
-}
-```
-`tags` is deliberately free-form (project-defined meaning — Chaim might tag
-with milestone/theme names, arc might tag with phase names); the tool
-doesn't hardcode what a tag means, only that it can be filtered on. `gate`
-plus `config.json`'s `open_gates` let a human record "don't start this yet,
-strategically" without an agent overriding that judgment — see
-`PROTOCOL.md` §3.
+## What's on a board
 
-**Story** (`stories.json`): `{ id, epic_id, name, description, column,
-priority, updated_at }` — optional, epic-scoped, empty by default.
+- **Ideas** — the inbox. Anything worth remembering, before it's decided.
+  Ideas move `idea → considering → planned → building → done`, or
+  `rejected` (kept with a reason, never silently deleted).
+- **Epics** — decided work, organized by **theme** (what area it belongs
+  to) and **milestone** (when it should roll out), with priorities,
+  dependencies, and six-or-fewer lanes you configure per project.
+- **Stories** — the buildable slices under an epic, each with acceptance
+  criteria, context for whoever builds it, a kind
+  (`feature / test / integration / chore / docs`), and a **ready** flag:
+  your recorded judgment that there's enough context for an agent to go
+  build it.
 
-**Idea** (`ideas.json`):
-```json
-{
-  "id": "idea-3",
-  "title": "Short name",
-  "description": "What it is and why it might matter.",
-  "status": "idea",
-  "priority": "Next",
-  "tags": [],
-  "notes": "",
-  "rejected_reason": null,
-  "created_at": "2026-08-02",
-  "updated_at": "2026-08-02"
-}
-```
-`status`: `idea → considering → planned → building → done`, or `rejected`
-at any point (kept, with a reason, not deleted — same status-lifecycle
-pattern as `arc-core/conventions.md` §5: proposed/canon/deprecated).
+Themes, milestones, lanes, and priority tiers are all defined per project
+in that project's `config.json` — the app has no hardcoded vocabulary.
 
-**Config** (`config.json`, optional — defaults shown in `server.js`):
-```json
-{ "lanes": ["Backlog","In Progress","Review","Done"],
-  "priorities": ["Now","Next","Later","Someday"],
-  "open_gates": [], "wip_limits": {} }
-```
+## Working with AI (the point of all this)
 
-## Design constraints (kept on purpose)
+The `agent-board` Claude skill (installed at user level, so it works from
+any repo) gives a Claude Code session four abilities:
 
-- **Zero dependencies.** No `npm install`, no build step, no framework —
-  just `node server.js`. This is what makes it cheap enough to point at a
-  third, fourth, fifth project without a maintenance tax.
-- **Files are the database.** Everything is plain JSON under a data
-  directory; git is the history and the audit log. No hosted service, no
-  schema migrations.
-- **Single user (or a person plus their own agents) per data directory.**
-  Concurrency is git-commit-safe, not lock-safe — see `PROTOCOL.md` §5. A
-  real multi-agent-swarm service is explicitly out of scope; revisit only
-  if this genuinely proves insufficient.
+1. **Operate** — "what should I work on next?", move cards, triage ideas.
+2. **Groom** — brainstorm with you, then break a request down into an epic
+   and stories with acceptance criteria, landed on the board for you to
+   review. Nothing is marked ready by the AI — that's your call.
+3. **Build** — when you say a story is ready ("ok, begin O1-2"), the agent
+   claims it, reads its context, implements it in the target code repo,
+   writes the tests the story calls for, moves the card, and asks before
+   committing.
+4. **Save** — board edits happen freely; git commits happen when you say
+   "save" — that's the ratification step.
+
+## Wiring a new project
+
+1. Create a data directory in the project's design/docs repo (an empty one
+   works — every file has sensible defaults).
+2. Add a `config.json` with the project's lanes, priorities, themes, and
+   milestones (copy `data/config.json` here as a starting point).
+3. Register it in `projects.json` with a short name.
+4. `./board <name>`.
+
+## Why our own board, not an off-the-shelf tool?
+
+Evaluated 2026-08-02 against Flux, vibe-kanban, cline/kanban, kandev, and
+agent-kanban. Kept ours: it's ~1,200 dependency-free lines either of us can
+read in full, the data model carries our own concepts (evidence gates,
+rejected-with-reason, definition-of-ready), state lives in each project's
+repo rather than a container volume or side branch, and the strongest
+external argument — offloading maintenance — didn't hold (the closest
+design match, Flux, was the least maintained; the best-maintained ones are
+heavier than the problem). Revisit if non-Claude agents need the board
+(MCP), a second person joins, or the field consolidates on a winner.

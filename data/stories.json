@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "EX1-1",
+    "epic_id": "EX1",
+    "name": "Example story: a concrete slice of EX1",
+    "description": "Stories are the buildable units under an epic. This one shows the breakdown fields.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The thing does X when Y",
+      "Existing behavior Z is unchanged"
+    ],
+    "context": "repos/paths/docs an agent should read before building this",
+    "ready": false,
+    "column": "Backlog",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": null
+  }
+]

@@ -99,6 +99,22 @@
   .card .dep{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
   .card .dep.warn{color:var(--lane-4);font-weight:600}
   .claim{font-size:11px;color:var(--accent);font-weight:600}
+  .stbadge{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .stbadge .rdy{color:var(--lane-5);font-weight:600}
+
+  /* ---- stories (inside the epic modal) ---- */
+  .story-row{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);
+    border-radius:8px;margin-top:7px;background:var(--card-2)}
+  .story-row .sk{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;flex:0 0 auto}
+  .story-row .sn{font-size:13px;color:var(--ink);flex:1 1 auto;cursor:pointer;line-height:1.35}
+  .story-row .sn:hover{color:var(--accent)}
+  .story-row .slane{font-family:var(--mono);font-size:10px;color:var(--ink-3);flex:0 0 auto}
+  .story-row label.rdy-t{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3);flex:0 0 auto;cursor:pointer}
+  .story-row input[type=checkbox]{accent-color:var(--accent);cursor:pointer}
+  .addstory{font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--ink-3);background:transparent;
+    border:1px dashed var(--line);border-radius:8px;padding:7px;width:100%;cursor:pointer;margin-top:8px;transition:all .12s ease}
+  .addstory:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 
   /* ---- tabs + views ---- */
   .tabs{display:flex;gap:4px;margin-left:6px}
@@ -200,13 +216,21 @@ const opts = (arr,sel) => arr.map(x=>'<option'+(x===sel?' selected':'')+'>'+esc(
 const today = () => new Date().toISOString().slice(0,10);
 
 let state = { epics: [], stories: [], ideas: [], config: {} };
-let COLUMNS = [], PRIOS = [];
-let filterTag = "all";
+let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
+let filterMS = "all", filterTheme = "all", filterTag = "all";
 let modalMode = "edit";
 let editingId = null;
 const byId = () => Object.fromEntries(state.epics.map(e => [e.id, e]));
 const laneVar = col => "var(--lane-"+(COLUMNS.indexOf(col)%6)+")";
 const prioClass = p => "p"+Math.max(0, PRIOS.indexOf(p));
+const storiesOf = id => state.stories.filter(s => s.epic_id === id);
+// "M0 Reliable foundation" -> "M0", "Phase 2 The story…" -> "Phase 2"; no code prefix -> full string
+function short(s){
+  const t = (s||"").split(" ");
+  if(/\d/.test(t[0])) return t[0];
+  if(t[1] && /^\d/.test(t[1])) return t[0]+" "+t[1];
+  return s||"";
+}
 
 /* ---- dependency ordering guard ---- */
 // The last configured lane is the "done" lane; a card can't enter it until
@@ -236,6 +260,8 @@ async function load(){
   state.config = state.config || {};
   COLUMNS = state.config.lanes && state.config.lanes.length ? state.config.lanes : ["Backlog","In Progress","Review","Done"];
   PRIOS = state.config.priorities && state.config.priorities.length ? state.config.priorities : ["Now","Next","Later","Someday"];
+  THEMES = state.config.themes || [];
+  MILESTONES = state.config.milestones || [];
   state.epics.forEach(e => { if(!COLUMNS.includes(e.column)) e.column = COLUMNS[0]; });
   renderFilters();
   render();
@@ -251,22 +277,34 @@ function allTags(){
 function renderFilters(){
   const f = document.getElementById("filters");
   const tags = allTags();
-  if(!tags.length){ f.innerHTML = ""; return; }
-  let html = '<span class="flabel">Tag</span>' + chip("all","All");
-  tags.forEach(t => html += chip(t, t));
+  const row = (label, key, values, current, full) =>
+    '<span class="flabel">'+label+'</span>'+
+    '<button class="chip" data-k="'+key+'" data-v="all" aria-pressed="'+(current==="all")+'">All</button>'+
+    values.map(v => '<button class="chip" data-k="'+key+'" data-v="'+esc(v)+'" aria-pressed="'+(v===current)+'" title="'+esc(v)+'">'+esc(full?v:short(v))+'</button>').join("");
+  let html = "";
+  if(MILESTONES.length) html += row("Milestone","ms",MILESTONES,filterMS,false);
+  if(THEMES.length)     html += row("Theme","theme",THEMES,filterTheme,false);
+  if(tags.length)       html += row("Tag","tag",tags,filterTag,true);
   f.innerHTML = html;
   f.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
-    filterTag = c.dataset.tag;
-    f.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x.dataset.tag===filterTag));
-    render();
+    const v = c.dataset.v;
+    if(c.dataset.k==="ms") filterMS = v;
+    else if(c.dataset.k==="theme") filterTheme = v;
+    else filterTag = v;
+    renderFilters(); render();
   }));
-  function chip(v,label){ return '<button class="chip" data-tag="'+esc(v)+'" aria-pressed="'+(v===filterTag)+'">'+esc(label)+'</button>'; }
+}
+function epicShown(e){
+  if(filterMS!=="all" && e.milestone!==filterMS) return false;
+  if(filterTheme!=="all" && e.theme!==filterTheme) return false;
+  if(filterTag!=="all" && !(e.tags||[]).includes(filterTag)) return false;
+  return true;
 }
 
 function render(){
   const board = document.getElementById("board");
   board.innerHTML = "";
-  const shown = state.epics.filter(e => filterTag==="all" || (e.tags||[]).includes(filterTag));
+  const shown = state.epics.filter(epicShown);
   COLUMNS.forEach(col => {
     const items = shown.filter(e => e.column === col);
     const sec = document.createElement("section");
@@ -287,9 +325,10 @@ function render(){
     board.appendChild(sec);
   });
   const total = state.epics.length, done = state.epics.filter(e=>e.column===doneLane()).length;
+  const filtered = filterMS!=="all" || filterTheme!=="all" || filterTag!=="all";
   document.getElementById("counts").textContent =
-    filterTag==="all" ? (total + " cards · " + done + " done")
-                       : (shown.length + " of " + total + " · " + filterTag);
+    filtered ? (shown.length + " of " + total + " shown")
+             : (total + " cards · " + done + " done");
   document.getElementById("stories-note").innerHTML = state.stories.length
     ? "<b>"+state.stories.length+"</b> stories" : "";
 }
@@ -304,11 +343,19 @@ function cardEl(e){
         : '<span class="dep">⊸ '+esc(e.deps.join(" "))+'</span>')
     : "";
   const claimBit = e.claimed_by ? '<span class="claim">claimed: '+esc(e.claimed_by)+'</span>' : "";
+  const st = storiesOf(e.id);
+  const storyBit = st.length
+    ? '<span class="stbadge">'+st.length+(st.length===1?" story":" stories")+
+      (st.some(s=>s.ready) ? ' · <span class="rdy">'+st.filter(s=>s.ready).length+' ready</span>' : "")+'</span>'
+    : "";
   el.innerHTML =
     '<div class="top"><span class="id">'+esc(e.id)+'</span><span class="prio '+prioClass(e.priority)+'">'+esc(e.priority)+'</span></div>'+
     '<p class="title">'+esc(e.name)+'</p>'+
-    '<div class="meta">'+(e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
-      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+depBits+claimBit+'</div>';
+    '<div class="meta">'+
+      (e.milestone?'<span class="tagpill" title="'+esc(e.milestone)+'">'+esc(short(e.milestone))+'</span>':"")+
+      (e.theme?'<span class="tagpill" title="'+esc(e.theme)+'">'+esc(short(e.theme))+'</span>':"")+
+      (e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
+      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+claimBit+'</div>';
   el.addEventListener("dragstart", ev => {
     ev.dataTransfer.setData("text/plain", e.id);
     ev.dataTransfer.effectAllowed = "move";
@@ -345,7 +392,9 @@ function wireDrop(sec){
 
 /* ---- modal (edit + create + delete) ---- */
 function blankEpic(col){
-  return { id: suggestId(), name:"", description:"", notes:"", priority:PRIOS[0], status:"", gate:"none",
+  return { id: suggestId(), name:"", description:"", notes:"",
+    theme:(filterTheme!=="all"?filterTheme:""), milestone:(filterMS!=="all"?filterMS:""),
+    priority:PRIOS[0], status:"", gate:"none",
     tags:[], deps:[], column:col||COLUMNS[0], claimed_by:null, claimed_at:null, updated_at:null };
 }
 function suggestId(){ const ids=new Set(state.epics.map(e=>e.id)); let n=1; while(ids.has("NEW"+n)) n++; return "NEW"+n; }
@@ -365,6 +414,10 @@ function renderModal(e){
     '<div class="field"><label for="f-desc">Description</label><textarea id="f-desc">'+esc(e.description)+'</textarea></div>'+
     '<div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" style="min-height:60px">'+esc(e.notes||"")+'</textarea></div>'+
     '<div class="field row2">'+
+      '<div><label for="f-ms">Milestone</label><select id="f-ms"><option value="">—</option>'+opts(MILESTONES,e.milestone)+'</select></div>'+
+      '<div><label for="f-theme">Theme</label><select id="f-theme"><option value="">—</option>'+opts(THEMES,e.theme)+'</select></div>'+
+    '</div>'+
+    '<div class="field row2">'+
       '<div><label for="f-prio">Priority</label><select id="f-prio">'+opts(PRIOS,e.priority)+'</select></div>'+
       '<div class="mono"><label for="f-status">Status (free text)</label><input id="f-status" value="'+esc(e.status||"")+'"></div>'+
     '</div>'+
@@ -377,6 +430,7 @@ function renderModal(e){
       '<div class="mono"><label for="f-claim">Claimed by</label><input id="f-claim" value="'+esc(e.claimed_by||"")+'" placeholder="agent/session id"></div>'+
       '<div class="mono"><label for="f-claimed-at">Claimed at</label><input id="f-claimed-at" value="'+esc(e.claimed_at||"")+'" readonly></div>'+
     '</div>'+
+    (create ? "" : storiesSection(e.id))+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions">'+
       '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
@@ -387,7 +441,96 @@ function renderModal(e){
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
+  if(!create) wireStoriesSection(e.id);
   document.getElementById(create?"f-id":"f-name").focus();
+}
+
+/* ---- stories (nested in the epic modal) ---- */
+const KINDS = ["feature","test","integration","chore","docs"];
+function storiesSection(epicId){
+  const st = storiesOf(epicId);
+  return '<div class="field"><label>Stories ('+st.length+')</label><div id="m-stories">'+
+    st.map(s =>
+      '<div class="story-row" data-sid="'+esc(s.id)+'">'+
+        '<span class="sk">'+esc(s.kind||"feature")+'</span>'+
+        '<span class="sn" title="click to edit">'+esc(s.name)+'</span>'+
+        '<span class="slane">'+esc(s.column||"")+'</span>'+
+        '<label class="rdy-t" title="Definition of ready: enough context for an agent to build this">'+
+          '<input type="checkbox" '+(s.ready?"checked":"")+'> ready</label>'+
+      '</div>').join("")+
+    '</div><button type="button" class="addstory" id="s-add">+ add story</button></div>';
+}
+function wireStoriesSection(epicId){
+  const wrap = document.getElementById("m-stories");
+  if(!wrap) return;
+  wrap.querySelectorAll(".story-row").forEach(row => {
+    const sid = row.dataset.sid;
+    row.querySelector(".sn").addEventListener("click", () => renderStoryModal(epicId, sid));
+    row.querySelector("input[type=checkbox]").addEventListener("change", ev => {
+      const s = state.stories.find(x=>x.id===sid); if(!s) return;
+      s.ready = ev.target.checked; s.updated_at = new Date().toISOString();
+      persistResource("stories", state.stories); render();
+    });
+  });
+  document.getElementById("s-add").addEventListener("click", () => renderStoryModal(epicId, null));
+}
+function suggestStoryId(epicId){
+  const ids = new Set(state.stories.map(s=>s.id));
+  let n = 1; while(ids.has(epicId+"-"+n)) n++;
+  return epicId+"-"+n;
+}
+function renderStoryModal(epicId, sid){
+  const create = !sid;
+  const s = create
+    ? { id: suggestStoryId(epicId), epic_id: epicId, name:"", description:"", kind:"feature",
+        acceptance_criteria:[], context:"", ready:false, column:COLUMNS[0], priority:PRIOS[0],
+        claimed_by:null, claimed_at:null, updated_at:null }
+    : state.stories.find(x=>x.id===sid);
+  if(!s) return;
+  const modal = document.getElementById("modal");
+  modal.innerHTML =
+    '<h2 id="m-title"><span class="id">'+esc(s.id)+'</span> <span>'+(create?"New story":"Edit story")+' · epic '+esc(epicId)+'</span></h2>'+
+    '<div class="field"><label for="s-name">Name</label><input id="s-name" value="'+esc(s.name)+'"></div>'+
+    '<div class="field"><label for="s-desc">Description</label><textarea id="s-desc">'+esc(s.description||"")+'</textarea></div>'+
+    '<div class="field"><label for="s-ac">Acceptance criteria (one per line)</label>'+
+      '<textarea id="s-ac" style="min-height:70px" placeholder="What must be true for this story to be done?">'+esc((s.acceptance_criteria||[]).join("\n"))+'</textarea></div>'+
+    '<div class="field"><label for="s-ctx">Context for the builder (repos, paths, docs to read)</label>'+
+      '<textarea id="s-ctx" style="min-height:50px">'+esc(s.context||"")+'</textarea></div>'+
+    '<div class="field row2">'+
+      '<div><label for="s-kind">Kind</label><select id="s-kind">'+opts(KINDS,s.kind||"feature")+'</select></div>'+
+      '<div><label for="s-lane">Lane</label><select id="s-lane">'+opts(COLUMNS,s.column)+'</select></div>'+
+    '</div>'+
+    '<div class="field row2">'+
+      '<div><label for="s-prio">Priority</label><select id="s-prio">'+opts(PRIOS,s.priority)+'</select></div>'+
+      '<div><label class="rdy-t" style="margin-top:24px"><input type="checkbox" id="s-ready" '+(s.ready?"checked":"")+'> ready — enough context to build</label></div>'+
+    '</div>'+
+    '<div class="m-err" id="m-err"></div>'+
+    '<div class="actions">'+
+      '<button class="btn primary" id="s-save">'+(create?"Create":"Save")+'</button>'+
+      '<button class="btn" id="s-back">Back to epic</button>'+
+      (create?'':'<button class="btn danger" id="s-del">Delete</button>')+
+    '</div>';
+  document.getElementById("s-save").addEventListener("click", () => {
+    const g = id => document.getElementById(id);
+    const name = g("s-name").value.trim();
+    if(!name){ g("m-err").textContent = "Name is required."; g("s-name").focus(); return; }
+    const vals = { name, description:g("s-desc").value,
+      acceptance_criteria:g("s-ac").value.split("\n").map(x=>x.trim()).filter(Boolean),
+      context:g("s-ctx").value, kind:g("s-kind").value, column:g("s-lane").value,
+      priority:g("s-prio").value, ready:g("s-ready").checked, updated_at:new Date().toISOString() };
+    if(create) state.stories.push(Object.assign(s, vals));
+    else Object.assign(s, vals);
+    persistResource("stories", state.stories);
+    render(); openEdit(epicId);
+  });
+  document.getElementById("s-back").addEventListener("click", () => openEdit(epicId));
+  if(!create) document.getElementById("s-del").addEventListener("click", () => {
+    if(!window.confirm("Delete story "+s.id+"? (recoverable via git)")) return;
+    state.stories = state.stories.filter(x=>x.id!==s.id);
+    persistResource("stories", state.stories);
+    render(); openEdit(epicId);
+  });
+  document.getElementById("s-name").focus();
 }
 
 function saveModal(){
@@ -397,7 +540,8 @@ function saveModal(){
   const prevClaim = modalMode==="edit" ? (byId()[editingId]||{}).claimed_by : null;
   const vals = {
     id: g("f-id").value.trim(), name: g("f-name").value.trim(), description: g("f-desc").value,
-    notes: g("f-notes").value, priority: g("f-prio").value, status: g("f-status").value.trim(),
+    notes: g("f-notes").value, milestone: g("f-ms").value, theme: g("f-theme").value,
+    priority: g("f-prio").value, status: g("f-status").value.trim(),
     tags: g("f-tags").value.split(/\s+/).filter(Boolean),
     gate: g("f-gate").value.trim() || "none", column: g("f-lane").value,
     deps: g("f-deps").value.split(/[\s,]+/).filter(Boolean),
@@ -425,11 +569,14 @@ function saveModal(){
 function deleteEpic(id){
   const e = byId()[id]; if(!e) return;
   const dependents = state.epics.filter(x => (x.deps||[]).includes(id)).map(x=>x.id);
+  const st = storiesOf(id);
   let msg = 'Delete card '+id+' — "'+e.name+'"?';
   if(dependents.length) msg += "\n\nHeads up: "+dependents.join(", ")+" list it as a dependency.";
+  if(st.length) msg += "\n\nIts "+st.length+" stor"+(st.length===1?"y":"ies")+" will be deleted too.";
   msg += "\n\nThis writes to epics.json (recoverable via git).";
   if(!window.confirm(msg)) return;
   state.epics = state.epics.filter(x => x.id !== id);
+  if(st.length){ state.stories = state.stories.filter(x => x.epic_id !== id); persistResource("stories", state.stories); }
   closeModal(); render(); persist();
 }
 
@@ -446,12 +593,12 @@ function showToast(msg){
 }
 
 /* ---- persistence ---- */
-let saveTimer=null;
+const saveTimers = {};   // per-resource, so an epics save can't cancel a stories save
 function persistResource(resource, val){
   const s = document.getElementById("save"), t = document.getElementById("save-t");
   s.className = "save saving"; t.textContent = "saving…";
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
+  clearTimeout(saveTimers[resource]);
+  saveTimers[resource] = setTimeout(async () => {
     try{
       const r = await fetch("/api/"+resource, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
       if(!r.ok) throw new Error("HTTP "+r.status);
@@ -509,17 +656,20 @@ function renderIdeas(){
   html += '<div class="ideas-cols">'+IDEA_STATUS.map(st => {
     const items = ideas.filter(i => i.status===st);
     return '<div class="ideas-col"><h3>'+IDEA_STATUS_LABEL[st]+' <span class="cnt">'+items.length+'</span></h3>'+
-      (items.length ? items.map(i => '<div class="idea" data-id="'+esc(i.id)+'"><div class="it">'+esc(i.title)+'</div>'+
-        (i.description ? '<div class="ia">'+esc(i.description)+'</div>' : '')+
-        ((i.tags||[]).length ? '<div class="irel">'+esc((i.tags||[]).join(" · "))+'</div>' : '')+
-        '</div>').join("") : '<div style="font-size:12.5px;color:var(--ink-3)">none</div>')+'</div>';
+      (items.length ? items.map(i => {
+        const rel = [i.milestone, i.theme].filter(Boolean).map(short).concat(i.tags||[]);
+        return '<div class="idea" data-id="'+esc(i.id)+'"><div class="it">'+esc(i.title)+'</div>'+
+          (i.description ? '<div class="ia">'+esc(i.description)+'</div>' : '')+
+          (rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+
+          '</div>';
+      }).join("") : '<div style="font-size:12.5px;color:var(--ink-3)">none</div>')+'</div>';
   }).join("")+'</div>';
   v.innerHTML = html;
   document.getElementById("new-idea").addEventListener("click", () => openIdea(null));
   v.querySelectorAll(".idea").forEach(el => el.addEventListener("click", () => openIdea(el.dataset.id)));
 }
 
-function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", tags:[], status:"idea", priority:PRIOS[0], rejected_reason:null, created_at:today(), updated_at:null }; }
+function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", theme:"", milestone:"", tags:[], status:"idea", priority:PRIOS[0], rejected_reason:null, created_at:today(), updated_at:null }; }
 function openIdea(id){
   ideaMode = id ? "edit" : "create";
   const i = id ? (state.ideas||[]).find(x=>x.id===id) : blankIdea();
@@ -532,6 +682,10 @@ function openIdea(id){
     '<div class="field row2">'+
       '<div><label for="i-status">Status</label><select id="i-status">'+IDEA_STATUS.map(s=>'<option value="'+s+'"'+(s===i.status?' selected':'')+'>'+IDEA_STATUS_LABEL[s]+'</option>').join("")+'</select></div>'+
       '<div><label for="i-prio">Priority</label><select id="i-prio">'+opts(PRIOS,i.priority)+'</select></div>'+
+    '</div>'+
+    '<div class="field row2">'+
+      '<div><label for="i-ms">Milestone</label><select id="i-ms"><option value="">—</option>'+opts(MILESTONES,i.milestone||"")+'</select></div>'+
+      '<div><label for="i-theme">Theme</label><select id="i-theme"><option value="">—</option>'+opts(THEMES,i.theme||"")+'</select></div>'+
     '</div>'+
     '<div class="field mono"><label for="i-tags">Tags (space-separated)</label><input id="i-tags" value="'+esc((i.tags||[]).join(" "))+'"></div>'+
     '<div class="field"><label for="i-reject">Rejected reason (if rejecting)</label><textarea id="i-reject" style="min-height:50px">'+esc(i.rejected_reason||"")+'</textarea></div>'+
@@ -548,6 +702,7 @@ function saveIdea(){
   const title = g("i-title").value.trim();
   if(!title){ g("m-err").textContent = "Title is required."; g("i-title").focus(); return; }
   const vals = { title, description:g("i-desc").value, status:g("i-status").value, priority:g("i-prio").value,
+    milestone:g("i-ms").value, theme:g("i-theme").value,
     tags:g("i-tags").value.split(/\s+/).filter(Boolean), rejected_reason:g("i-reject").value.trim()||null, updated_at:today() };
   if(ideaMode==="create"){ state.ideas.push(Object.assign(blankIdea(), vals)); }
   else { const i = (state.ideas||[]).find(x=>x.id===editingIdea); if(i) Object.assign(i, vals); }

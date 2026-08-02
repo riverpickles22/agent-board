@@ -1,78 +1,64 @@
 ---
 name: agent-board
-description: Read and update a project's kanban backlog (epics, stories, ideas) directly as JSON from Claude Code, without agent-board's local server running. Use whenever the user wants to know what to work on next, add/triage/reorder/reject an idea, move a card, or otherwise interact with a project's priority list the way agent-board's UI would.
+description: Work a project's agent-board backlog (ideas, epics, stories) directly as JSON — no server needed. Use when the user wants to know what to work on next, capture or triage ideas, brainstorm and break a feature request down into an epic with stories and acceptance criteria, move/claim cards, save the board to git, or build a story they've declared ready ("begin X"). Projects today: arc, chaim.
 ---
 
 # agent-board
 
-`agent-board` is a standalone, zero-dependency local kanban tool (this
-repo) that any project can point at its own data directory. This skill lets
-Claude Code act on that data directly — reading and writing the same JSON
-files the server and UI use — so a coding session can answer "what's next"
-or triage the backlog without a browser open.
+agent-board is a local kanban system: one shared codebase
+(`~/workspace/agent-board`), per-project JSON data directories, git as the
+only versioning. You operate on the JSON files directly — the web UI is a
+human lens, not a dependency.
 
-## 1. Locate the project's data directory
+## 1. Read the contract first
 
-1. If `$BOARD_DATA_DIR` is set, use it.
-2. Otherwise look for a `config.json` next to `epics.json`/`ideas.json` in
-   the current project (common locations: a `roadmap/` folder, a
-   `board/data/` folder — check the project's own README if unsure).
-3. If genuinely ambiguous, ask the user which directory holds this
-   project's board data.
+Read `<agent-board>/AGENTS.md` (schemas §2, edit rules §3, git conventions
+§4, grooming §5, build §6) and `<agent-board>/PROTOCOL.md` (selection rule)
+before touching data. They are the source of truth; this skill only tells
+you when to apply which part.
 
-## 2. Read the schema and protocol first
+Find the agent-board checkout: `~/workspace/agent-board`, or wherever
+`projects.json` + `AGENTS.md` + `server.js` live together.
 
-Read `<this repo>/README.md`'s "Schema" section and `<this
-repo>/PROTOCOL.md` in full before making changes — they define the epic,
-story, and idea shapes, the selection rule, and the claim/work/move loop.
-Everything below assumes them.
+## 2. Locate the project's board
 
-## 3. Answering "what's next"
+1. `BOARD_DATA_DIR` env var, if set.
+2. `<agent-board>/projects.json` — match by the repo you're working in
+   (e.g. cwd under `…/arc/…` → project `arc`).
+3. A directory in the current project holding `epics.json` beside
+   `config.json`.
+4. Ask.
 
-Apply `PROTOCOL.md` §3 literally: filter `epics.json` to cards in the first
-lane, with every dependency in the last lane, with an open gate (`"none"`
-or listed in `config.json`'s `open_gates`), not already `claimed_by`
-someone else, and under any configured WIP limit. Rank survivors by
-priority tier, then unblock count (how many other cards depend on it), then
-file order. Report the top card — or, if nothing qualifies, say exactly why
-(blocked, gated, claimed, or WIP-limited), since an empty selection is
-information the user needs, not a failure to hide.
+## 3. Workflows
 
-## 4. Claiming and moving a card
+**Operate.** "What's next?" → apply PROTOCOL §3 literally and show your
+ranking; an empty result is an answer (say why). Move/claim/edit cards and
+triage ideas per AGENTS.md §3. Respect dependency ordering and gates —
+gates are opened by humans in `config.json`, never by you.
 
-To claim: set `claimed_by` (an identifier for this session/agent) and
-`claimed_at` (current ISO timestamp) on the card in `epics.json`, write the
-file back. To move it: update `column`; clear `claimed_by`/`claimed_at`
-when the card leaves your hands (done, or bounced back to an earlier lane).
-Always bump `updated_at`. Respect the dependency-gating rule from
-`PROTOCOL.md` §3 point 2 — don't move a card into the last lane while an
-unmet dependency is still short of it.
+**Groom** (brainstorm → epic + stories). Talk first, write later. On
+"break it down": one epic (propose theme + milestone from config vocab) +
+stories with testable `acceptance_criteria`, `context` naming what a
+builder must read, honest `kind` (integration testing that outgrows a
+feature story is its own `integration` story). Everything lands
+`ready: false`; summarize and stop — the user reviews, flips `ready`,
+decides when to commit. Full rules: AGENTS.md §5.
 
-## 5. Working the idea backlog
+**Build** ("begin O1-2" / "begin epic O1"). Verify `ready` (the user
+saying it's ready in-conversation counts — record it), claim, read the
+story + epic + `context` + the target repo's own CLAUDE/AGENTS conventions,
+implement in the code repo, write the tests the acceptance criteria call
+for, run the project's checks, verify each criterion and report, move the
+card. Full loop: AGENTS.md §6.
 
-Ideas live in `ideas.json`, separate from `epics.json`. Status flows
-`idea → considering → planned → building → done`, or `rejected` at any
-point.
+**Save.** Board edits are free; git commits happen when the user says
+"save"/"commit"/"ratify" — commit the *project's* data repo with a
+`Board: …` message. Code commits are separate, in the code repo, under its
+rules. Never mix them.
 
-- **Adding an idea:** append an entry with `status: "idea"`, a priority
-  guess, `created_at`/`updated_at` set to today.
-- **Triaging:** move it along the status chain as it's discussed and
-  decided.
-- **Reordering:** move the entry within/between priority tiers — array
-  order within a tier is the queue order.
-- **Rejecting:** set `status: "rejected"` and fill `rejected_reason`. Don't
-  delete the entry — the point is that "why we didn't do this" survives
-  even though "when it was suggested" is no longer active.
-- **Promoting:** when an idea is decided and ordered, create a
-  corresponding `epics.json` entry (see the Epic schema) and either leave
-  the idea as `status: "done"`/`"planned"` referencing it via a shared tag,
-  or note the promotion in the idea's `notes`.
+## 4. Running the UI for the user
 
-## 6. Writing the files
-
-Whether the server is running or not, the files are the source of truth —
-edit them directly with your file tools. If the server *is* running, it
-will pick up your on-disk edit the next time its client reloads (it doesn't
-watch the filesystem); no special coordination is needed for a single
-session, but see `PROTOCOL.md` §5 if a human might be editing through the
-UI at the same moment.
+If the user wants to see the board: `cd <agent-board> && ./board <name>` →
+http://localhost:4300 (`PORT=4301` for a second board). If the page is open
+while you edit JSON, tell them to reload — the page's next write clobbers
+hand-edits (AGENTS.md §3).

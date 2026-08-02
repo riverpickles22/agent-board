@@ -52,6 +52,12 @@ The top of that ranking is "next." An empty selection (nothing pickable) is
 information, not a failure — report why: everything's blocked on a
 dependency, gated closed, already claimed, or the lane is at its WIP limit.
 
+**Stories** (`stories.json`) follow the same rule with two additions: a
+story is pickable only if `ready: true` (the human's recorded judgment that
+it has enough context to build — an agent never flips this on its own
+initiative), and only if its parent epic's gate is open. Rank ready stories
+by their own priority, then their epic's rank.
+
 ## 4. The agent protocol
 
 1. **Read** `epics.json` and `config.json` (and `ideas.json` if triaging

@@ -38,6 +38,8 @@ const DEFAULTS = {
   config: {
     lanes: ["Backlog", "In Progress", "Review", "Done"],
     priorities: ["Now", "Next", "Later", "Someday"],
+    themes: [],
+    milestones: [],
     open_gates: [],
     wip_limits: {},
   },
