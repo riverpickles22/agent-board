@@ -1,12 +1,40 @@
 [
   {
     "id": "idea-example",
-    "title": "Example idea — replace or delete me",
-    "description": "Ideas start here before they're worth a card. Promote a good one into epics.json when it's decided and ordered.",
+    "title": "Example idea \u2014 click me to see the deep dive",
+    "description": "Ideas start here before they're worth a card. Open one to brainstorm it properly.",
+    "notes": "",
+    "category": "feature",
+    "theme": "",
+    "milestone": "",
+    "tags": [
+      "example"
+    ],
     "status": "idea",
     "priority": "Later",
-    "tags": ["example"],
-    "notes": "",
+    "effort": "low",
+    "impact": "high",
+    "context": "The deep-dive page holds everything needed to decide whether an idea deserves development: what it's really about, the arguments each way, and the decision lens.",
+    "compounding": "If building this also makes three later features cheaper, say so here \u2014 infrastructure that compounds beats features that don't.",
+    "pros": [
+      "Cheap to try",
+      "Teaches us something either way"
+    ],
+    "cons": [
+      "Might distract from the current milestone"
+    ],
+    "sections": [
+      {
+        "title": "UI sketch",
+        "body": "Freeform sections hold whatever the decision needs: mockups described in words, market analysis, competitor notes, spike results."
+      }
+    ],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured as the worked example of the idea deep-dive."
+      }
+    ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
     "updated_at": "2026-08-02"

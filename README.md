@@ -8,6 +8,9 @@ ones you've marked ready.
 This file is for **humans**: what it is and how to run it. If you are an AI
 agent, read [`AGENTS.md`](AGENTS.md) and [`PROTOCOL.md`](PROTOCOL.md)
 instead — schemas, edit rules, and the work-selection protocol live there.
+For the one-page medium view of everything the tool can do, see
+[`CAPABILITIES.md`](CAPABILITIES.md) — a running board also serves it at
+`/docs` (and `/llms.txt`, for agents that only have the URL).
 
 ## Quick start
 
@@ -35,6 +38,7 @@ repo as plain JSON, versioned by that repo's normal git history:
 |---|---|
 | arc | `arc/arc-system-design/roadmap/` |
 | chaim | `chaim/chaim-app/chaim-system-design/roadmap/board/data/` |
+| board | `agent-board/roadmap/` — this repo, dogfooding its own backlog |
 
 Saving your backlog **is** a git commit in the project's repo — there is no
 other persistence layer, no database, no sync service. Diffs of board
@@ -61,8 +65,14 @@ Four layers, each answering a different question:
    your recorded judgment that there's enough context for an agent to go
    build it.
 4. **Ideas** (*the inbox*) — anything worth remembering, before it's
-   decided. `idea → considering → planned → building → done`, or
-   `rejected` (kept with a reason, never silently deleted).
+   decided. Three active columns: `idea → ready for review → ready to
+   implement`, then `done` — with `rejected` kept alongside done in an
+   archive toggle (with a reason, never silently deleted). **Ready for
+   review** is the AI's hand-off: an agent moves an idea there itself
+   once the deep dive holds enough for you to decide; **ready to
+   implement** is your thumbs-up. Approved ideas become epics/stories
+   when they're real scoped work; small ad hoc requests can be built
+   straight from the idea, milestone optional.
 
 Themes, milestones, lanes, and priority tiers are all defined per project
 in that project's `config.json` — the app has no hardcoded vocabulary.
@@ -74,23 +84,18 @@ filters applied when the board opens. Set up the filters you like and
 click **★ set as default view** in the filter bar to save them; the button
 only appears when your current view differs from the saved one.
 
-## Set up the Claude skill
+## The Claude skill — nothing to set up, nothing to update
 
-One-time, idempotent — safe to run whenever, it does nothing if already
-installed:
+**Setup is automatic.** Every `./board` run (listing, serving, anything)
+installs or repairs the skill symlink at `~/.claude/skills/agent-board` if
+it's missing — there is no separate command to remember. `./board setup`
+still exists if you want it to explain itself, and it refuses (rather than
+overwriting) if something unexpected occupies that path.
 
-```sh
-./board setup
-```
-
-This symlinks the skill into `~/.claude/skills/agent-board` (the repo copy
-stays the source of truth, so `git pull` updates the skill too). If
-something else already occupies that path it refuses and tells you, rather
-than overwriting. Manual equivalent:
-
-```sh
-ln -s "$(pwd)/.claude/skills/agent-board" ~/.claude/skills/agent-board
-```
+**Updates are automatic too.** The install is a *symlink into this repo*,
+never a copy — so when the skill changes here (your edits or `git pull`),
+new Claude sessions see the latest version with no action from you. There
+is no copy step, ever.
 
 **Activating it:** nothing to do — new Claude Code sessions in *any* repo
 discover user-level skills automatically, and this one activates when you
@@ -122,7 +127,12 @@ The `agent-board` Claude skill gives a Claude Code session five abilities:
    claims it, reads its context, implements it in the target code repo,
    writes the tests the story calls for, moves the card, and asks before
    committing.
-5. **Save** — board edits happen freely; git commits happen when you say
+5. **Design** — "redesign the ideas page", "add X to a card": the UI
+   itself is defined by markdown specs in [`design/`](design/DESIGN.md) —
+   one ASCII-wireframed spec per screen. The agent edits the spec first,
+   you approve the sketch, then it makes `index.html` match. Spec and UI
+   always change together, so the specs stay a true picture of the app.
+6. **Save** — board edits happen freely; git commits happen when you say
    "save" — that's the ratification step.
 
 ## Wiring a new project

@@ -46,7 +46,8 @@ real — they are what makes "read the context before building" possible.
   "themes": ["T1 …"], "milestones": ["M0 …"],
   "open_gates": [], "wip_limits": {},
   "view": { "title": "Chaim Build Board", "default_page": "board",
-            "default_milestone": "M0 Reliable foundation", "default_theme": "all" } }
+            "default_milestone": "M0 Reliable foundation", "default_theme": "all",
+            "default_board_mode": "epics" } }
 ```
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
@@ -55,7 +56,8 @@ the dependency and selection rules key off position, not name.
 header and browser tab (when you report which board you're operating on,
 use it); `default_page` (`board`|`ideas`), `default_milestone`, and
 `default_theme` are applied when the board opens (`"all"` or a vocab
-entry). Rules: when wiring or renaming a project, set `view.title` so
+entry). `default_board_mode` (`epics`|`rows`, default `epics`) picks the
+board rendering: epic cards in lanes, or story swimlanes grouped by epic. Rules: when wiring or renaming a project, set `view.title` so
 boards are tellable apart. Update `view` when the user asks ("make M1 my
 default view") — never as a side effect of other edits; the UI's
 "★ set as default view" button writes the same fields.
@@ -121,13 +123,64 @@ keep the links current when scope changes.
 **Idea**:
 ```json
 { "id": "idea-…", "title": "…", "description": "…", "notes": "",
+  "category": "feature | technology | business | … (free text)",
   "theme": "", "milestone": "", "tags": [],
-  "status": "idea", "priority": "Later", "rejected_reason": null,
+  "deps": ["idea or epic ids this needs first — optional, informational"],
+  "status": "idea", "priority": "Later",
+  "effort": "low|medium|high|",  "impact": "low|medium|high|",
+  "context": "what this is really about — problem, for whom, why now",
+  "compounding": "what doors building this opens; what gets cheaper later",
+  "pros": ["…"], "cons": ["…"],
+  "sections": [ {"title": "UI sketch | Market analysis | …", "body": "…"} ],
+  "log": [ {"at": "YYYY-MM-DD", "note": "a dated brainstorm entry"} ],
+  "rejected_reason": null,
   "created_at": "YYYY-MM-DD", "updated_at": null }
 ```
-`status` ∈ `idea → considering → planned → building → done`, or `rejected`
-at any point. Rejecting requires `rejected_reason`; never delete an idea
-for merely not being chosen.
+`status` ∈ `idea → ready for review → ready to implement → done`, or
+`rejected` at any point. The Ideas page shows the first three as the
+active pipeline; `done` and `rejected` live behind its archive toggle so
+they never crowd the active view. **`ready for review` is the agent's
+hand-off**: when developing an idea has filled the deep dive enough for
+the human to decide (context, pros/cons, effort/impact, compounding —
+honest, not padded), the agent moves it to `ready for review` itself and
+records a dated `log` entry saying what made it decision-ready. It is
+the one status transition an agent makes on its own initiative;
+`ready to implement` (the human's thumbs-up) and `rejected` are the
+human's call. From `ready to implement`: groom into an epic + stories
+(§5) when it's scoped work — but a small **ad hoc request** may be built
+straight from the idea, and a `milestone` link is optional in both
+cases; mark the idea `done` when the work ships. Legacy statuses
+(`considering`, `planned`, `building`) render as their modern
+equivalents in the UI but should be migrated whenever you touch the
+record. Rejecting requires `rejected_reason`; never delete an idea for
+merely not being chosen. An idea can be *anything worth considering* —
+a feature, a technology to adopt, a business move, a process change.
+
+The deep-dive fields exist to answer one question: **does this idea
+deserve development?** The UI's idea page renders them; `log` is
+append-only (never rewrite old entries — it's the record of how thinking
+evolved).
+
+Idea `deps` are **informational sequencing** — "this makes sense after
+that" — shown on the card only when filled in; unlike epic `deps`, no
+ordering rule is enforced on them.
+
+Within the `idea` status, the Ideas page splits cards by `priority` into
+**Front burner** (the top half of the config priority vocab — default
+Now/Next: spend attention here) and **Back burner** (the rest —
+placeholders worth keeping, not worth time yet). Triaging an idea's
+urgency means setting its `priority`; there is no separate field.
+
+**The decision lens (how ideas are judged here):** the user's stated
+philosophy — *the least work for the greatest impact wins; infrastructure
+that compounds (opens several doors, makes later things cheaper) counts
+double; simplicity is a powerful tool.* Concretely: fill `effort` and
+`impact` honestly (low effort + high impact = a **quick win**, flagged in
+the UI); always ask the `compounding` question — a medium-effort idea that
+makes three later ideas cheap may beat a low-effort one-off; and when two
+designs deliver the same value, the simpler one is the better idea. Apply
+this lens when brainstorming, comparing, or recommending ideas — and say
+which part of the lens drives your recommendation.
 
 ## 3. Edit rules
 
@@ -158,8 +211,20 @@ Board data is versioned by the **project's own repo** (the
   committed in the code repo, separately, under that repo's own rules —
   never mix the two in one commit, and never commit code without being
   asked.
+- **UI changes version in this repo** under `Design: …` messages: the
+  screen's spec in [`design/`](design/DESIGN.md) and `index.html` change
+  **together in one commit**, never one without the other, and never
+  mixed with `Board:` data commits.
 
 ## 5. Grooming (brainstorm → epics/stories)
+
+**Developing an idea (before it's work):** when brainstorming an idea with
+the user, capture the output *into the idea's own fields* as the
+conversation lands things — `context`, `pros`/`cons`, `effort`/`impact`,
+`compounding`, extra `sections` (UI sketches, market analysis, spikes),
+and a dated `log` entry summarizing what moved. Apply the decision lens
+(§2). The goal of this stage is a decision — develop further, park, or
+reject with a reason — not implementation.
 
 When the user wants to develop an idea into work items:
 
@@ -194,6 +259,20 @@ When the user says to build a story (e.g. "begin O1-2"):
 
 An epic is "begin"-able too: work its ready stories in dependency/priority
 order, one at a time, reporting between stories.
+
+**Capture new value drivers.** If building something created a new
+capability, workflow, or convention that future work should use — a new
+UI surface, a new status semantic, a new endpoint, a new rule — fold it
+into the docs that carry it (this file, the skill, `PROTOCOL.md`, the
+`design/` specs) **in the same change**, so the next agent inherits it
+instead of rediscovering it. A value driver that lives only in the code
+or in one conversation is lost.
+
+Any **medium-or-larger** capability change also updates
+[`CAPABILITIES.md`](CAPABILITIES.md) — the medium-altitude inventory the
+running board serves at `/docs` and `/llms.txt` — in the same change.
+Keep it at that altitude: *what it does, not how*; bump its "as of"
+date. Small tweaks (styling, copy, refactors) don't touch it.
 
 ## 7. Curating the backlog
 
@@ -231,6 +310,14 @@ yes.
    silently edit strategy or architecture docs.** Each ratified doc
    update is its own commit in the context directory, so `git log` on
    those files is the record of how the plan evolved during development.
+6. **Design drift.** Check the UX specs ([`design/DESIGN.md`](design/DESIGN.md)
+   §3) against `index.html`: (a) grep every backticked anchor in the
+   specs' Components tables — an anchor that doesn't resolve in
+   `index.html` is drift; (b) skim each screen's render function against
+   its wireframe and interactions; (c) flag any spec still
+   `spec_state: ahead-of-ui`. Report a table of drift with proposed
+   fixes — spec-to-match-code or code-to-match-spec, the user picks the
+   direction. Propose only; never silently rewrite either side.
 
 End every curation with a summary of what changed, what was proposed and
 declined, and what needs the user's decision.

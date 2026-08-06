@@ -11,6 +11,26 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REGISTRY="$HERE/projects.json"
+SKILL_LINK="$HOME/.claude/skills/agent-board"
+SKILL_TARGET="$HERE/.claude/skills/agent-board"
+
+# Every run self-installs/repairs the skill symlink, so there is no setup
+# step to remember. Because it's a symlink (never a copy), skill updates in
+# this repo are live for new Claude sessions with no action from the user.
+ensure_skill() {
+  if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
+    return 0
+  fi
+  if [ -L "$SKILL_LINK" ] && [ ! -e "$SKILL_LINK" ]; then
+    rm "$SKILL_LINK"   # broken link (repo moved) — repair it
+  elif [ -e "$SKILL_LINK" ]; then
+    echo "note: $SKILL_LINK exists and isn't this repo's skill — run ./board setup for details" >&2
+    return 0
+  fi
+  mkdir -p "$(dirname "$SKILL_LINK")"
+  ln -s "$SKILL_TARGET" "$SKILL_LINK"
+  echo "Claude skill installed: $SKILL_LINK -> $SKILL_TARGET"
+}
 
 list() {
   echo "Registered projects (projects.json):"
@@ -26,19 +46,14 @@ list() {
 }
 
 setup() {
-  local SKILLS_DIR="$HOME/.claude/skills"
-  local LINK="$SKILLS_DIR/agent-board"
-  local TARGET="$HERE/.claude/skills/agent-board"
-  mkdir -p "$SKILLS_DIR"
-  if [ -L "$LINK" ] && [ "$(readlink "$LINK")" = "$TARGET" ]; then
-    echo "Claude skill already installed: $LINK -> $TARGET"
-  elif [ -e "$LINK" ]; then
-    echo "Something else exists at $LINK — not touching it." >&2
+  if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
+    echo "Claude skill already installed: $SKILL_LINK -> $SKILL_TARGET"
+  elif [ -e "$SKILL_LINK" ] && [ ! -L "$SKILL_LINK" ]; then
+    echo "Something else exists at $SKILL_LINK — not touching it." >&2
     echo "Remove it and re-run ./board setup to install the skill." >&2
     exit 1
   else
-    ln -s "$TARGET" "$LINK"
-    echo "Claude skill installed: $LINK -> $TARGET"
+    ensure_skill
   fi
   cat <<'EOT'
 
@@ -53,6 +68,7 @@ EOT
 }
 
 if [ $# -eq 0 ]; then
+  ensure_skill
   list
   exit 0
 fi
@@ -61,6 +77,8 @@ if [ "$1" = "setup" ]; then
   setup
   exit 0
 fi
+
+ensure_skill
 
 NAME="$1"
 DIR="$(node -e 'console.log(require(process.argv[1])[process.argv[2]] ?? "")' "$REGISTRY" "$NAME")"

@@ -89,6 +89,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && (url === "/" || url === "/index.html")) {
       return sendFile(res, "index.html", "text/html; charset=utf-8");
     }
+    // Capability self-description for agents and humans without repo access:
+    // /llms.txt is the emerging agent convention; /docs is the human alias.
+    if (req.method === "GET" && (url === "/llms.txt" || url === "/docs")) {
+      const type = url === "/docs" ? "text/markdown; charset=utf-8" : "text/plain; charset=utf-8";
+      return sendFile(res, "CAPABILITIES.md", type);
+    }
     if (req.method === "GET" && url === "/api/board") {
       return sendJSON(res, 200, {
         epics: readData("epics"),

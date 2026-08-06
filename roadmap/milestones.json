@@ -1,0 +1,12 @@
+{
+  "overview": {
+    "summary": "agent-board itself: the shared kanban the arc and chaim backlogs run on. This board dogfoods the tool — capability and customer-experience ideas for the tool land here as ideas, framed around its two customers: the human deciding what to build, and the agent operating the board. No milestones yet; the backlog is ideas-first until a direction is ratified.",
+    "context_docs": [
+      { "label": "Human tour", "path": "README.md", "note": "what the tool is, build-vs-buy history" },
+      { "label": "Agent contract", "path": "AGENTS.md", "note": "schemas, edit rules, workflows" },
+      { "label": "Selection protocol", "path": "PROTOCOL.md", "note": "the what's-next rule" },
+      { "label": "UX spec contract", "path": "design/DESIGN.md", "note": "how the UI is defined and evolved" }
+    ]
+  },
+  "milestones": []
+}

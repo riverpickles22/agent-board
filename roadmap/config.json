@@ -1,0 +1,14 @@
+{
+  "lanes": ["Backlog", "In Progress", "Done"],
+  "priorities": ["Now", "Next", "Later", "Someday"],
+  "themes": ["Decide fast", "Trust the board", "Flow", "Agent enablement"],
+  "milestones": [],
+  "open_gates": [],
+  "wip_limits": {},
+  "view": {
+    "title": "agent-board — backlog",
+    "default_page": "ideas",
+    "default_milestone": "all",
+    "default_theme": "all"
+  }
+}
