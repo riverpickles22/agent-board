@@ -16,30 +16,35 @@ until a decision lands.
 ```
 ├──────────────────────────────────────────────────────────────────────┤
 │ ← all ideas                                                          │
-│ {Idea title}  (Status)(category)(prio) ★ quick win      [Edit core]  │
-│ {description}                                                        │
+│ {Idea title}  ★ quick win                               [Edit core]  │
+│ ●─Idea──●─Ready for review──○─Ready to implement   (Done)/(Rejected) │
+│ priority (Next) category (feature) milestone ({M0}) (tag)            │
+│ ⊸ depends on idea-x idea-y            created {d} · updated {d}      │
+│ {plain description, ≤72ch}           ┌ TECHNICAL SHAPE (recessed) ┐  │
+│ (business/why half, top of the      │ {technical description}    │  │
+│  left column)                        └────────────────────────────┘  │
 │ ┌ CONTEXT — WHAT IS THIS  ─────────┐ ┌ DECISION LENS ═════════════╗  │
-│ │ {context}                (edit)  │ ║ Effort ▾   Impact ▾        ║  │
-│ └──────────────────────────────────┘ ║   ★ quick win — least work,║  │
-│ ┌ PROS / CONS ─────────────(edit)─┐  ║     greatest impact        ║  │
-│ │ Pros          │ Cons            │  ║ COMPOUNDING — WHAT DOORS   ║  │
-│ │ • …           │ • …             │  ║ DOES THIS OPEN?     (edit) ║  │
-│ └──────────────────────────────────┘ ╚════════════════════════════╝  │
-│ ┌ REJECTED — WHY ──────────(edit)─┐  ┌ DEEP-DIVE SECTIONS ────────┐  │
-│ │ (only when rejected)            │  │ {Section title}     (edit) │  │
-│ └──────────────────────────────────┘ │ {body}                     │  │
-│                                      │ [+ add section]            │  │
+│ │ {context}                (edit)  │ ║ Effort [—|low|med|high]    ║  │
+│ └──────────────────────────────────┘ ║ Impact [—|low|med|high]    ║  │
+│ ┌ PROS / CONS ─────────────(edit)─┐  ║ {verdict: ★ quick win /    ║  │
+│ │ Pros          │ Cons            │  ║  e · i readback / prompt}  ║  │
+│ │ • …           │ • …             │  ║ COMPOUNDING — WHAT DOORS   ║  │
+│ └──────────────────────────────────┘ ║ DOES THIS OPEN?     (edit) ║  │
+│ ┌ REJECTED — WHY ──────────(edit)─┐  ╚════════════════════════════╝  │
+│ │ (only when rejected)            │  ┌ DEEP-DIVE SECTIONS ────────┐  │
+│ └──────────────────────────────────┘ │ {Section title}     (edit) │  │
+│                                      │ {body}   [+ add section]   │  │
 │                                      └────────────────────────────┘  │
-│                                      ┌ BRAINSTORM LOG ────────────┐  │
-│                                      │ 2026-08-02  note…          │  │
-│                                      │ [Add a thought…    ] [Add] │  │
-│                                      └────────────────────────────┘  │
+│                                      BRAINSTORM LOG   (borderless)   │
+│                                      2026-08-02  note…               │
+│                                      [Add a thought…       ] [Add]   │
 ├──────────────────────────────────────────────────────────────────────┤
 ```
 
 (The lens block is double-bordered above to mark its accent border in
-the real page — `.lens` gets the accent treatment because it *is* the
-point of the page.)
+the real page — `.lens` gets the accent treatment and is deliberately
+the *only* emphasized box: Technical shape is recessed reference, the
+log is a borderless journal, everything else is the standard panel.)
 
 ## Components
 
@@ -47,22 +52,30 @@ point of the page.)
 |---|---|---|---|
 | Whole page | `renderIdeaDetail()` | everything | rendered inside `#view-ideas` |
 | Back | `#idd-back` | "← all ideas" | `navigate("ideas")` |
-| Header | `.ihead` | title, status/category/priority pills, quick-win badge | pills from `system.md` vocabulary |
+| Header | `.ihead` | title + quick-win badge + Edit core | status/category/priority moved out of the title row — see stepper + meta row |
+| Lifecycle stepper | `lifecycleEl()` `.steps` | the three-status pipeline as connected nodes: passed = filled, current = filled + accent ring, future = dim | terminal states: `done` fills all + a `--lane-5` chip (`.term.tdone`); `rejected` dims the steps (`.steps.rej`) + a `--lane-4` chip (`.term.trej`) |
+| Meta row | `metaRowEl()` `.imeta-row` | labeled micro-pills: priority, category, milestone (`short()`, full in title), theme, tags; `⊸ depends on` links; dim created/updated dates right | dep ids that are ideas render as `.dep-l` buttons (`data-goidea`) navigating to that idea; non-idea ids (epics) render inert (`.dep-x`) |
+| Description split | `descParts()` `.dplain` `.dtech` | plain-language description tops the left column, "Technical shape" box tops the right | splits on the `Technical shape:` paragraph convention; the halves live *inside* the `.idd-grid` columns so each side flows with no cross-column gap; descriptions without the marker render as one plain paragraph atop the left column |
 | Edit core | `#idd-edit` | button → `openIdea(id)` | same modal as the Ideas page |
 | Context block | `.idd-block` | `context` or empty-state prompt | inline edit via `inlineEdit("context")` |
 | Pros / cons | `.procon` | two lists, markers in `--lane-5`/`--lane-4` | edited as one-per-line textareas |
 | Rejected block | — (`data-k="reject"`) | `rejected_reason` | only when rejected or a reason exists |
-| Decision lens | `.lens` | effort ▾ (`#l-effort`), impact ▾ (`#l-impact`), quick-win verdict, compounding text | accent-bordered; levels — / low / medium / high (`EI_LEVELS`) |
+| Decision lens | `.lens` `.seg` | effort + impact as segmented controls (one button per `EI_LEVELS` value, current `aria-pressed`), always-present verdict line, compounding text | accent-bordered — the page's one emphasized box. Verdict states: ★ quick win when earned; "{effort} effort · {impact} impact" readback when both set (`.verdict.quiet`); teaching prompt otherwise (`.verdict.hint`) |
 | Sections | `.sec-item` `editSection()` | freeform title+body sections; "+ add section" (`#sec-add`) | holds UI sketches, market analysis, spikes… |
-| Brainstorm log | `.idd-log` | dated entries, oldest first; add box (`#log-in` + `#log-add`) | **append-only** — no edit/delete on entries, by design |
+| Brainstorm log | `.idd-block.loose` `.idd-log` | dated entries, oldest first; add box (`#log-in` + `#log-add`) | **append-only** — no edit/delete on entries, by design; rendered borderless (journal weight — hairline dividers carry the structure) |
+| Technical shape | `.dtech` | the description's technical half | recessed surface (mixed toward `--ground`) — reference material, not a competing panel |
 | Inline editor | `inlineEdit()` | swaps a block's body for textarea + Save/Cancel | per-key: context / proscons / compounding / reject |
 
 ## Interactions
 
 - Every inline save (context, pros/cons, compounding, reject, sections),
-  lens select change, and log add → stamps `updated_at` (date only) and
+  lens segment click, and log add → stamps `updated_at` (date only) and
   `persistResource("ideas", …)` via `saveIdeas()`, then re-renders the
   page.
+- Lens segment click sets `effort`/`impact` in one click — the whole
+  scale is visible, the current value filled.
+- Dep link click (`data-goidea`) → `navigate("ideas", id)`; writes
+  nothing.
 - Log add: Enter in the input or the Add button; empty input is ignored.
 - Section delete lives inside the section editor (Delete section).
 - Cancel on any inline editor → re-render, nothing written.
@@ -70,6 +83,10 @@ point of the page.)
 ## States
 
 - Unknown id: "Idea not found" + link back to `#/ideas`.
+- Reading measure: `.dplain` caps at 72ch, block paragraphs at 75ch —
+  no 200-character lines on wide monitors.
+- Keyboard: segments and dep links are buttons — Tab + Enter work;
+  `:focus-visible` shows a 2px accent outline (global rule).
 - Empty blocks show italic prompts that teach the field ("Does building
   this make several later things cheaper? …").
 - Quick win appears both as header badge and lens verdict when

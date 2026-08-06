@@ -25,12 +25,14 @@ rolled up to epic chips (and optional architecture state) on the right.
 │ │ WHAT WE SEEK TO ACCOMPLISH│  │ Deliverable name        2/3 done │  │
 │ │ {summary}                 │  │ description                      │  │
 │ │ USER OUTCOME {…}          │  │ (F1 ✓)(F2)(F9)      epic chips   │  │
-│ │ ┌ GATE/EXIT ┬ ROI ─────┐  │  └──────────────────────────────────┘  │
-│ │ │ {gate}    │ {roi}    │  │  ┌ SYSTEM DESIGN AT END OF {M0} ────┐  │
-│ │ └───────────┴──────────┘  │  │ {architecture.summary}           │  │
-│ │ CONTEXT DOCS {…}          │  │ [new] subsystem — note           │  │
-│ └───────────────────────────┘  │ [changed] subsystem — note       │  │
-│                                └──────────────────────────────────┘  │
+│ │ ┌ GATE/EXIT ────────────┐ │  └──────────────────────────────────┘  │
+│ │ │ {gate}                │ │  ┌ SYSTEM DESIGN AT END OF {M0} ────┐  │
+│ │ └───────────────────────┘ │  │ {architecture.summary}           │  │
+│ │ ┌ ROI ──────────────────┐ │  │ [new] subsystem — note           │  │
+│ │ │ {roi}                 │ │  │ [changed] subsystem — note       │  │
+│ │ └───────────────────────┘ │  │                                  │  │
+│ │ CONTEXT DOCS {…}          │  │                                  │  │
+│ └───────────────────────────┘  └──────────────────────────────────┘  │
 ├──────────────────────────────────────────────────────────────────────┤
 ```
 
@@ -43,7 +45,7 @@ rolled up to epic chips (and optional architecture state) on the right.
 | Context docs | `ctxDocs()` `.ctxdoc` | label + mono path + note rows | used by overview and per-milestone |
 | Milestone tabs | `.ms-nav` `.ms-tab` | `short(id)` + name per milestone | `aria-selected` on the active one |
 | Auto-selection | `currentMilestone()` | — | earliest milestone (file order) whose mapped epics aren't all done; else first |
-| Narrative column | `.ms-section` `.ms-meta` | summary, user outcome, gate/ROI boxes, context docs | optional fields render only when present |
+| Narrative column | `.ms-section` `.ms-meta` | summary, user outcome, gate/ROI boxes, context docs | optional fields render only when present; the gate and ROI boxes stack full-width under the summary (gate first) rather than sitting side by side |
 | Deliverable | `.deliv` | name + "done/total done" + description + epic chips | roll-up counts epics in the done lane |
 | Epic chip | `.chip-epic` | epic id, ✓ + `done` style when done | unknown id → `.missing` (dimmed, inert, titled "no epic with this id on the board") |
 | Architecture | `.arch-sub` `.state` | subsystem rows with `new` / `changed` / `existing` badge | state colors: `--lane-5` / `--lane-2` / `--ink-3` |

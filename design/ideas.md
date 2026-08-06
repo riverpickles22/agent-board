@@ -45,10 +45,12 @@ the top half of the config priority vocab (default: Now, Next) — and
 **Back burner** (the rest: Later, Someday), below a dashed divider.
 Cards sort by priority within each section. Moving an idea between
 burners is just changing its priority (Edit core); no new field.
-Back-burner **cards** are visibly quieter than front-burner ones —
-surface mixed toward `--ground`, dashed border (the UI's "tentative"
-cue), title in `--ink-2` — so mid-scroll it's clear which section
-you're in without reading the headers; hover restores a solid border.
+The two burners are visibly distinct without reading the headers:
+front-burner cards carry a left edge in `--accent` (echoing the accent
+section header), while the whole back-burner section sits in a recessed
+dashed box (`.bsec.back`) — surface mixed toward `--ground` — with its
+cards quieter (dimmer surface, title in `--ink-2`). The dashed box is
+the UI's "tentative" cue and replaces the bare divider line.
 
 Archive view (toggled): same page, two columns — DONE and REJECTED —
 one row.
@@ -67,7 +69,7 @@ archive — so each view is always a single row; single column under
 | New idea | `#new-idea` | "+ New idea" button | → `openIdea(null)`; visible in both views — a capture always lands in Active |
 | Status column | `.ideas-col` | label + count per view's status list | active: `IDEA_STATUS` (idea → ready for review → ready to implement); archive: `IDEA_STATUS_ARCHIVE` (done, rejected). "Ready for review" is the agent's hand-off; "ready to implement" is the human's thumbs-up (AGENTS.md §2). Legacy statuses (considering/planned/building) render via `ideaStatus()` normalization |
 | Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next), accent-colored; back = the rest, dim, above a dashed divider; each section renders only when non-empty; header `title` names the priority tiers it covers; cards sorted by priority index (unknown priority sinks to back). `.bsec.back .idea` carries the quieter card treatment |
-| Idea card | `ideaCard()` | title, description, category pill, effort/impact / quick-win badge, `.irel` line, dependencies line | shared by every column/section |
+| Idea card | `ideaCard()` | title, description, category pill, effort/impact / quick-win badge, `.irel` line, dependencies line | shared by every column/section; description renders paragraph breaks (`white-space: pre-line`) — the convention is a plain-language opener, then a "Technical shape:" paragraph |
 | Dependencies line | `.idep` | `⊸ depends on: <ids>` in mono, dim | renders **only when `deps` is non-empty** — absent otherwise; ids may name ideas or epics; informational, no ordering enforcement (unlike epic deps) |
 | Idea card | `.idea` | title, description, category pill, effort/impact or quick-win badge, milestone·theme·tags line (`.irel`) | whole card clickable |
 | Quick win | `quickWin()` `.qwin` | "★ quick win" when effort low + impact high | else `eiBadge()` shows "low effort · high impact" style summary (`.ei`) |
