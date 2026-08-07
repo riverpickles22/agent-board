@@ -544,9 +544,10 @@ function renderNextUp(){
   el.querySelectorAll(".pick").forEach(b => b.addEventListener("click", () => goToEpic(b.dataset.id)));
 }
 
-async function load(){
-  const r = await fetch("/api/board");
-  state = await r.json();
+// Fill state + vocab + title from a /api/board payload — shared by the
+// initial load() and live refresh().
+function applyBoard(data){
+  state = data;
   state.stories = state.stories || [];
   state.ideas = state.ideas || [];
   state.config = state.config || {};
@@ -556,26 +557,41 @@ async function load(){
   PRIOS = state.config.priorities && state.config.priorities.length ? state.config.priorities : ["Now","Next","Later","Someday"];
   THEMES = state.config.themes || [];
   MILESTONES = state.config.milestones || [];
-  // per-project view config: title + the filters/page applied on open.
-  // An explicit hash in the URL wins over default_page so bookmarks keep working.
   const view = state.config.view || {};
   document.title = view.title || "agent-board";
   document.getElementById("board-title").textContent = view.title || "Board";
-  const d = viewDefaults();
-  filterMS = d.ms; filterTheme = d.theme; boardMode = d.mode;
-  if(!location.hash && d.page !== "board") location.hash = "#/" + d.page;
   state.epics.forEach(e => { if(!COLUMNS.includes(e.column)) e.column = COLUMNS[0]; });
   state.stories.forEach(s => { if(!COLUMNS.includes(s.column)) s.column = COLUMNS[0]; });
+}
+async function load(){
+  const r = await fetch("/api/board");
+  applyBoard(await r.json());
+  // per-project view config: title + the filters/page applied on open.
+  // An explicit hash in the URL wins over default_page so bookmarks keep working.
+  const d = viewDefaults();
+  filterMS = d.ms; filterTheme = d.theme; boardMode = savedBoardMode() || d.mode;
+  if(!location.hash && d.page !== "board") location.hash = "#/" + d.page;
   renderFilters();
   render();
   renderTabs();
   route();
+  wireLiveRefresh();
 }
 
 function allTags(){
   const s = new Set();
   state.epics.forEach(e => (e.tags||[]).forEach(t => s.add(t)));
   return [...s].sort();
+}
+// The Epics/Rows toggle is remembered per browser, keyed by project title,
+// so it survives reloads without touching the shared config.json default.
+function modeKey(){ return "agent-board:mode:" + (((state.config||{}).view||{}).title || "board"); }
+function savedBoardMode(){
+  try { const m = localStorage.getItem(modeKey()); return (m==="epics"||m==="rows") ? m : null; }
+  catch(e){ return null; }
+}
+function rememberBoardMode(){
+  try { localStorage.setItem(modeKey(), boardMode); } catch(e){}
 }
 // The saved default view, validated against current vocab (bad values -> "all").
 function viewDefaults(){
@@ -615,6 +631,7 @@ function renderFilters(){
   f.querySelectorAll(".chip.mode").forEach(c => c.addEventListener("click", () => {
     if(boardMode === c.dataset.mode) return;
     boardMode = c.dataset.mode;
+    rememberBoardMode();
     renderFilters(); render();
   }));
   const sv = document.getElementById("save-view");
@@ -1034,7 +1051,7 @@ function deleteEpic(id){
   closeModal(); render(); persist();
 }
 
-function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; }
+function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; applyPendingRefresh(); }
 document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.id==="scrim") closeModal(); });
 document.addEventListener("keydown", ev => { if(ev.key==="Escape") closeModal(); });
 
@@ -1048,9 +1065,11 @@ function showToast(msg){
 
 /* ---- persistence ---- */
 const saveTimers = {};   // per-resource, so an epics save can't cancel a stories save
+let savesPending = 0;    // live refresh holds off while our own writes are in flight
 function persistResource(resource, val){
   const s = document.getElementById("save"), t = document.getElementById("save-t");
   s.className = "save saving"; t.textContent = "saving…";
+  if(saveTimers[resource] == null) savesPending++;
   clearTimeout(saveTimers[resource]);
   saveTimers[resource] = setTimeout(async () => {
     try{
@@ -1059,10 +1078,50 @@ function persistResource(resource, val){
       s.className="save"; t.textContent="saved";
     }catch(err){
       s.className="save err"; t.textContent="save failed — is the server running?";
+    }finally{
+      saveTimers[resource] = null;
+      savesPending--;
+      applyPendingRefresh();
     }
   }, 150);
 }
 function persist(){ persistResource("epics", state.epics); }
+
+/* ---- live refresh: the server pushes an SSE event when any data file
+   changes on disk (agent edits included); the page refetches instead of
+   holding stale state. Deferred while a modal is open, a drag is in
+   flight, or our own save hasn't landed yet. ---- */
+let pendingRefresh = false, refreshTimer = null;
+function refreshBlocked(){
+  return savesPending > 0
+      || document.getElementById("scrim").classList.contains("on")
+      || document.body.classList.contains("is-dragging");
+}
+async function refresh(){
+  try{
+    const r = await fetch("/api/board");
+    if(!r.ok) return;
+    const data = await r.json();
+    // Our own writes echo back through the watcher — skip if nothing differs.
+    const current = JSON.stringify({ epics: state.epics, stories: state.stories,
+      ideas: state.ideas, config: state.config, milestones: state.milestones });
+    if(JSON.stringify(data) === current) return;
+    if(refreshBlocked()){ pendingRefresh = true; return; }
+    applyBoard(data);
+    // A filter can outlive its vocab when config changes under us.
+    if(filterMS !== "all" && !MILESTONES.includes(filterMS)) filterMS = "all";
+    if(filterTheme !== "all" && !THEMES.includes(filterTheme)) filterTheme = "all";
+    renderFilters(); render(); route();
+  }catch(err){ /* transient — the next change event retries */ }
+}
+function applyPendingRefresh(){
+  if(pendingRefresh && !refreshBlocked()){ pendingRefresh = false; refresh(); }
+}
+function wireLiveRefresh(){
+  const es = new EventSource("/api/events");   // auto-reconnects on server restart
+  es.onmessage = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 150); };
+  document.addEventListener("dragend", applyPendingRefresh);
+}
 
 /* ================= routing (hash-based SPA) ================= */
 // Ordered by the flow: ideas (capture) -> milestones (intent) -> board (work),
@@ -1320,7 +1379,7 @@ function renderIdeas(param){
   const ideaCard = i => {
     const rel = [i.milestone, i.theme].filter(Boolean).map(short).concat(i.tags||[]);
     return '<div class="idea" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'><div class="it">'+esc(i.title)+'</div>'+
-      (i.description ? '<div class="ia">'+esc(i.description)+'</div>' : '')+
+      (descParts(i.description).plain ? '<div class="ia">'+esc(descParts(i.description).plain)+'</div>' : '')+
       '<div class="imeta">'+(i.category?'<span class="tagpill">'+esc(i.category)+'</span>':"")+eiBadge(i)+'</div>'+
       ((i.deps||[]).length ? '<div class="idep">⊸ depends on: '+esc(i.deps.join(" "))+'</div>' : '')+
       (rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+

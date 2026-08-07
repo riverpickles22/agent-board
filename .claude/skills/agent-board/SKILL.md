@@ -113,8 +113,9 @@ rules. Never mix them.
 
 If the user wants to see the board: `cd <agent-board> && ./board <name>` →
 http://localhost:4300 (`PORT=4301` for a second board). If the page is open
-while you edit JSON, tell them to reload — the page's next write clobbers
-hand-edits (AGENTS.md §3).
+while you edit JSON, a current server live-reloads it — your edits show
+up in the browser on their own. Only an older server (no `/api/events`)
+still needs the "please reload" warning (AGENTS.md §3).
 
 When reporting which board you're operating on, use its
 `config.view.title` (e.g. "Chaim Build Board"), not just the project key.

@@ -91,11 +91,17 @@ browsing the board sees the capabilities without the repo or curl.
   sessions with no copy step.
 - **Multi-project** — `projects.json` registers name → data dir; one
   codebase serves arc, chaim, and agent-board's own dogfood backlog.
+- **Live reload** — the server watches the data dir and pushes change
+  events to every open page, which refetches and re-renders. Agent edits
+  to the JSON appear in an open browser within a second; no manual
+  reload, and the page no longer clobbers file edits with stale state.
+  (Refreshes wait politely while a modal, drag, or save is in flight.)
 
 ## HTTP surface (the running site)
 
 `GET /` (the UI) · `GET /api/board` (full board JSON) ·
 `PUT /api/<epics|stories|ideas|config|milestones>` (whole-file write) ·
+`GET /api/events` (SSE change feed — powers live reload) ·
 `GET /docs` + `GET /llms.txt` (this document).
 
 ---

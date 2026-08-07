@@ -81,7 +81,7 @@ Modal (over everything, via the shared shell in `system.md`):
 
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
-| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode only |
+| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Filter rows | `renderFilters()` `#filters` | milestone / theme / tag chip rows | rows render only when vocab non-empty; labels via `short()` except tags (full) |
 | Next up strip | `renderNextUp()` `#nextup` | top 5 pickable epics as `.pick` chips: id, name, why (priority · unblocks N); "+N more" overflow; or a nothing-pickable reason line (`.none`) | `nextUp()` implements PROTOCOL §3 exactly: first lane + deps done + gate in `open_gates` (`gateOpen()`) + unclaimed + successor lane under `wip_limits` (`wipBlocked()`); ranked priority index → unblock count (`unblockCount()`) → file order. Board-wide — ignores the filter chips |
 | Save-view chip | `.chip.savev` `#save-view` | "★ set as default view" | appears only when current filters differ from `viewDefaults()`; writes `config.view` |
@@ -110,9 +110,11 @@ Modal (over everything, via the shared shell in `system.md`):
 - Drag card → lane: `checkMove()`; legal → set `column` + `updated_at`,
   `persist()` (= `persistResource("epics", …)`); refused → `showToast(reason)`,
   nothing written.
-- View toggle click → set `boardMode`, re-render the board area; writes
-  nothing. ★ set as default view persists it as
-  `config.view.default_board_mode` via `persistResource("config", …)`.
+- View toggle click → set `boardMode`, remember it in `localStorage`
+  (per-browser, keyed by project title — `rememberBoardMode()`),
+  re-render the board area; writes no board data. ★ set as default view
+  persists the shared default as `config.view.default_board_mode` via
+  `persistResource("config", …)`.
 - (Rows) drag story card → cell in its own row: set story `column` +
   `updated_at`, `persistResource("stories", …)`. Cross-row drop or a
   gated epic's cell → `showToast(reason)`, nothing written. No
@@ -147,8 +149,9 @@ Modal (over everything, via the shared shell in `system.md`):
   illegal lanes dim (`.no-drop`), hovered legal lane highlights
   (`.drop-hover`).
 - Jump-in from milestones (`goToEpic()`): switches to Epics mode first
-  (the `.card[data-id]` target only exists there), filters set to the
-  epic's milestone, card scrolled into view with a 1.3s `.flash` ring.
+  (the `.card[data-id]` target only exists there) without overwriting
+  the remembered toggle choice, filters set to the epic's milestone,
+  card scrolled into view with a 1.3s `.flash` ring.
 - Unknown card column (stale data): normalized to first lane on load —
   stories too.
 - Rows mode, epics without stories: skipped, counted in `.rows-note`.
@@ -166,8 +169,10 @@ stories via `storiesOf(epicId)`; vocab from `COLUMNS`/`PRIOS`/`THEMES`/
 `MILESTONES`; lane color by position (`laneVar`), priority pill class by
 index (`prioClass`). New-epic ids suggested as `NEW1…` (`suggestId()`),
 story ids `<epic_id>-<n>` (`suggestStoryId()`).
-`boardMode` ("epics" | "rows") defaults from
-`config.view.default_board_mode` (fallback "epics") via `viewDefaults()`.
+`boardMode` ("epics" | "rows") defaults from the last toggle click
+remembered in this browser (`savedBoardMode()`, `localStorage` keyed by
+project title), else `config.view.default_board_mode`, else "epics"
+(`viewDefaults()`).
 Rows mode shows stories only through their parent epic's `epicShown()` —
 stories carry no filter fields of their own. The Next-up strip stays
 epic-level in both modes.

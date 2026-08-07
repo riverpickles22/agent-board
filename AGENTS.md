@@ -192,9 +192,12 @@ which part of the lens drives your recommendation.
   in `deps` is there; nothing in the last lane may leave it while a
   dependent sits there. The UI enforces this; when editing files directly,
   you enforce it yourself.
-- If the board UI might be open, warn the user that hand-edits and UI edits
-  can clobber each other (the page holds whole-array state) — they should
-  reload after your edits.
+- A board served by a current `server.js` live-reloads: it watches the
+  data dir and pushes changes to open pages, so your file edits appear
+  in the browser without a manual reload. Only when the user is running
+  an older server (no `/api/events`) does the old warning apply: tell
+  them to reload after your edits, or the page's stale state clobbers
+  them.
 - Never fork or copy the app into a project. One codebase; per-project
   differences belong in that project's `config.json` and data.
 

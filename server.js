@@ -83,6 +83,25 @@ function readBody(req) {
   });
 }
 
+// ---- live reload: watch the data dir, push change events over SSE ----
+// Any write to a data file — by this server or an agent editing JSON
+// directly — notifies every open page so it refetches instead of holding
+// stale state (the old "reload after agent edits" footgun).
+const sseClients = new Set();
+const WATCHED = new Set(Object.values(FILES));
+let watchTimer = null;
+function watchData() {
+  fs.mkdirSync(DATA, { recursive: true });
+  fs.watch(DATA, (event, filename) => {
+    if (filename && !WATCHED.has(filename)) return;
+    // fs.watch double-fires on most platforms; debounce into one event.
+    clearTimeout(watchTimer);
+    watchTimer = setTimeout(() => {
+      for (const client of sseClients) client.write("data: changed\n\n");
+    }, 250);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
   try {
@@ -94,6 +113,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && (url === "/llms.txt" || url === "/docs")) {
       const type = url === "/docs" ? "text/markdown; charset=utf-8" : "text/plain; charset=utf-8";
       return sendFile(res, "CAPABILITIES.md", type);
+    }
+    if (req.method === "GET" && url === "/api/events") {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-store",
+        "Connection": "keep-alive",
+      });
+      res.write("retry: 2000\n\n");
+      sseClients.add(res);
+      req.on("close", () => sseClients.delete(res));
+      return;
     }
     if (req.method === "GET" && url === "/api/board") {
       return sendJSON(res, 200, {
@@ -132,6 +162,8 @@ server.on("error", (err) => {
   }
   throw err;
 });
+
+watchData();
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  agent-board  →  http://localhost:${PORT}\n`);

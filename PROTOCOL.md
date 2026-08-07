@@ -89,6 +89,10 @@ human) might write concurrently:
   agents claim the same card, the second commit conflicts (or silently
   overwrites, if commits aren't checked before pushing) — resolve by
   re-reading and re-selecting rather than assuming your claim held.
+- **An open browser page is not a writer to fear**: the server watches
+  the data dir and pushes changes over SSE (`/api/events`), so a page
+  that's open while an agent edits the files re-renders from fresh state
+  instead of clobbering the edits with its stale in-memory arrays.
 - For a single person plus their own coding agents (the expected use case),
   this is enough. It is not designed for unattended multi-agent swarms
   writing the same file concurrently without any coordination layer — that

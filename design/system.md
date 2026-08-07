@@ -66,6 +66,7 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 | Toast | `#toast` `showToast()` | transient message, bottom-center | 4.5s, `--lane-4` left border — used for refused moves |
 | Pills | `.tagpill` `.tagpill.sys` `.st` `.prio` | milestone/theme/tag, systems, status, priority (variants p0–p3) | priority class = index into `config.priorities` (`prioClass()`) |
 | Helpers | `esc()` `short()` `opts()` `laneVar()` | escaping, "M0 Reliable…"→"M0", select options, lane color cycling | used by every screen |
+| Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | — (invisible; the page just stays current) | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, or a save is pending (`refreshBlocked()`, applied on `applyPendingRefresh()`) |
 
 ## Interactions
 
@@ -77,20 +78,29 @@ the media-query equivalent) so accent-filled surfaces stay readable.
   150ms debounce per resource (`saveTimers`), `PUT /api/<resource>`,
   save indicator cycles; failure shows "save failed — is the server
   running?".
+- Data file changes on disk (agent or hand edits) → server SSE event →
+  debounced `refresh()`: refetch `/api/board`, re-apply state + vocab,
+  re-render the current page; filters whose vocab vanished reset to
+  "all". Deferred (not dropped) while a modal / drag / pending save is
+  active; writes nothing.
 
 ## States
 
 - Load failure (`load().catch`): board area shows "Could not load the
   board. Start the server with node server.js and reload."
+- Server restart: the `EventSource` auto-reconnects (retry 2s); no page
+  reload needed.
 - Reduced motion: all animation/transitions disabled via media query.
 - Theme: follows OS unless `data-theme` is stamped on `:root`.
 
 ## Data
 
-`load()` fetches `GET /api/board` once, fills `state` +
-`COLUMNS`/`PRIOS`/`THEMES`/`MILESTONES` from `config` (with fallback
-vocab), applies `config.view` defaults via `viewDefaults()` (invalid
-values → "all"), and normalizes unknown epic columns to `COLUMNS[0]`.
+`load()` fetches `GET /api/board`, fills `state` +
+`COLUMNS`/`PRIOS`/`THEMES`/`MILESTONES` from `config` via `applyBoard()`
+(with fallback vocab; unknown epic/story columns normalize to
+`COLUMNS[0]`), applies `config.view` defaults via `viewDefaults()`
+(invalid values → "all"), then wires live refresh — after which
+`refresh()` re-runs `applyBoard()` whenever the data changes on disk.
 Lane semantics are positional: `COLUMNS[0]` todo, last = done
 (`doneLane()`).
 
