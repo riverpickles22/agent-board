@@ -24,8 +24,14 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm: quick win — the tool's central rule is invisible to its human customer." },
-      { "at": "2026-08-03", "note": "Built, ad hoc (no epic/milestone): #nextup strip on the board page implements PROTOCOL §3 exactly — pickability (first lane, deps done, gate open, unclaimed, WIP) ranked by priority → unblock count → file order, with a reasons line when nothing is pickable. First real exercise of the Design workflow: design/board.md updated with the code. First UI reader of open_gates and wip_limits." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm: quick win — the tool's central rule is invisible to its human customer."
+      },
+      {
+        "at": "2026-08-03",
+        "note": "Built, ad hoc (no epic/milestone): #nextup strip on the board page implements PROTOCOL §3 exactly — pickability (first lane, deps done, gate open, unclaimed, WIP) ranked by priority → unblock count → file order, with a reasons line when nothing is pickable. First real exercise of the Design workflow: design/board.md updated with the code. First UI reader of open_gates and wip_limits."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -56,7 +62,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm: compounding — makes the commit-=-ratify culture visible in the tool itself." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm: compounding — makes the commit-=-ratify culture visible in the tool itself."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -71,7 +80,9 @@
     "theme": "Decide fast",
     "milestone": "",
     "tags": [],
-    "deps": ["idea-ratify-review"],
+    "deps": [
+      "idea-ratify-review"
+    ],
     "status": "idea",
     "priority": "Later",
     "effort": "medium",
@@ -88,7 +99,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm. Sequenced after idea-ratify-review — reuses its git endpoint." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm. Sequenced after idea-ratify-review — reuses its git endpoint."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -118,7 +132,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -133,7 +150,7 @@
     "theme": "Trust the board",
     "milestone": "",
     "tags": [],
-    "status": "idea",
+    "status": "done",
     "priority": "Now",
     "effort": "low",
     "impact": "high",
@@ -150,11 +167,18 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm: quick win — directly retires the top documented limitation." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm: quick win — directly retires the top documented limitation."
+      },
+      {
+        "at": "2026-08-06",
+        "note": "User green-lit the build in conversation (“build the refresh capabilities”). Shipped: fs.watch + debounce on the data dir, GET /api/events SSE route, client refresh with own-write echo skip and modal/drag/pending-save deferral. Contract docs updated to retire the reload warning."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-06"
   },
   {
     "id": "idea-wip-gates-ui",
@@ -180,7 +204,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -210,8 +237,14 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Being built now as part of the UX spec framework bootstrap — lands as curation pass 6 in AGENTS.md §7." },
-      { "at": "2026-08-03", "note": "Done — pass 6 live in AGENTS.md §7; the anchor grep already caught and fixed one bad anchor during bootstrap." }
+      {
+        "at": "2026-08-02",
+        "note": "Being built now as part of the UX spec framework bootstrap — lands as curation pass 6 in AGENTS.md §7."
+      },
+      {
+        "at": "2026-08-03",
+        "note": "Done — pass 6 live in AGENTS.md §7; the anchor grep already caught and fixed one bad anchor during bootstrap."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -242,7 +275,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -273,7 +309,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -303,8 +342,14 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm. Open question: own page vs a section of the next-up panel." },
-      { "at": "2026-08-05", "note": "Rows mode (idea-board-swimlanes) now shows stories grouped by epic on the board itself, with ready ticks visible — this card stays open only for the flat, pickability-filtered 'begin menu' angle." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm. Open question: own page vs a section of the next-up panel."
+      },
+      {
+        "at": "2026-08-05",
+        "note": "Rows mode (idea-board-swimlanes) now shows stories grouped by epic on the board itself, with ready ticks visible — this card stays open only for the flat, pickability-filtered 'begin menu' angle."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -319,7 +364,9 @@
     "theme": "Flow",
     "milestone": "",
     "tags": [],
-    "deps": ["idea-ratify-review"],
+    "deps": [
+      "idea-ratify-review"
+    ],
     "status": "idea",
     "priority": "Someday",
     "effort": "medium",
@@ -335,7 +382,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm. Sequenced last of the three git-reading ideas." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm. Sequenced last of the three git-reading ideas."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -366,7 +416,10 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-02", "note": "Captured from the capability brainstorm — promoted from edge case to daily motion by this board's existence." }
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm — promoted from edge case to daily motion by this board's existence."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -403,8 +456,14 @@
       }
     ],
     "log": [
-      { "at": "2026-08-02", "note": "Being built now: bootstrap reverse-engineers the existing three pages into specs, adds the Design workflow to the skill, and curation pass 6 for drift." },
-      { "at": "2026-08-03", "note": "Done and exercised: the Next-up panel shipped through the workflow — design/board.md spec updated together with index.html, ending matches-ui." }
+      {
+        "at": "2026-08-02",
+        "note": "Being built now: bootstrap reverse-engineers the existing three pages into specs, adds the Design workflow to the skill, and curation pass 6 for drift."
+      },
+      {
+        "at": "2026-08-03",
+        "note": "Done and exercised: the Next-up panel shipped through the workflow — design/board.md spec updated together with index.html, ending matches-ui."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
@@ -436,8 +495,14 @@
     ],
     "sections": [],
     "log": [
-      { "at": "2026-08-05", "note": "Captured from the user's direct request in conversation (rows grouping similar stories; epic as the row confirmed as the grouping). Toggle-not-replace and skip-empty-epics decided with the user; status ready to implement records that in-conversation thumbs-up. Building now via the Design workflow." },
-      { "at": "2026-08-05", "note": "Done: shipped via the Design workflow — design/board.md + index.html together, spec_state back to matches-ui. Verified live against the demo board: toggle, swimlane render, story drag writing stories.json, gate/cross-row refusals wired, save-view persists default_board_mode, goToEpic falls back to Epics mode. Awaiting ratification (Design: + Board: commits) on save." }
+      {
+        "at": "2026-08-05",
+        "note": "Captured from the user's direct request in conversation (rows grouping similar stories; epic as the row confirmed as the grouping). Toggle-not-replace and skip-empty-epics decided with the user; status ready to implement records that in-conversation thumbs-up. Building now via the Design workflow."
+      },
+      {
+        "at": "2026-08-05",
+        "note": "Done: shipped via the Design workflow — design/board.md + index.html together, spec_state back to matches-ui. Verified live against the demo board: toggle, swimlane render, story drag writing stories.json, gate/cross-row refusals wired, save-view persists default_board_mode, goToEpic falls back to Epics mode. Awaiting ratification (Design: + Board: commits) on save."
+      }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-05",
