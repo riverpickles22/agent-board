@@ -345,5 +345,32 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T19:00:00Z",
     "updated_at": "2026-08-08T19:20:00Z"
+  },
+  {
+    "id": "B12",
+    "name": "Story states with personality",
+    "description": "One storyState() rule for every surface, with fun labels: middle-lane stories show their activity by kind (cooking / testing / tidying up / writing / wiring up), done stories say '✓ shipped / plated / in the books' — or '✓ done · waiting on A2-4' while siblings lag — and blocked-but-ready stories name their blocker. Kills the last '✓ ready in Done' surface (rows cards).",
+    "notes": "Direct user request with screenshot (2026-08-08): review status logic end to end, expand 'Cooking'-style descriptions. Workflow impact: the rows board reads as a narrated kitchen — what's being done to each story and who/what it waits on, at a glance.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "rows story card + story-state table"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T20:00:00Z",
+    "updated_at": "2026-08-08T20:25:00Z"
   }
 ]

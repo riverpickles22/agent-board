@@ -360,5 +360,28 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T19:00:00Z",
     "updated_at": "2026-08-08T19:20:00Z"
+  },
+  {
+    "id": "B12-1",
+    "epic_id": "B12",
+    "name": "storyState() + state chips on rows cards and modal rows",
+    "description": "Single display-state function (lane + ready + claim + epic health, the ready-queue rule extended) feeding a chip that replaces the ready-only tick; deterministic pooled labels via id hash; read-only chip added to the epic modal's story rows.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "No story in the done lane shows '✓ ready' anywhere; done stories show a pooled '✓ shipped/plated/in the books' label, or '✓ done · waiting on <sibling>' while the epic has unfinished stories",
+      "Middle-lane stories show their kind verb (cooking/testing/tidying up/writing/wiring up) with lane + claim in the tooltip",
+      "First-lane ready stories show '✓ ready' when pickable, '⛔ gated: <gate>' or '⏳ waiting on <dep>' when the epic is blocked, 'claimed' when claimed; not-ready shows a dim 'needs prep'",
+      "Labels are stable across re-renders (id-hash pooling, no randomness); epic modal story rows show the same chip read-only with the ready checkbox untouched"
+    ],
+    "context": "design/board.md; index.html storyCardEl()/storiesSection()/readyQueue() helpers; approved plan (state table)",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T20:00:00Z",
+    "updated_at": "2026-08-08T20:25:00Z"
   }
 ]
