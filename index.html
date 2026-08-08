@@ -127,9 +127,12 @@
   .stbadge .rdy{color:var(--lane-5);font-weight:600}
 
   /* ---- rows mode (story swimlanes by epic) ---- */
-  .board.rows{display:block;overflow-y:auto;overflow-x:hidden}
+  /* No top padding on the scroll container: sticky children can't cover a
+     parent's padding band, so scrolled rows would show through it. The
+     head carries the spacing instead and its background masks the seam. */
+  .board.rows{display:block;overflow-y:auto;overflow-x:hidden;padding-top:0}
   .rows-head{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(var(--lanes),1fr);
-    background:var(--ground);padding-bottom:10px;border:1px solid transparent;border-bottom:0}
+    background:var(--ground);padding-top:16px;padding-bottom:10px;border:1px solid transparent;border-bottom:0}
   .rows-head .rh{display:flex;align-items:center;gap:8px;padding:8px 12px;
     background:color-mix(in srgb, var(--lc) 10%, var(--panel));border:1px solid var(--line);border-left:0;border-top:2px solid var(--lc)}
   .rows-head .rh:first-child{border-left:1px solid var(--line);border-radius:9px 0 0 9px}
@@ -445,6 +448,7 @@
   .hempty{font-size:13.5px;color:var(--ink-3)}
 
   /* ---- board briefing (since you last looked) ---- */
+  .briefing[hidden]{display:none}   /* the flex display must not defeat the hidden attribute */
   .briefing{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 22px 0;
     padding:10px 16px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);
     border-radius:10px;font-size:13.5px;color:var(--ink)}

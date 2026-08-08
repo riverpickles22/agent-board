@@ -4,6 +4,7 @@
 #   ./board            list registered projects
 #   ./board arc        serve arc's board on :4300
 #   PORT=4301 ./board chaim   second board on another port
+#   ./board stop [port]       stop the board on a port (default 4300)
 #   ./board setup      install the Claude skill (idempotent)
 #
 # Projects are registered in projects.json (name -> data directory).
@@ -42,7 +43,24 @@ list() {
     }' "$REGISTRY"
   echo
   echo "Run one with:   ./board <name>"
+  echo "Stop one with:  ./board stop [port]"
   echo "Claude skill:   ./board setup"
+}
+
+stop() {
+  local port="${1:-4300}"
+  local pids
+  pids="$(lsof -ti "tcp:$port" 2>/dev/null || true)"
+  if [ -z "$pids" ]; then
+    echo "Nothing listening on port $port."
+    return 0
+  fi
+  echo "Stopping on port $port:"
+  # shellcheck disable=SC2086
+  ps -o pid=,command= -p $pids | sed 's/^/  /'
+  # shellcheck disable=SC2086
+  kill $pids
+  echo "Stopped."
 }
 
 setup() {
@@ -75,6 +93,11 @@ fi
 
 if [ "$1" = "setup" ]; then
   setup
+  exit 0
+fi
+
+if [ "$1" = "stop" ]; then
+  stop "${2:-}"
   exit 0
 fi
 

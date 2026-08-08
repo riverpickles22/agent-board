@@ -310,7 +310,8 @@ const server = http.createServer(async (req, res) => {
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(`\n  Port ${PORT} is already in use — another board is probably running.`);
-    console.error(`  Run the second board on another port:  PORT=${Number(PORT) + 1} ./board <name>\n`);
+    console.error(`  Stop it:                     ./board stop ${PORT}`);
+    console.error(`  Or run this one alongside:   PORT=${Number(PORT) + 1} ./board <name>\n`);
     process.exit(1);
   }
   throw err;
