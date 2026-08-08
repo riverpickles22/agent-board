@@ -1,6 +1,6 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-08-05.
+*The medium-altitude view, for humans and agents. As of 2026-08-07.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract) · [design/](design/DESIGN.md)
@@ -19,7 +19,10 @@ Binds to 127.0.0.1 only.
 
 **Ideas** — the inbox. Three active columns: `idea` →
 `ready for review` (the agent's hand-off: the deep dive holds enough to
-decide) → `ready to implement` (the human's thumbs-up). Cards drag
+decide) → `ready to implement` (the human's thumbs-up — from there the
+idea is decomposed into an epic + stories on the Board page before
+building, and the agent moves those cards through the lanes in real
+time as it works). Cards drag
 between the active columns (and between burners, nudging priority);
 the archive is not a drop target since rejecting requires a reason.
 The Idea column
@@ -47,7 +50,27 @@ swimlanes: one row per epic, its stories as draggable cards across the
 same lanes — stories move within their row, gated epics refuse drops,
 and the preferred mode saves with the default view. Stories (buildable
 slices with acceptance criteria and a human-set `ready` flag) also live
-inside each epic's modal.
+inside each epic's modal. The board's rules are visible, not just
+enforced: WIP-limited lanes show board-wide `total/limit` counts that
+go red when over, and closed-gate cards wear a `⛔` chip naming their
+gate in both modes — advisory (drops are never blocked; the agent
+protocol enforces). Each epic's modal renders its `context_docs` as
+read-only chips that copy their path on click — the reading list is
+visible where the human reviews the card, while editing stays
+file/skill-only. A **Ready queue** strip under Next up is the story
+grain of the same rule — every story a human could hand to an agent
+right now (`ready: true`, first lane, unclaimed, epic ungated with deps
+done), grouped by epic: the "begin X" menu, visible.
+
+**History** — the record. The data dir's git log as a timeline page:
+every ratification with date, message, and files touched; expanding an
+entry shows that commit's card-level changes. And before the commit,
+the header's **pending badge** counts uncommitted board changes — click
+it for the **ratify review panel**: every pending change as a readable
+statement ("B1 moved Backlog → Done", "ideas reordered"), grouped by
+resource, live-updating as agents work. The panel reviews; the human
+ratifies (say "save", or commit the data dir) — commit-=-ratify made
+visible at both ends.
 
 A fourth **Docs** tab renders this document inside the UI, so a person
 browsing the board sees the capabilities without the repo or curl.
@@ -96,13 +119,23 @@ browsing the board sees the capabilities without the repo or curl.
   to the JSON appear in an open browser within a second; no manual
   reload, and the page no longer clobbers file edits with stale state.
   (Refreshes wait politely while a modal, drag, or save is in flight.)
+  And changes **move**: an agent's edit doesn't snap in — the card
+  visibly lifts, glides to its new lane or position, and sets down;
+  in-place edits pulse a ring, new cards fade in. Watching an agent
+  work looks like watching someone at a physical board.
 
 ## HTTP surface (the running site)
 
 `GET /` (the UI) · `GET /api/board` (full board JSON) ·
 `PUT /api/<epics|stories|ideas|config|milestones>` (whole-file write) ·
 `GET /api/events` (SSE change feed — powers live reload) ·
-`GET /docs` + `GET /llms.txt` (this document).
+`GET /api/pending` (uncommitted changes vs HEAD as card-level
+statements — powers the ratify review panel) ·
+`GET /api/history` + `GET /api/history/<hash>` (the data dir's commit
+log, and one commit's card-level changes — powers the History page) ·
+`GET /docs` + `GET /llms.txt` (this document). The three git-backed
+routes read git only (`execFile`, no shell) and degrade gracefully when
+the data dir isn't a repo yet.
 
 ---
 

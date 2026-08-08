@@ -76,6 +76,14 @@
   .nextup .pick .pnm{color:var(--ink);font-weight:500;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nextup .pick .pwhy{font-size:11.5px;color:var(--ink-3);white-space:nowrap}
   .nextup .none{font-size:13px;color:var(--ink-3)}
+  .readyq{margin-top:6px}
+  .readyq .repic{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-3);margin-right:-1px}
+  .readyq .rpick{display:inline-flex;align-items:baseline;gap:7px;font-size:13px;padding:5px 11px;border-radius:9px;
+    border:1px solid var(--line);background:var(--card);cursor:pointer}
+  .readyq .rpick:hover{border-color:var(--accent)}
+  .readyq .rpick .rk{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+  .readyq .rpick .rid{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+  .readyq .rpick .rnm{color:var(--ink);font-weight:500;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .board{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
   .col{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;background:var(--panel);
@@ -85,6 +93,7 @@
   .col-h .sw{width:10px;height:10px;border-radius:3px;background:var(--lc);flex:0 0 auto}
   .col-h .nm{font-size:14px;font-weight:600;color:var(--lc);letter-spacing:-.01em}
   .col-h .ct{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;font-weight:500}
+  .col-h .ct.wlim.over{color:var(--lane-4);font-weight:700}
   .col-body{flex:1 1 auto;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px;min-height:60px}
   .col.drop-hover{border-color:var(--accent)}
   .col.drop-hover .col-body{background:var(--accent-soft)}
@@ -134,6 +143,7 @@
   .swim-h .eid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent)}
   .swim-h .en{font-size:14.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em;transition:color .12s ease}
   .swim-h .egate{font-size:11px;color:var(--lane-2);font-weight:600}
+  .card .egate{font-size:11px;color:var(--lane-2);font-weight:600}
   .swim-h .eprog{margin-left:auto;font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .swim-b{display:grid;grid-template-columns:repeat(var(--lanes),1fr)}
   .swim .cell{min-height:56px;padding:9px;display:flex;flex-direction:column;gap:8px;
@@ -197,6 +207,8 @@
   .ctxdoc .cl{font-weight:600;color:var(--ink);flex:0 0 auto}
   .ctxdoc .cp{font-family:var(--mono);font-size:12.5px;color:var(--accent)}
   .ctxdoc .cn{color:var(--ink-3)}
+  #m-ctxdocs .ctxdoc{cursor:copy;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+  #m-ctxdocs .ctxdoc:hover{background:var(--accent-soft)}
   .ms-nav{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
   .ms-tab{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 15px;border-radius:10px;border:1px solid var(--line);
     background:var(--panel);color:var(--ink-2);cursor:pointer}
@@ -257,6 +269,9 @@
   body.is-dragging .idea:not(.dragging){pointer-events:none}
   .ideas-col{border-radius:10px}
   .ideas-col.drop-hover, .bsec.drop-hover{background:var(--accent-soft);outline:1px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:4px}
+  /* insertion line: a 2px accent sliver in the gap the drop would land in */
+  .idea.drop-before{box-shadow:0 -7px 0 -5px var(--accent)}
+  .idea.drop-after{box-shadow:0 7px 0 -5px var(--accent)}
   .idea .imeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;align-items:center}
   .qwin{font-size:11.5px;font-weight:700;color:var(--lane-5);border:1px solid color-mix(in srgb,var(--lane-5) 45%,transparent);
     background:color-mix(in srgb,var(--lane-5) 10%,transparent);border-radius:20px;padding:2px 9px}
@@ -344,7 +359,7 @@
   .sec-item h4{font-size:14px;margin:0 0 6px;color:var(--ink);display:flex;align-items:center}
   .sec-item h4 .eb{margin-left:auto;font-size:12px;font-weight:500;color:var(--accent);background:transparent;border:none;cursor:pointer}
   .sec-item h4 .eb:hover{text-decoration:underline}
-  .card.flash{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)}
+  .card.flash, .idea.flash, .scard.flash{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-soft)}
   @media (max-width:820px){.ideas-cols{grid-template-columns:1fr}}
 
   /* ---- docs (capabilities rendered in-UI) ---- */
@@ -415,6 +430,50 @@
     border-radius:10px;padding:12px 16px;font-size:13.5px;line-height:1.45;box-shadow:var(--shadow);
     opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:60}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ---- history (git log as a page) ---- */
+  .htl{max-width:860px}
+  .hentry{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:10px}
+  .hrowline{display:flex;align-items:baseline;gap:12px;padding:12px 16px;cursor:pointer;flex-wrap:wrap}
+  .hrowline:hover .hmsg{color:var(--accent)}
+  .hdate{font-family:var(--mono);font-size:12px;color:var(--ink-3);flex:0 0 auto}
+  .hmsg{font-size:14px;font-weight:600;color:var(--ink)}
+  .hfiles{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+  .harrow{color:var(--ink-3);font-size:12px}
+  .hchanges{padding:4px 16px 12px;border-top:1px solid var(--line-2)}
+  .hline{font-size:13px;color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--line-2);line-height:1.45}
+  .hline:last-child{border-bottom:0}
+  .hempty{font-size:13.5px;color:var(--ink-3)}
+
+  /* ---- live-refresh motion: agent changes read as pick-up → glide → set-down ----
+     The transition lives on the class so the reduced-motion media query
+     (transition:none!important) collapses it back to today's instant snap. */
+  .agent-lift{position:relative;z-index:40;box-shadow:var(--shadow)!important;
+    transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+  @keyframes agent-new{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+  .agent-new{animation:agent-new .3s ease}
+
+  /* ---- pending ratification (review panel) ---- */
+  .pbadge{display:none;font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--lane-2);
+    border:1px solid color-mix(in srgb,var(--lane-2) 45%,transparent);border-radius:20px;padding:2px 9px;
+    background:color-mix(in srgb,var(--lane-2) 10%,transparent);cursor:pointer}
+  .pbadge.on{display:inline-block}
+  .ppanel{position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);background:var(--panel);
+    border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(105%);
+    transition:transform .18s ease;z-index:60;display:flex;flex-direction:column}
+  .ppanel.on{transform:none}
+  .pp-head{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line-2)}
+  .pp-head h2{font-size:15.5px;margin:0}
+  .pp-x{margin-left:auto;border:0;background:none;color:var(--ink-3);font-size:15px;cursor:pointer;padding:4px}
+  .pp-x:hover{color:var(--ink)}
+  .pp-body{overflow:auto;padding:14px 18px;flex:1}
+  .pp-group h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);
+    margin:14px 0 6px;font-weight:700;display:flex;gap:7px}
+  .pp-group:first-child h4{margin-top:0}
+  .pp-group .cnt{font-family:var(--mono);font-weight:500}
+  .pp-line{font-size:13px;color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--line-2);line-height:1.45}
+  .pp-files{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:14px}
+  .pp-empty{font-size:13.5px;color:var(--ink-3);padding:8px 0}
+  .pp-foot{padding:12px 18px;border-top:1px solid var(--line-2);font-size:12.5px;color:var(--ink-3)}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -428,6 +487,7 @@
       <div class="sub">
         <span id="counts"></span>
         <span class="save" id="save"><span class="d"></span><span id="save-t">saved</span></span>
+        <button class="pbadge" id="pending-badge" type="button" title="Uncommitted board changes — click to review what a 'save' would ratify"></button>
       </div>
     </div>
   </header>
@@ -435,10 +495,12 @@
   <section class="view" id="view-board" hidden>
     <div class="filters" id="filters"></div>
     <div class="nextup" id="nextup"></div>
+    <div class="nextup readyq" id="readyq"></div>
     <main class="board" id="board" aria-label="Kanban board"></main>
   </section>
   <section class="view scroll" id="view-milestones" hidden></section>
   <section class="view scroll" id="view-ideas" hidden></section>
+  <section class="view scroll" id="view-history" hidden></section>
   <section class="view scroll" id="view-docs" hidden></section>
 
   <footer>
@@ -446,6 +508,13 @@
     <span id="stories-note"></span>
     <span style="margin-left:auto">data → <b id="data-path">./data</b></span>
   </footer>
+
+  <aside class="ppanel" id="pending-panel" aria-label="Pending ratification">
+    <div class="pp-head"><h2>Pending ratification</h2>
+      <button class="pp-x" id="pp-close" type="button" title="Close">✕</button></div>
+    <div class="pp-body"></div>
+    <div class="pp-foot">Reviewing only — say <b>"save"</b> in conversation (or commit the data dir) to ratify.</div>
+  </aside>
 
   <div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <div class="modal" id="modal"></div>
@@ -519,6 +588,52 @@ function nextUp(){
   picks.sort((a,b) => a.p - b.p || b.u - a.u || a.ix - b.ix);
   return { picks: wipBlocked() ? [] : picks, notes, wip: wipBlocked() };
 }
+// Story-grain PROTOCOL §3 — the "begin X" menu. A story is pickable when
+// ready (the human's flag), sitting in the first lane, unclaimed, and its
+// epic is ungated with all deps done. Board-wide, like Next up.
+function readyQueue(){
+  const first = COLUMNS[0];
+  const epicIx = new Map(state.epics.map((e, i) => [e.id, i]));
+  const picks = [];
+  let readyButStuck = 0;
+  state.stories.forEach((s, ix) => {
+    if(!s.ready || s.column === doneLane()) return;   // finished ≠ stuck
+    if(s.column !== first || s.claimed_by){ readyButStuck++; return; }
+    const ep = byId()[s.epic_id];
+    if(!ep) return;
+    if(!gateOpen(ep) || depsOf(ep).some(d => d.column !== doneLane())){ readyButStuck++; return; }
+    picks.push({ s, ep, ix, p: Math.max(0, PRIOS.indexOf(s.priority)), er: epicIx.get(ep.id) });
+  });
+  picks.sort((a,b) => a.p - b.p || a.er - b.er || a.ix - b.ix);
+  return { picks, readyButStuck };
+}
+function renderReadyQueue(){
+  const el = document.getElementById("readyq");
+  if(!el) return;
+  if(!state.stories.length){ el.style.display = "none"; el.innerHTML = ""; return; }
+  el.style.display = "";
+  const { picks, readyButStuck } = readyQueue();
+  let html = '<span class="flabel">Ready</span>';
+  if(!picks.length){
+    html += '<span class="none">nothing ready to begin — '+
+      (readyButStuck ? readyButStuck+" ready "+(readyButStuck===1?"story is":"stories are")+" claimed, in flight, or behind a gate/dep"
+                     : "no story has ready: true (the human's flag)")+'</span>';
+  } else {
+    // group under each epic's id, epics ordered by their best story's rank
+    const seen = [];
+    picks.forEach(p => { if(!seen.includes(p.ep.id)) seen.push(p.ep.id); });
+    html += seen.map(eid =>
+      '<span class="repic" title="epic '+esc(eid)+'">'+esc(eid)+' ▸</span>'+
+      picks.filter(p => p.ep.id === eid).map(({s}) =>
+        '<button class="rpick" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'" title="'+esc(s.name)+'">'+
+        '<span class="rk">'+esc(s.kind||"feature")+'</span><span class="rid">'+esc(s.id)+'</span>'+
+        '<span class="rnm">'+esc(s.name)+'</span></button>').join("")
+    ).join("");
+  }
+  el.innerHTML = html;
+  el.querySelectorAll(".rpick").forEach(b =>
+    b.addEventListener("click", () => renderStoryModal(b.dataset.eid, b.dataset.sid)));
+}
 function renderNextUp(){
   const el = document.getElementById("nextup");
   if(!el) return;
@@ -576,6 +691,7 @@ async function load(){
   renderTabs();
   route();
   wireLiveRefresh();
+  wirePending();
 }
 
 function allTags(){
@@ -676,9 +792,18 @@ function render(){
       sec.className = "col";
       sec.dataset.col = col;
       sec.style.setProperty("--lc", laneVar(col));
+      // WIP-limited lanes show board-wide total/limit — the number
+      // wipBlocked() compares — and go loud when over. Advise-only:
+      // limits never block a drop (that stays the agent protocol's job).
+      const limit = (state.config.wip_limits||{})[col];
+      const laneTotal = state.epics.filter(e => e.column === col).length;
+      const ctHtml = limit != null
+        ? '<span class="ct wlim'+(laneTotal>limit?' over':'')+'" title="WIP limit '+limit+
+          (laneTotal>limit?' — over by '+(laneTotal-limit):'')+' · '+laneTotal+' in lane, board-wide">'+laneTotal+'/'+limit+'</span>'
+        : '<span class="ct">'+items.length+'</span>';
       sec.innerHTML =
         '<div class="col-h"><span class="sw"></span>'+
-          '<span class="nm">'+esc(col)+'</span><span class="ct">'+items.length+'</span></div>'+
+          '<span class="nm">'+esc(col)+'</span>'+ctHtml+'</div>'+
         '<div class="col-body"></div>';
       const body = sec.querySelector(".col-body");
       const add = document.createElement("button");
@@ -698,6 +823,7 @@ function render(){
     ? "<b>"+state.stories.length+"</b> stories" : "";
   updateFooter(currentRoute().page);
   renderNextUp();
+  renderReadyQueue();
 }
 
 function cardEl(e){
@@ -710,10 +836,18 @@ function cardEl(e){
         : '<span class="dep">⊸ '+esc(e.deps.join(" "))+'</span>')
     : "";
   const claimBit = e.claimed_by ? '<span class="claim">claimed: '+esc(e.claimed_by)+'</span>' : "";
+  // Same badge as the rows-mode row header — one gate vocabulary across
+  // modes. Advises only; checkMove never reads gates.
+  const gateBit = !gateOpen(e)
+    ? '<span class="egate" title="Closed until a human adds this gate to open_gates in config.json">⛔ '+esc(e.gate)+'</span>'
+    : "";
   const st = storiesOf(e.id);
+  // "ready" means still buildable — a story in the done lane is finished,
+  // not ready (the ready-queue strip's rule, applied to the badge).
+  const rdyN = st.filter(s => s.ready && s.column !== doneLane()).length;
   const storyBit = st.length
     ? '<span class="stbadge">'+st.length+(st.length===1?" story":" stories")+
-      (st.some(s=>s.ready) ? ' · <span class="rdy">'+st.filter(s=>s.ready).length+' ready</span>' : "")+'</span>'
+      (rdyN ? ' · <span class="rdy">'+rdyN+' ready</span>' : "")+'</span>'
     : "";
   el.innerHTML =
     '<div class="top"><span class="id">'+esc(e.id)+'</span><span class="prio '+prioClass(e.priority)+'">'+esc(e.priority)+'</span></div>'+
@@ -723,7 +857,7 @@ function cardEl(e){
       (e.theme?'<span class="tagpill" title="'+esc(e.theme)+'">'+esc(short(e.theme))+'</span>':"")+
       (e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
       (e.systems||[]).map(s=>'<span class="tagpill sys" title="system involved">'+esc(s)+'</span>').join("")+
-      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+claimBit+'</div>';
+      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+gateBit+claimBit+'</div>';
   el.addEventListener("dragstart", ev => {
     ev.dataTransfer.setData("text/plain", e.id);
     ev.dataTransfer.effectAllowed = "move";
@@ -894,6 +1028,9 @@ function renderModal(e){
     '</div>'+
     '<div class="field mono"><label for="f-systems">Systems involved (space-separated repos/services)</label><input id="f-systems" value="'+esc((e.systems||[]).join(" "))+'" placeholder="e.g. arc-backend arc-frontend"></div>'+
     '<div class="field mono"><label for="f-deps">Depends on (space-separated ids)</label><input id="f-deps" value="'+esc((e.deps||[]).join(" "))+'"></div>'+
+    (!create && (e.context_docs||[]).length
+      ? '<div class="field" id="m-ctxdocs"><label>Context docs (read-only — edited via files/skill; click to copy path)</label>'+ctxDocs(e.context_docs)+'</div>'
+      : "")+
     '<div class="field row2">'+
       '<div class="mono"><label for="f-claim">Claimed by</label><input id="f-claim" value="'+esc(e.claimed_by||"")+'" placeholder="agent/session id"></div>'+
       '<div class="mono"><label for="f-claimed-at">Claimed at</label><input id="f-claimed-at" value="'+esc(e.claimed_at||"")+'" readonly></div>'+
@@ -910,6 +1047,16 @@ function renderModal(e){
   document.getElementById("m-cancel").addEventListener("click", closeModal);
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
   if(!create) wireStoriesSection(e.id);
+  // Context-docs chips copy their path — a launchpad for editors/agents,
+  // never an editor (context_docs stays file/skill-edited, AGENTS.md §2).
+  modal.querySelectorAll("#m-ctxdocs .ctxdoc").forEach((chip, ix) => {
+    const d = (e.context_docs||[])[ix]; if(!d) return;
+    chip.title = "Copy path: "+d.path;
+    chip.addEventListener("click", async () => {
+      try{ await navigator.clipboard.writeText(d.path); showToast("Copied "+d.path); }
+      catch(err){ showToast("Couldn't reach the clipboard — is the page focused?"); }
+    });
+  });
   document.getElementById(create?"f-id":"f-name").focus();
 }
 
@@ -1053,7 +1200,65 @@ function deleteEpic(id){
 
 function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; applyPendingRefresh(); }
 document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.id==="scrim") closeModal(); });
-document.addEventListener("keydown", ev => { if(ev.key==="Escape") closeModal(); });
+document.addEventListener("keydown", ev => {
+  if(ev.key!=="Escape") return;
+  const pp = document.getElementById("pending-panel");
+  if(pp.classList.contains("on")) pp.classList.remove("on");
+  else closeModal();
+});
+
+/* ---- pending ratification (ratify review panel) ---- */
+// The header badge + slide-over review what a "save" would ratify —
+// card-level statements from the server's semantic differ (/api/pending).
+// Read-only by design: the panel reviews, the human ratifies.
+let pendingData = null;
+async function updatePending(){
+  try{
+    const r = await fetch("/api/pending");
+    if(!r.ok) return;
+    pendingData = await r.json();
+  }catch(err){ return; }
+  const b = document.getElementById("pending-badge");
+  const n = (pendingData.statements||[]).length;
+  const show = pendingData.clean === false && n > 0;
+  b.classList.toggle("on", show);
+  if(show) b.textContent = n + " pending";
+  if(document.getElementById("pending-panel").classList.contains("on")) renderPending();
+}
+const PENDING_RES_LABEL = { epics:"Epics", stories:"Stories", ideas:"Ideas", config:"Config", milestones:"Milestones" };
+function renderPending(){
+  const body = document.querySelector("#pending-panel .pp-body");
+  const d = pendingData;
+  if(!d || d.clean !== false || !(d.statements||[]).length){
+    body.innerHTML = '<div class="pp-empty">'+
+      (d && d.clean === null ? esc(d.reason) : "Everything ratified — board matches HEAD.")+'</div>';
+    return;
+  }
+  const groups = {};
+  d.statements.forEach(s => (groups[s.resource] = groups[s.resource] || []).push(s));
+  body.innerHTML =
+    Object.keys(PENDING_RES_LABEL).filter(k => groups[k]).map(k =>
+      '<div class="pp-group"><h4>'+PENDING_RES_LABEL[k]+' <span class="cnt">'+groups[k].length+'</span></h4>'+
+      groups[k].map(s => '<div class="pp-line">'+esc(s.text)+'</div>').join("")+'</div>').join("")+
+    '<div class="pp-files">'+ (d.files||[]).map(esc).join(" · ") +'</div>';
+}
+function wirePending(){
+  const badge = document.getElementById("pending-badge");
+  const panel = document.getElementById("pending-panel");
+  badge.addEventListener("click", async () => {
+    await updatePending();          // always fresh on open
+    renderPending(); panel.classList.add("on");
+  });
+  document.getElementById("pp-close").addEventListener("click", () => panel.classList.remove("on"));
+  document.addEventListener("click", ev => {
+    if(panel.classList.contains("on") && !panel.contains(ev.target) && !badge.contains(ev.target))
+      panel.classList.remove("on");
+  });
+  // A commit made in the terminal doesn't touch data files (no SSE) —
+  // refetch when the tab comes back into focus so the badge clears.
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) updatePending(); });
+  updatePending();
+}
 
 let toastTimer=null;
 function showToast(msg){
@@ -1097,22 +1302,81 @@ function refreshBlocked(){
       || document.getElementById("scrim").classList.contains("on")
       || document.body.classList.contains("is-dragging");
 }
+/* ---- live-refresh motion: FLIP across the re-render ----
+   Rects are captured before applyBoard() replaces the DOM; after the
+   re-render, cards that moved are inverted back to their old spot and
+   transitioned home wearing the lift look — an agent's edit reads as
+   pick-up → glide → set-down instead of a snap. Hidden pages capture
+   zero-rects and stay still; own drags never reach this path (the
+   own-write echo returns "current" before animating). */
+const CARD_SELS = [["e", ".card[data-id]", "id"], ["s", ".scard[data-sid]", "sid"], ["i", ".idea[data-id]", "id"]];
+function captureCardPositions(){
+  const map = new Map();
+  for(const [prefix, sel, key] of CARD_SELS)
+    document.querySelectorAll(sel).forEach(el =>
+      map.set(prefix+":"+el.dataset[key], { rect: el.getBoundingClientRect(), html: el.innerHTML }));
+  return map;
+}
+function animateCardMoves(before){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for(const [prefix, sel, key] of CARD_SELS)
+    document.querySelectorAll(sel).forEach(el => {
+      const old = before.get(prefix+":"+el.dataset[key]);
+      if(!old){
+        if(before.size){
+          el.classList.add("agent-new");
+          el.addEventListener("animationend", () => el.classList.remove("agent-new"), { once: true });
+        }
+        return;
+      }
+      const now = el.getBoundingClientRect();
+      if(!now.width || !old.rect.width) return;   // hidden page — nothing to show
+      const dx = old.rect.left - now.left, dy = old.rect.top - now.top;
+      if(Math.abs(dx) > 4 || Math.abs(dy) > 4){
+        el.style.transition = "none";
+        el.style.transform = "translate("+dx+"px,"+dy+"px) scale(1.04) rotate(0.6deg)";
+        el.classList.add("agent-lift");
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = "";   // the class's transform transition takes over
+          el.style.transform = "";
+          const done = ev => {
+            if(ev && (ev.target !== el || ev.propertyName !== "transform")) return;
+            el.classList.remove("agent-lift");
+            el.removeEventListener("transitionend", done);
+          };
+          el.addEventListener("transitionend", done);
+          setTimeout(done, 650);      // safety net if transitionend never fires
+        }));
+      } else if(old.html !== el.innerHTML){
+        el.classList.add("flash");
+        setTimeout(() => el.classList.remove("flash"), 1300);
+      }
+    });
+}
+
+// Returns the outcome ("updated" | "current" | "deferred" | "failed") so a
+// manual trigger (the ideas page's ↻ refresh) can report it; SSE callers
+// ignore it — a failure there just waits for the next change event.
 async function refresh(){
   try{
     const r = await fetch("/api/board");
-    if(!r.ok) return;
+    if(!r.ok) return "failed";
     const data = await r.json();
+    updatePending();   // any disk change moves the pending set too — even own-write echoes
     // Our own writes echo back through the watcher — skip if nothing differs.
     const current = JSON.stringify({ epics: state.epics, stories: state.stories,
       ideas: state.ideas, config: state.config, milestones: state.milestones });
-    if(JSON.stringify(data) === current) return;
-    if(refreshBlocked()){ pendingRefresh = true; return; }
+    if(JSON.stringify(data) === current) return "current";
+    if(refreshBlocked()){ pendingRefresh = true; return "deferred"; }
+    const cardsBefore = captureCardPositions();
     applyBoard(data);
     // A filter can outlive its vocab when config changes under us.
     if(filterMS !== "all" && !MILESTONES.includes(filterMS)) filterMS = "all";
     if(filterTheme !== "all" && !THEMES.includes(filterTheme)) filterTheme = "all";
     renderFilters(); render(); route();
-  }catch(err){ /* transient — the next change event retries */ }
+    animateCardMoves(cardsBefore);
+    return "updated";
+  }catch(err){ return "failed"; }
 }
 function applyPendingRefresh(){
   if(pendingRefresh && !refreshBlocked()){ pendingRefresh = false; refresh(); }
@@ -1126,8 +1390,8 @@ function wireLiveRefresh(){
 /* ================= routing (hash-based SPA) ================= */
 // Ordered by the flow: ideas (capture) -> milestones (intent) -> board (work),
 // plus docs (what the tool can do — CAPABILITIES.md rendered in the UI).
-const PAGES = ["ideas","milestones","board","docs"];
-const PAGE_LABELS = { board:"Board", milestones:"Milestones", ideas:"Ideas", docs:"Docs" };
+const PAGES = ["ideas","milestones","board","history","docs"];
+const PAGE_LABELS = { board:"Board", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
 function currentRoute(){
   const h = (location.hash || "").replace(/^#\/?/, "");
   const [page, param] = h.split("/");
@@ -1150,7 +1414,9 @@ function updateFooter(page){
     ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it on the board'
     : page==="docs"
     ? 'what this tool can do · source: <b>CAPABILITIES.md</b> · also served at <b>/docs</b> and <b>/llms.txt</b>'
-    : '<b>click</b> an idea to deep-dive · <b>drag</b> to change status or burner · <b>+ new idea</b> to capture one';
+    : page==="history"
+    ? 'every save is a commit · <b>click an entry</b> to see its card-level changes · read-only'
+    : '<b>click</b> an idea to deep-dive · <b>drag</b> to reorder or change status/burner · <b>+ new idea</b> to capture one';
 }
 function route(){
   const { page, param } = currentRoute();
@@ -1160,7 +1426,52 @@ function route(){
   updateFooter(page);
   if(page==="ideas") renderIdeas(param);
   else if(page==="milestones") renderMilestones(param);
+  else if(page==="history") renderHistory();
   else if(page==="docs") renderDocs();
+}
+
+/* ================= history view (git log as a page) ================= */
+// Every ratification, newest first; expanding an entry lazily fetches its
+// card-level statements (cached by hash — commits are immutable).
+const historyDiffCache = {};
+async function renderHistory(){
+  const v = document.getElementById("view-history");
+  v.innerHTML = '<div class="vhead"><h2>Ratification history</h2>'+
+    '<p>Every save is a commit; every commit is a decision. The data dir’s git log, as a timeline — expand an entry to see its card-level changes.</p></div>'+
+    '<div class="htl"><div class="hempty">loading…</div></div>';
+  let d;
+  try{ d = await (await fetch("/api/history")).json(); }
+  catch(err){ d = { available: false, reason: "could not reach the server", commits: [] }; }
+  const tl = v.querySelector(".htl");
+  if(!d.available){ tl.innerHTML = '<div class="hempty">'+esc(d.reason||"history unavailable")+'</div>'; return; }
+  if(!d.commits.length){ tl.innerHTML = '<div class="hempty">No ratifications yet — the first "save" starts the record.</div>'; return; }
+  tl.innerHTML = d.commits.map(c =>
+    '<div class="hentry" data-hash="'+esc(c.hash)+'">'+
+      '<div class="hrowline" title="'+esc(c.hash)+'">'+
+        '<span class="hdate">'+esc(c.date)+'</span>'+
+        '<span class="hmsg">'+esc(c.message)+'</span>'+
+        (c.files.length?'<span class="hfiles">'+c.files.map(esc).join(" · ")+'</span>':"")+
+        '<span class="harrow">▸</span>'+
+      '</div><div class="hchanges" hidden></div></div>').join("");
+  tl.querySelectorAll(".hentry").forEach(entry => {
+    entry.querySelector(".hrowline").addEventListener("click", async () => {
+      const box = entry.querySelector(".hchanges");
+      const open = !box.hidden;
+      box.hidden = open;
+      entry.querySelector(".harrow").textContent = open ? "▸" : "▾";
+      if(open) return;
+      const hash = entry.dataset.hash;
+      if(!historyDiffCache[hash]){
+        box.innerHTML = '<div class="hline">…</div>';
+        try{ historyDiffCache[hash] = await (await fetch("/api/history/"+hash)).json(); }
+        catch(err){ box.innerHTML = '<div class="hline">could not load this commit’s changes</div>'; delete historyDiffCache[hash]; return; }
+      }
+      const st = historyDiffCache[hash].statements || [];
+      box.innerHTML = st.length
+        ? st.map(s => '<div class="hline">'+esc(s.text)+'</div>').join("")
+        : '<div class="hline">no card-level changes in this commit</div>';
+    });
+  });
 }
 
 /* ================= docs view (CAPABILITIES.md rendered) ================= */
@@ -1374,7 +1685,9 @@ function renderIdeas(param){
     '<div class="ideas-toggle" style="display:flex;gap:7px;align-items:center;margin:0 0 20px">'+
       '<button class="chip" data-arch="0" aria-pressed="'+(!ideasArchive)+'">Active</button>'+
       '<button class="chip" data-arch="1" aria-pressed="'+ideasArchive+'">Done &amp; rejected ('+archN+')</button>'+
-      '<button class="btn primary" id="new-idea" style="margin-left:auto">+ New idea</button>'+
+      '<button class="chip" id="copy-ideas" style="margin-left:auto" title="Copy this view to the clipboard as markdown — paste it into another tool to brainstorm">⧉ copy</button>'+
+      '<button class="chip" id="refresh-ideas" title="Fetch the latest board data now — handy while an agent works the ideas">↻ refresh</button>'+
+      '<button class="btn primary" id="new-idea">+ New idea</button>'+
     '</div>';
   const ideaCard = i => {
     const rel = [i.milestone, i.theme].filter(Boolean).map(short).concat(i.tags||[]);
@@ -1395,9 +1708,10 @@ function renderIdeas(param){
     if(!items.length){
       body = '<div style="font-size:12.5px;color:var(--ink-3)">none</div>';
     } else if(st === "idea"){
-      const sorted = items.slice().sort((a,b) => prioIx(a) - prioIx(b));
-      const front = sorted.filter(i => prioIx(i) < burnerCut);
-      const back  = sorted.filter(i => prioIx(i) >= burnerCut);
+      // No sort: array order is the queue (AGENTS.md §3) — priority decides
+      // the section, drag-reorder decides the order inside it.
+      const front = items.filter(i => prioIx(i) < burnerCut);
+      const back  = items.filter(i => prioIx(i) >= burnerCut);
       body =
         (front.length ? '<div class="bsec" data-burner="front"><h4 class="burner" title="priority: '+esc(PRIOS.slice(0,burnerCut).join(" / "))+'">Front burner <span class="cnt">'+front.length+'</span></h4>'+front.map(ideaCard).join("")+'</div>' : "")+
         (back.length ? '<div class="bsec back" data-burner="back"><h4 class="burner back" title="priority: '+esc(PRIOS.slice(burnerCut).join(" / "))+'">Back burner <span class="cnt">'+back.length+'</span></h4>'+back.map(ideaCard).join("")+'</div>' : "");
@@ -1409,6 +1723,22 @@ function renderIdeas(param){
   v.innerHTML = html;
   const ni = document.getElementById("new-idea");
   if(ni) ni.addEventListener("click", () => openIdea(null));
+  const cp = document.getElementById("copy-ideas");
+  if(cp) cp.addEventListener("click", async () => {
+    const { md, n } = ideasMarkdown();
+    try{
+      await navigator.clipboard.writeText(md);
+      showToast("Copied "+n+" idea"+(n===1?"":"s")+" as markdown.");
+    }catch(err){ showToast("Couldn't reach the clipboard — is the page focused?"); }
+  });
+  const rf = document.getElementById("refresh-ideas");
+  if(rf) rf.addEventListener("click", async () => {
+    const res = await refresh();
+    showToast(res==="updated" ? "Refreshed — latest changes loaded."
+            : res==="current" ? "Already up to date."
+            : res==="deferred" ? "Changes found — applying once the current edit settles."
+            : "Could not reach the server.");
+  });
   v.querySelectorAll(".ideas-toggle .chip").forEach(b => b.addEventListener("click", () => {
     ideasArchive = b.dataset.arch === "1";
     renderIdeas(null);
@@ -1424,6 +1754,7 @@ function renderIdeas(param){
       el.addEventListener("dragend", () => {
         el.classList.remove("dragging"); document.body.classList.remove("is-dragging");
         v.querySelectorAll(".ideas-col, .bsec").forEach(x => x.classList.remove("drop-hover"));
+        clearInsertMarkers();
       });
     }
   });
@@ -1433,32 +1764,111 @@ function renderIdeas(param){
   }
 }
 
+// The visible ideas view as markdown, for pasting into another tool to
+// brainstorm — full descriptions (both halves), a meta line, and the id
+// so answers can reference cards back.
+function ideasMarkdown(){
+  const cols = ideasArchive ? IDEA_STATUS_ARCHIVE : IDEA_STATUS;
+  const ideas = state.ideas || [];
+  const title = ((state.config||{}).view||{}).title || "board";
+  const lines = ["# "+title+" — ideas backlog"+(ideasArchive ? " (done & rejected)" : ""), ""];
+  let n = 0;
+  const card = i => {
+    n++;
+    lines.push("### "+i.title+"  `"+i.id+"`", "");
+    if(i.description) lines.push(i.description, "");
+    const meta = [];
+    if(i.category) meta.push("category: "+i.category);
+    if(i.priority) meta.push("priority: "+i.priority);
+    if(i.effort) meta.push("effort: "+i.effort);
+    if(i.impact) meta.push("impact: "+i.impact);
+    if(i.milestone) meta.push("milestone: "+i.milestone);
+    if(i.theme) meta.push("theme: "+i.theme);
+    if((i.tags||[]).length) meta.push("tags: "+i.tags.join(", "));
+    if((i.deps||[]).length) meta.push("depends on: "+i.deps.join(", "));
+    if(i.rejected_reason) meta.push("rejected because: "+i.rejected_reason);
+    if(meta.length) lines.push("— "+meta.join(" · "), "");
+  };
+  const cut = Math.ceil(PRIOS.length/2);
+  for(const st of cols){
+    const items = ideas.filter(i => ideaStatus(i)===st);
+    if(st === "idea" && items.length){
+      // mirror the page: burner sections, array order inside them
+      const inFront = x => { const ix = PRIOS.indexOf(x.priority); return ix > -1 && ix < cut; };
+      const front = items.filter(inFront), back = items.filter(x => !inFront(x));
+      if(front.length){ lines.push("## Idea — front burner ("+front.length+")", ""); front.forEach(card); }
+      if(back.length){ lines.push("## Idea — back burner ("+back.length+")", ""); back.forEach(card); }
+    } else {
+      lines.push("## "+IDEA_STATUS_LABEL[st]+" ("+items.length+")", "");
+      items.length ? items.forEach(card) : lines.push("none", "");
+    }
+  }
+  return { md: lines.join("\n"), n };
+}
+
 // Drop targets for idea cards: a status column, or a burner section inside
-// the Idea column (which also nudges priority into that tier).
+// the Idea column (which also nudges priority into that tier). Every drop
+// is positional: an insertion line tracks the gap the card would land in.
+function insertionCard(zone, y){
+  for(const el of zone.querySelectorAll(".idea:not(.dragging)")){
+    const r = el.getBoundingClientRect();
+    if(y < r.top + r.height/2) return el;
+  }
+  return null;   // past the last card → insert at the zone's end
+}
+function clearInsertMarkers(){
+  document.querySelectorAll(".idea.drop-before, .idea.drop-after")
+    .forEach(x => x.classList.remove("drop-before", "drop-after"));
+}
 function wireIdeaDrop(zone, st, burner){
   zone.addEventListener("dragover", ev => {
     ev.preventDefault(); if(burner) ev.stopPropagation();
     ev.dataTransfer.dropEffect = "move"; zone.classList.add("drop-hover");
     if(burner) zone.closest(".ideas-col").classList.remove("drop-hover");
+    clearInsertMarkers();
+    const before = insertionCard(zone, ev.clientY);
+    if(before) before.classList.add("drop-before");
+    else {
+      const cards = zone.querySelectorAll(".idea:not(.dragging)");
+      if(cards.length) cards[cards.length-1].classList.add("drop-after");
+    }
   });
-  zone.addEventListener("dragleave", ev => { if(!zone.contains(ev.relatedTarget)) zone.classList.remove("drop-hover"); });
+  zone.addEventListener("dragleave", ev => {
+    if(!zone.contains(ev.relatedTarget)){ zone.classList.remove("drop-hover"); clearInsertMarkers(); }
+  });
   zone.addEventListener("drop", ev => {
     ev.preventDefault(); if(burner) ev.stopPropagation();
     zone.classList.remove("drop-hover");
+    const before = insertionCard(zone, ev.clientY);
+    clearInsertMarkers();
     const data = ev.dataTransfer.getData("text/plain");
     if(!data.startsWith("idea:")) return;
-    dropIdea(data.slice(5), st, burner);
+    dropIdea(data.slice(5), st, burner, before ? before.dataset.id : null);
   });
 }
-function dropIdea(id, st, burner){
+function dropIdea(id, st, burner, beforeId){
   const i = ideaById(id); if(!i) return;
   let changed = false;
   if(i.status !== st){ i.status = st; changed = true; }   // also normalizes legacy raw statuses
+  const cut = Math.ceil(PRIOS.length/2);
   if(st === "idea" && burner){
-    const cut = Math.ceil(PRIOS.length/2), ix = PRIOS.indexOf(i.priority);
+    const ix = PRIOS.indexOf(i.priority);
     if(burner === "front" && (ix < 0 || ix >= cut)){ i.priority = PRIOS[cut-1]; changed = true; }
     if(burner === "back" && ix > -1 && ix < cut){ i.priority = PRIOS[cut]; changed = true; }
   }
+  // Reorder: the array is the queue (AGENTS.md §3). Insert before the
+  // marked card, or after the target zone's last card when dropped past
+  // the end (falling back to the array's end for an empty zone).
+  const arr = state.ideas, from = arr.indexOf(i);
+  arr.splice(from, 1);
+  let to = (beforeId && beforeId !== id) ? arr.findIndex(x => x.id === beforeId) : -1;
+  if(to < 0){
+    const tier = x => { const ix = PRIOS.indexOf(x.priority); return (ix > -1 && ix < cut) ? "front" : "back"; };
+    const zone = arr.filter(x => ideaStatus(x) === st && (!burner || tier(x) === burner));
+    to = zone.length ? arr.indexOf(zone[zone.length-1]) + 1 : arr.length;
+  }
+  arr.splice(to, 0, i);
+  if(arr.indexOf(i) !== from) changed = true;
   if(!changed) return;
   i.updated_at = new Date().toISOString();
   renderIdeas(null); persistResource("ideas", state.ideas);

@@ -18,6 +18,7 @@ design/
 ├── milestones.md    # #/milestones(/<id>) — narrative + deliverables roll-up
 ├── ideas.md         # #/ideas — status columns + capture
 ├── idea-detail.md   # #/ideas/<id> — the deep dive
+├── history.md       # #/history — ratification history (git log as a page)
 └── docs.md          # #/docs — CAPABILITIES.md rendered in the UI
 ```
 

@@ -37,7 +37,7 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ LOCAL · AGENT-BOARD                                                  │
-│ {view.title}  [Ideas][Milestones][Board]   {counts}  ● saved         │  header
+│ {view.title}  [Ideas][Milestones][Board]  {counts} ● saved (7 pending)│ header
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │                        active view (#view-*)                         │
@@ -53,9 +53,11 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 |---|---|---|---|
 | Eyebrow | `.eyebrow` | "Local · agent-board" | mono, uppercase, accent |
 | Title | `#board-title` | `config.view.title` (fallback "Board") | also sets `document.title` in `load()` |
-| View tabs | `#tabs` `renderTabs()` | Ideas / Milestones / Board / Docs — the flow trio (capture → intent → work) plus the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback stays `board` so per-project `view.default_page` semantics are untouched |
+| View tabs | `#tabs` `renderTabs()` | Ideas / Milestones / Board / History / Docs — the flow trio (capture → intent → work) plus the record and the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback stays `board` so per-project `view.default_page` semantics are untouched |
 | Counts | `#counts` | "N cards · M done", or "X of N shown" when filtered | board page only — hidden elsewhere by `route()` |
 | Save indicator | `#save` `persistResource()` | dot + saved / saving… / save failed | dot color: `--lane-5` / `--lane-2` pulsing / `--lane-4` |
+| Pending badge | `#pending-badge` `updatePending()` | "N pending" chip beside the save dot when uncommitted board changes exist (`GET /api/pending`); absent when the tree is clean or the data dir isn't git-tracked | click → the review panel. Refetched on load, after every live `refresh()`, when the tab regains visibility (covers terminal-side commits), and on panel open |
+| Review panel | `#pending-panel` `renderPending()` | slide-over from the right: "Pending ratification" header, card-level change statements grouped by resource (epics / stories / ideas / config / milestones), files list, footer naming the ritual (say "save" in conversation, or commit the data dir) | read-only — zero write affordances; the panel reviews, the human ratifies. Empty state: "Everything ratified — board matches HEAD." Close: ✕, Escape, or click outside. Statements come from the server's semantic differ (`/api/pending`): moves as `old → new`, edits name their fields, a queue reorder is one statement |
 | View sections | `#view-board` `#view-milestones` `#view-ideas` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
 | Footer hints | `#footer-note` `updateFooter()` | per-page interaction hints | board / milestones / ideas variants |
 | Stories note | `#stories-note` | "N stories" when any exist | |
@@ -66,7 +68,8 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 | Toast | `#toast` `showToast()` | transient message, bottom-center | 4.5s, `--lane-4` left border — used for refused moves |
 | Pills | `.tagpill` `.tagpill.sys` `.st` `.prio` | milestone/theme/tag, systems, status, priority (variants p0–p3) | priority class = index into `config.priorities` (`prioClass()`) |
 | Helpers | `esc()` `short()` `opts()` `laneVar()` | escaping, "M0 Reliable…"→"M0", select options, lane color cycling | used by every screen |
-| Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | — (invisible; the page just stays current) | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, or a save is pending (`refreshBlocked()`, applied on `applyPendingRefresh()`) |
+| Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | a changed board **moves**: cards lift, glide to their new lane/position, and set down; edited-in-place cards pulse the `.flash` ring; new cards fade in | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, or a save is pending (`refreshBlocked()`, applied on `applyPendingRefresh()`) |
+| Refresh motion | `captureCardPositions()` `animateCardMoves()` `.agent-lift` `.agent-new` | FLIP across the re-render: rects captured before `applyBoard()`, re-render unchanged, moved cards inverted to their old spot then transitioned home (~450ms) wearing the lift look (scale 1.04, `--shadow`, ~1° tilt — the `.dragging` family) | applies to `.card`, `.scard`, and `.idea` cards on whichever page is visible; removed cards simply vanish (no ghost animation); `prefers-reduced-motion` falls back to the instant snap (the global media query kills the transitions) |
 
 ## Interactions
 
@@ -82,7 +85,13 @@ the media-query equivalent) so accent-filled surfaces stay readable.
   debounced `refresh()`: refetch `/api/board`, re-apply state + vocab,
   re-render the current page; filters whose vocab vanished reset to
   "all". Deferred (not dropped) while a modal / drag / pending save is
-  active; writes nothing.
+  active; writes nothing. The change **animates**: an agent's lane move
+  reads as pick-up → glide → set-down, not a snap — the manual ↻
+  refresh reveals changes the same way. The user's own drags never
+  re-animate (own-write echoes are skipped before the animation path).
+- Pending-badge click → open the review panel (refetching
+  `/api/pending` first); Escape / ✕ / outside click closes it. Nothing
+  in the panel writes — ratification happens in conversation or git.
 
 ## States
 
@@ -91,6 +100,12 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 - Server restart: the `EventSource` auto-reconnects (retry 2s); no page
   reload needed.
 - Reduced motion: all animation/transitions disabled via media query.
+- Pending states: clean tree → no badge; dirty → "N pending" chip;
+  data dir not git-tracked or no commits yet → no badge (the panel's
+  machinery assumes the git convention; without it the header stays
+  quiet rather than nagging). The count can lag a terminal-side commit
+  until the next data change, tab refocus, or panel open — all three
+  refetch.
 - Theme: follows OS unless `data-theme` is stamped on `:root`.
 
 ## Data

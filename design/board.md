@@ -24,8 +24,9 @@ Epics mode (the default):
 │ View (Epics)(Rows)  Milestone (All)({M0})({M1})  Theme (All)({T1})   │
 │ Tag (All)(x)                           [★ set as default view]      │  filters
 │ Next up  [F2 Epic name…  Now · unblocks 3] [F5 …  Now] +2 more      │  next-up
+│ Ready    F1 ▸ [feature F1-2 Story name…] [test F1-3 …]  F3 ▸ […]    │  ready-q
 ├──────────────────┬──────────────────┬────────────────────────────────┤
-│ ▍{lane 1}     5  │ ▍{lane …}     2  │ ▍{last lane}                4  │
+│ ▍{lane 1}     5  │ ▍{lane …}  3/2  │ ▍{last lane}                 4  │
 │ [+ add card]     │ [+ add card]     │ [+ add card]                   │
 │ ┌──────────────┐ │                  │ ┌──────────────┐               │
 │ │ F1     (Now) │ │                  │ │ F3    (Next) │               │
@@ -84,11 +85,12 @@ Modal (over everything, via the shared shell in `system.md`):
 | View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Filter rows | `renderFilters()` `#filters` | milestone / theme / tag chip rows | rows render only when vocab non-empty; labels via `short()` except tags (full) |
 | Next up strip | `renderNextUp()` `#nextup` | top 5 pickable epics as `.pick` chips: id, name, why (priority · unblocks N); "+N more" overflow; or a nothing-pickable reason line (`.none`) | `nextUp()` implements PROTOCOL §3 exactly: first lane + deps done + gate in `open_gates` (`gateOpen()`) + unclaimed + successor lane under `wip_limits` (`wipBlocked()`); ranked priority index → unblock count (`unblockCount()`) → file order. Board-wide — ignores the filter chips |
-| Save-view chip | `.chip.savev` `#save-view` | "★ set as default view" | appears only when current filters differ from `viewDefaults()`; writes `config.view` |
-| Column | `render()` `.col` | swatch + lane name + shown count | top border + header tint from `--lc` = `laneVar(col)` |
+| Ready queue strip | `readyQueue()` `renderReadyQueue()` `#readyq` | pickable stories as `[kind] id name` chips (`.rpick`) grouped under their epic's mono id — the "begin X" menu | story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
+| Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
 | Add card | `.addcard` | "+ add card" atop each lane body | → `openCreate(col)` with the lane preset |
-| Card | `cardEl()` `.card` | id, priority pill, name, milestone/theme/tags/systems pills, status, story badge, dep badge, claim | draggable, tabIndex 0 |
-| Story badge | `.stbadge` | "N stories · M ready" | ready count in `--lane-5` |
+| Card | `cardEl()` `.card` | id, priority pill, name, milestone/theme/tags/systems pills, status, story badge, dep badge, gate chip, claim | draggable, tabIndex 0 |
+| Gate chip | `.card .egate` | `⛔ {gate}` when the epic's gate is closed (`gate ≠ "none"` and not in `open_gates`) | same markup, title, and `--lane-2` color as the rows-mode row-header badge — one gate vocabulary across modes. Absent when the gate is `"none"` or open. Advises only: the chip explains why agents won't pick the card; drag behavior is unchanged (`checkMove` never reads gates) |
+| Story badge | `.stbadge` | "N stories · M ready" | ready count in `--lane-5`; M counts ready stories **not yet in the done lane** — a shipped story is done, not "ready" (finished ≠ pending, the ready-queue's rule). Segment absent when M = 0; N still counts all stories |
 | Dep badge | `.dep` / `.dep.warn` | `⊸ F2` when deps met, `↯ needs F4` when not | warn = any dep not in done lane |
 | Claim | `.claim` | "claimed: {claimed_by}" | accent, only when claimed |
 | Move guard | `checkMove()` | — | can't enter done lane with unmet deps; can't leave it while a done dependent points here |
@@ -99,7 +101,8 @@ Modal (over everything, via the shared shell in `system.md`):
 | Rows: cell | `.swim .cell` | the epic's stories in that lane | one per lane per row; drop target via `wireStoryDrop()` |
 | Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, ✓ ready tick, name | draggable within its row; click opens the story modal |
 | Rows: note | `.rows-note` | "N epics without stories — shown in Epics mode" / rows-empty guidance | renders only when it has something to say |
-| Epic modal | `renderModal()` | all epic fields per AGENTS.md §2 | `context_docs` deliberately has no widget; lane change re-runs `checkMove` |
+| Epic modal | `renderModal()` | all epic fields per AGENTS.md §2 | `context_docs` renders read-only (below) — still no edit widget; lane change re-runs `checkMove` |
+| Context docs chips | `.field .ctxdocs` (modal) | the epic's `context_docs` as read-only label+path+note chips, reusing the Milestones `ctxDocs()` renderer; click copies the doc's path (toast confirms) | edit mode only, and only when the epic has docs — no section otherwise, and the create modal never shows it. Copy-on-click follows the Ideas-page copy convention; **no input exists** — `context_docs` stays file/skill-edited (AGENTS.md §2) |
 | Stories section | `storiesSection()` `wireStoriesSection()` | story rows + ready checkboxes inside the epic modal | edit mode only, not on create |
 | Story modal | `renderStoryModal()` | story fields: name, description, acceptance criteria (one per line), context, systems, kind ▾, lane ▾, priority ▾, ready ✓ | "Back to epic" returns to `openEdit(epicId)` |
 | Save epic | `saveModal()` | validation → create/update | duplicate-id and empty-name errors in `.m-err` |
@@ -125,7 +128,14 @@ Modal (over everything, via the shared shell in `system.md`):
 - Next-up chip click → `goToEpic(id)` (filter to its milestone, scroll +
   flash the card); writes nothing. The strip re-renders with every
   `render()`, so it always reflects current lanes/claims.
+- Ready-queue chip click → `renderStoryModal(epicId, sid)` — straight to
+  the story a "begin X" would target; writes nothing. Re-renders with
+  every `render()` like Next up.
 - Click card / Enter on focused card → `openEdit(id)`; writes nothing.
+- Click a context-docs chip in the modal →
+  `navigator.clipboard.writeText(path)` + toast; writes nothing to the
+  board — the chip is a launchpad (paste into an editor or another
+  Claude session), not an editor.
 - Filter chip click → update `filterMS`/`filterTheme`/`filterTag`,
   re-render; writes nothing.
 - ★ set as default view → writes `config.view` via
@@ -144,10 +154,21 @@ Modal (over everything, via the shared shell in `system.md`):
   the reason breakdown (N blocked by deps · N gated closed · N claimed),
   the WIP-limit case, or "the {first lane} lane is empty" — an empty
   selection is an answer (PROTOCOL §3).
-- Filtered: counts flip to "X of N shown" (see `system.md` counts).
+- Filtered: counts flip to "X of N shown" (see `system.md` counts). A
+  limited lane's header keeps showing board-wide `total/limit` even
+  while filtered — the limit is a board property, not a view property.
+- Over WIP limit: the `total/limit` count turns loud (`--lane-4`, bold)
+  with a title naming the limit — visible feedback while agents move
+  cards through lanes in real time; nothing is prevented.
+- Gated: closed-gate cards wear the `⛔` chip in both modes; opening the
+  gate in `config.json` clears it on the live-reloaded page. Humans open
+  gates; the UI only reports them.
 - Dragging: source card fades (`.dragging`), other cards ignore pointer,
   illegal lanes dim (`.no-drop`), hovered legal lane highlights
   (`.drop-hover`).
+- Live refresh motion: an agent's move glides the card (epics mode and
+  rows-mode story cards alike) to its new lane with the lift effect;
+  edits pulse `.flash` (system.md → Refresh motion).
 - Jump-in from milestones (`goToEpic()`): switches to Epics mode first
   (the `.card[data-id]` target only exists there) without overwriting
   the remembered toggle choice, filters set to the epic's milestone,
@@ -162,8 +183,10 @@ Modal (over everything, via the shared shell in `system.md`):
 
 ## Data
 
-The Next-up strip is the first UI reader of `config.open_gates` and
-`config.wip_limits` (previously protocol-only).
+The Next-up strip was the first UI reader of `config.open_gates` and
+`config.wip_limits` (previously protocol-only); lane headers now read
+`wip_limits` too (B1-1), rendering the same board-wide numbers
+`wipBlocked()` compares.
 `state.epics` filtered by `epicShown()` (milestone AND theme AND tag);
 stories via `storiesOf(epicId)`; vocab from `COLUMNS`/`PRIOS`/`THEMES`/
 `MILESTONES`; lane color by position (`laneVar`), priority pill class by

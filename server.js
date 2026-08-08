@@ -14,6 +14,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { execFile } = require("child_process");
 
 const ROOT = __dirname;
 const DATA = path.resolve(process.env.BOARD_DATA_DIR || path.join(ROOT, "data"));
@@ -102,6 +103,108 @@ function watchData() {
   });
 }
 
+// ---- git as a readable data source ----
+// Commits are the ratification record (AGENTS.md §4); these helpers read
+// that record — they never write. execFile with an args array: nothing is
+// ever interpolated into a shell.
+function git(args) {
+  return new Promise((resolve) => {
+    execFile("git", ["-C", DATA, ...args], { maxBuffer: 10e6 }, (err, stdout) => {
+      resolve(err ? null : stdout);
+    });
+  });
+}
+
+// The five data files as parsed JSON at a given commit (DEFAULTS where a
+// file didn't exist yet — so brand-new files read as "everything added").
+async function snapshotAt(ref) {
+  const prefix = ((await git(["rev-parse", "--show-prefix"])) || "").trim();
+  const snap = {};
+  for (const [key, file] of Object.entries(FILES)) {
+    const out = await git(["show", `${ref}:${prefix}${file}`]);
+    try { snap[key] = out === null ? DEFAULTS[key] : JSON.parse(out); }
+    catch (e) { snap[key] = DEFAULTS[key]; }
+  }
+  return snap;
+}
+function workingSnapshot() {
+  const snap = {};
+  for (const key of Object.keys(FILES)) snap[key] = readData(key);
+  return snap;
+}
+
+// Card-level change statements between two snapshots — what a human
+// reviews at ratify speed ("B1 moved Backlog → Done"), not raw diffs.
+// Array order is queue state, so a pure reorder is one statement, not N
+// edits; a card that both moved and changed gets one combined statement.
+const LANE_FIELD = { epics: "column", stories: "column", ideas: "status" };
+function summarizeChanges(oldSnap, newSnap) {
+  const statements = [];
+  const label = (x) => {
+    const l = x.name || x.title || "";
+    return l.length > 48 ? l.slice(0, 45) + "…" : l;
+  };
+  for (const key of ["epics", "stories", "ideas"]) {
+    const olds = oldSnap[key] || [], news = newSnap[key] || [];
+    const oldBy = new Map(olds.map((x) => [x.id, x]));
+    const newBy = new Map(news.map((x) => [x.id, x]));
+    const lane = LANE_FIELD[key];
+    for (const n of news) {
+      if (!oldBy.has(n.id)) {
+        statements.push({ resource: key, id: n.id, kind: "added",
+          text: `${n.id} '${label(n)}' added (${n[lane] || "?"})` });
+        continue;
+      }
+      const o = oldBy.get(n.id);
+      const moved = (o[lane] || "") !== (n[lane] || "");
+      const changed = [];
+      for (const f of new Set([...Object.keys(o), ...Object.keys(n)])) {
+        if (f === lane || f === "updated_at") continue;
+        if (JSON.stringify(o[f]) !== JSON.stringify(n[f])) changed.push(f);
+      }
+      if (moved && changed.length)
+        statements.push({ resource: key, id: n.id, kind: "moved+edited",
+          text: `${n.id} '${label(n)}' moved ${o[lane]} → ${n[lane]}, edited (${changed.join(", ")})` });
+      else if (moved)
+        statements.push({ resource: key, id: n.id, kind: "moved",
+          text: `${n.id} '${label(n)}' moved ${o[lane]} → ${n[lane]}` });
+      else if (changed.length)
+        statements.push({ resource: key, id: n.id, kind: "edited",
+          text: `${n.id} '${label(n)}' edited (${changed.join(", ")})` });
+    }
+    for (const o of olds) if (!newBy.has(o.id))
+      statements.push({ resource: key, id: o.id, kind: "removed",
+        text: `${o.id} '${label(o)}' removed` });
+    const beforeOrder = olds.filter((x) => newBy.has(x.id)).map((x) => x.id).join("\n");
+    const afterOrder = news.filter((x) => oldBy.has(x.id)).map((x) => x.id).join("\n");
+    if (beforeOrder !== afterOrder)
+      statements.push({ resource: key, kind: "reordered",
+        text: `${key} reordered (queue order changed)` });
+  }
+  for (const key of ["config", "milestones"]) {
+    const o = oldSnap[key] || {}, n = newSnap[key] || {};
+    const changed = [...new Set([...Object.keys(o), ...Object.keys(n)])]
+      .filter((f) => JSON.stringify(o[f]) !== JSON.stringify(n[f]));
+    if (changed.length)
+      statements.push({ resource: key, kind: "edited",
+        text: `${key} edited (${changed.join(", ")})` });
+  }
+  return statements;
+}
+
+// Uncommitted board changes vs HEAD — what saying "save" would ratify.
+async function pendingChanges() {
+  if ((await git(["rev-parse", "--git-dir"])) === null)
+    return { clean: null, reason: "data dir is not inside a git repository", statements: [], files: [] };
+  if ((await git(["rev-parse", "--verify", "HEAD"])) === null)
+    return { clean: null, reason: "no commits yet — everything is unratified", statements: [], files: [] };
+  const status = await git(["status", "--porcelain", "--", ...Object.values(FILES)]);
+  const files = (status || "").split("\n").filter(Boolean).map((l) => l.slice(3).trim());
+  if (!files.length) return { clean: true, statements: [], files: [] };
+  const statements = summarizeChanges(await snapshotAt("HEAD"), workingSnapshot());
+  return { clean: false, files, statements };
+}
+
 const server = http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
   try {
@@ -124,6 +227,43 @@ const server = http.createServer(async (req, res) => {
       sseClients.add(res);
       req.on("close", () => sseClients.delete(res));
       return;
+    }
+    if (req.method === "GET" && url === "/api/pending") {
+      return sendJSON(res, 200, await pendingChanges());
+    }
+    // Ratification history: the data dir's commits, newest first — and,
+    // per commit, the same card-level statements the pending panel shows,
+    // diffed against the commit's parent.
+    if (req.method === "GET" && url === "/api/history") {
+      if ((await git(["rev-parse", "--git-dir"])) === null)
+        return sendJSON(res, 200, { available: false, reason: "data dir is not inside a git repository", commits: [] });
+      const raw = await git(["log", "-50", "--format=%H%x1f%cs%x1f%s%x1e", "--", ...Object.values(FILES)]);
+      if (raw === null)
+        return sendJSON(res, 200, { available: false, reason: "no commits yet — everything is unratified", commits: [] });
+      const commits = raw.split("\x1e").map((s) => s.trim()).filter(Boolean).map((entry) => {
+        const [hash, date, message] = entry.split("\x1f");
+        return { hash, date, message };
+      });
+      // one extra pass for files touched (name-only log keeps it a single git call)
+      const withFiles = await git(["log", "-50", "--format=%x1e%H", "--name-only", "--", ...Object.values(FILES)]);
+      const filesBy = {};
+      (withFiles || "").split("\x1e").map((s) => s.trim()).filter(Boolean).forEach((block) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        filesBy[lines[0]] = lines.slice(1).map((f) => path.basename(f));
+      });
+      commits.forEach((c) => { c.files = filesBy[c.hash] || []; });
+      return sendJSON(res, 200, { available: true, commits });
+    }
+    if (req.method === "GET" && url.startsWith("/api/history/")) {
+      const hash = url.slice("/api/history/".length);
+      if (!/^[0-9a-f]{4,40}$/i.test(hash)) return sendJSON(res, 400, { error: "invalid commit hash" });
+      if ((await git(["cat-file", "-e", hash + "^{commit}"])) === null)
+        return sendJSON(res, 404, { error: "unknown commit" });
+      // Root commit has no parent — diff against the empty defaults so
+      // everything reads as "added".
+      const hasParent = (await git(["rev-parse", "--verify", hash + "^"])) !== null;
+      const oldSnap = hasParent ? await snapshotAt(hash + "^") : JSON.parse(JSON.stringify(DEFAULTS));
+      return sendJSON(res, 200, { hash, statements: summarizeChanges(oldSnap, await snapshotAt(hash)) });
     }
     if (req.method === "GET" && url === "/api/board") {
       return sendJSON(res, 200, {
