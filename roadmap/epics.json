@@ -239,5 +239,69 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:00:00Z",
     "updated_at": "2026-08-08T17:10:00Z"
+  },
+  {
+    "id": "B8",
+    "name": "Command palette & quick capture",
+    "description": "Keyboard-first operation: '/' opens a fuzzy palette over every epic, story, and idea — type, Enter, you're on the card. 'n' captures a new idea from any page. Capture is the funnel's mouth; friction there loses ideas.",
+    "notes": "Workflow impact: finding a card stops meaning eyeballing lanes; capturing an idea stops meaning navigating to the Ideas page first — one keystroke from anywhere. Decomposed from idea-command-palette (front burner, user go-ahead 2026-08-08).",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-command-palette — Technical shape"
+      },
+      {
+        "label": "System chrome spec",
+        "path": "design/system.md",
+        "note": "overlay + keyboard surface"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:35:00Z",
+    "updated_at": "2026-08-08T17:55:00Z"
+  },
+  {
+    "id": "B9",
+    "name": "Board briefing — since you last looked",
+    "description": "A digest when you open the board: what changed since your last visit — card-level statements diffed from your last-seen commit, plus stale claims. The session-break catch-up, computed instead of remembered.",
+    "notes": "Workflow impact: resuming after time away starts with a computed catch-up instead of mental diffing or reading git log. Third consumer of the git-read capability. Decomposed from idea-board-briefing (front burner, user go-ahead 2026-08-08).",
+    "theme": "Decide fast",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-board-briefing — Technical shape"
+      },
+      {
+        "label": "Ratify differ",
+        "path": "server.js",
+        "note": "summarizeChanges()/snapshotAt() being reused"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:55:00Z",
+    "updated_at": "2026-08-08T18:20:00Z"
   }
 ]

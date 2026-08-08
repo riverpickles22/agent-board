@@ -227,5 +227,95 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:00:00Z",
     "updated_at": "2026-08-08T17:10:00Z"
+  },
+  {
+    "id": "B8-1",
+    "epic_id": "B8",
+    "name": "Palette overlay: fuzzy find + jump",
+    "description": "'/' opens an overlay on the shared scrim: input + ranked results over an in-memory index of epics, stories, and ideas (subsequence fuzzy match). Arrow keys move the selection, Enter jumps (epic → board card flash; story → story modal; idea → deep-dive page), Escape closes. Shortcuts suppressed while typing in any field or while a modal is open.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "'/' anywhere (outside inputs/modals) opens the palette focused on its input; Escape closes it",
+      "Typing filters epics + stories + ideas by subsequence match, ranked sensibly; each result shows type, id, and title",
+      "Enter (or click) on an epic goes to the board and flashes the card; on a story opens its story modal; on an idea opens its deep-dive page",
+      "Arrow keys move the selection; '/' while typing in a form field does nothing"
+    ],
+    "context": "design/system.md (spec first); index.html goToEpic()/renderStoryModal()/navigate(); milestones arrow-key pattern; idea-command-palette deep dive",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:35:00Z",
+    "updated_at": "2026-08-08T17:55:00Z"
+  },
+  {
+    "id": "B8-2",
+    "epic_id": "B8",
+    "name": "Quick capture: 'n' from anywhere",
+    "description": "'n' (outside inputs/modals) opens the new-idea modal from any page — capture lands in the Ideas inbox without navigating. Footer hints mention both shortcuts.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "'n' on any page opens the new-idea modal; creating navigates to the new idea's deep dive as usual",
+      "'n' while typing in a field or with a modal open does nothing",
+      "Footer hints name '/' and 'n'"
+    ],
+    "context": "index.html openIdea(null), updateFooter(); B8-1's shortcut guard",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:55:00Z",
+    "updated_at": "2026-08-08T17:55:00Z"
+  },
+  {
+    "id": "B9-1",
+    "epic_id": "B9",
+    "name": "Server: /api/since/<hash> — changes between a commit and HEAD",
+    "description": "Reuse snapshotAt() + summarizeChanges() to diff an arbitrary earlier commit against HEAD; response carries the current HEAD hash so the client can advance its last-seen marker. Graceful when the hash is unknown (rewritten history) or git is absent.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "/api/since/<hash> returns {head, statements} diffing that commit → HEAD with the pending panel's statement format",
+      "Unknown/invalid hash → available:false JSON (no crash); hash validated like /api/history/<hash>",
+      "Same-hash-as-HEAD returns empty statements with head present"
+    ],
+    "context": "server.js git()/snapshotAt()/summarizeChanges(); B5-1's hash validation",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:55:00Z",
+    "updated_at": "2026-08-08T18:05:00Z"
+  },
+  {
+    "id": "B9-2",
+    "epic_id": "B9",
+    "name": "Briefing banner: since-you-last-looked + stale claims",
+    "description": "On load, compare the per-browser last-seen HEAD (localStorage, keyed by board title) with the current HEAD: if they differ, show a dismissible banner under the header — 'Since you last looked: N changes' — expandable to the card-level statements, plus stale claims (claimed >48h, not done) computed client-side. Dismiss stores the new HEAD. First visit stores silently.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "With a stored last-seen hash older than HEAD, the banner appears with the change count and expands to card-level statements",
+      "Dismiss stores the current HEAD and hides the banner; reload shows no banner until new commits land",
+      "First visit (no stored hash) stores silently with no banner",
+      "Claims older than 48h on non-done cards are listed as stale in the expanded view"
+    ],
+    "context": "design/system.md (spec first); index.html wirePending() pattern, localStorage modeKey() pattern; B9-1 endpoint",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T18:05:00Z",
+    "updated_at": "2026-08-08T18:20:00Z"
   }
 ]
