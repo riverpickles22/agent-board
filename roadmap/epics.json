@@ -1,1 +1,243 @@
-[]
+[
+  {
+    "id": "B1",
+    "name": "WIP limits & gates visible on the board",
+    "description": "Surface the two protocol vocabularies the UI doesn't render: lane headers show count vs configured WIP limit (loud when over), and epic cards wear a lock chip naming their gate until a human opens it. Advise, don't enforce — no drop is blocked; enforcement stays in the agent protocol (PROTOCOL §3).",
+    "notes": "Workflow impact: humans watching the live board see the rules agent card-motion obeys — over-limit lanes light up as they fill, and 'why isn't the agent picking this card' is answered by a visible gate chip instead of a trip to config.json. Decomposed from idea-wip-gates-ui (ready to implement, 2026-08-08).",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "lane headers, cards, next-up strip"
+      },
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-wip-gates-ui — advise-only decision + rationale"
+      },
+      {
+        "label": "Selection rule",
+        "path": "PROTOCOL.md",
+        "note": "§3 — where limits/gates are enforced"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T12:30:00Z",
+    "updated_at": "2026-08-08T12:55:00Z"
+  },
+  {
+    "id": "B2",
+    "name": "Context docs visible in the epic modal",
+    "description": "Render an epic's context_docs as read-only labeled chips in the edit modal; clicking a chip copies its path for pasting into an editor or another Claude session. Editing stays file/skill-only — the no-widget stance holds for writes.",
+    "notes": "Workflow impact: with decompose-before-build, every approved idea becomes an epic the human reviews in this modal — the reading list is now visible (and copyable) at exactly that moment instead of living only in JSON. Decomposed from idea-context-docs-chips (ready to implement, 2026-08-08).",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "epic modal"
+      },
+      {
+        "label": "Milestones ctxDocs renderer",
+        "path": "design/milestones.md",
+        "note": "the pattern being reused"
+      },
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-context-docs-chips"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T12:55:00Z",
+    "updated_at": "2026-08-08T13:05:00Z"
+  },
+  {
+    "id": "B3",
+    "name": "Ratify review panel — see what changed since last commit",
+    "description": "A pending-changes badge on the header's saved dot and a review panel listing every uncommitted board change as card-level statements ('B1 moved Backlog → Done', 'idea-x → ready for review', 'epics reordered') — the server diffs the data dir against HEAD semantically. Turns commit-=-ratify into an informed review.",
+    "notes": "Workflow impact: before saying 'save', the human reviews the pending set in the tool instead of ratifying blind or dropping to the terminal. First server capability that reads git — the endpoint + semantic differ are shared foundation for the briefing and history timeline. Decomposed from idea-ratify-review (top-3 ROI pick #1, user direction 2026-08-08).",
+    "theme": "Decide fast",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-ratify-review — panel sketch section"
+      },
+      {
+        "label": "System chrome spec",
+        "path": "design/system.md",
+        "note": "header / saved dot / panel"
+      },
+      {
+        "label": "Git conventions",
+        "path": "AGENTS.md",
+        "note": "§4 — commit = ratify"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T13:45:00Z",
+    "updated_at": "2026-08-08T14:20:00Z"
+  },
+  {
+    "id": "B4",
+    "name": "Ready queue — the 'begin X' menu, visible",
+    "description": "A strip on the Board page beside Next up listing every pickable story (ready: true, epic unblocked + ungated, unclaimed) grouped by epic, ranked the way the protocol ranks — what a human could hand to an agent right now.",
+    "notes": "Workflow impact: the human's 'begin X' decision gets a menu — story-grain PROTOCOL §3 made visible, completing what the Next-up strip does for epics. Decomposed from idea-ready-queue (top-3 ROI pick #2, user direction 2026-08-08).",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-ready-queue"
+      },
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "Next-up strip — the visual language to match"
+      },
+      {
+        "label": "Selection rule",
+        "path": "PROTOCOL.md",
+        "note": "§3 stories addendum"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:20:00Z",
+    "updated_at": "2026-08-08T14:40:00Z"
+  },
+  {
+    "id": "B5",
+    "name": "History timeline — the board's git log as a page",
+    "description": "A #/history page rendering the data dir's commit history as a ratification timeline — date, message, files touched; expanding an entry shows that commit's card-level changes via the ratify differ. Git is already the event store; this is the lens.",
+    "notes": "Workflow impact: 'when did we decide this' and 'what shipped last week' become clicks; the Board: commit convention becomes visible product, which reinforces it. Third consumer of the git-read capability. Decomposed from idea-history-timeline (top-3 ROI pick #3 — the human had already dragged it to ready to implement).",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea deep dive",
+        "path": "roadmap/ideas.json",
+        "note": "idea-history-timeline"
+      },
+      {
+        "label": "Design contract",
+        "path": "design/DESIGN.md",
+        "note": "new screen → new spec file design/history.md"
+      }
+    ],
+    "gate": "none",
+    "deps": [
+      "B3"
+    ],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:40:00Z",
+    "updated_at": "2026-08-08T15:10:00Z"
+  },
+  {
+    "id": "B6",
+    "name": "Live refresh moves cards, not pixels",
+    "description": "When an agent's edit arrives over SSE, changed cards animate: lift (scale + shadow), glide to their new lane/position (FLIP across the re-render), set down. Edited-in-place cards pulse the flash ring; new cards fade in. The board reads like someone physically moving the work.",
+    "notes": "Workflow impact: watching an agent work now looks like watching a person at a physical board — card motion is the progress narration, no reading required. Direct user request in conversation (2026-08-08), ad hoc → lightweight epic per the decompose-before-build rule.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "System chrome spec",
+        "path": "design/system.md",
+        "note": "live refresh — where the motion language lands"
+      },
+      {
+        "label": "Approved plan",
+        "path": "../.claude/plans/floating-gathering-hummingbird.md",
+        "note": "FLIP approach, session-local"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T16:00:00Z",
+    "updated_at": "2026-08-08T16:40:00Z"
+  },
+  {
+    "id": "B7",
+    "name": "Story badge: done stories aren't 'ready'",
+    "description": "Epic cards' story badge counts a story as ready only while it isn't in the done lane — a shipped card reading '2 stories · 2 ready' misstates the queue. Finished ≠ pending, same rule the ready-queue strip already applies.",
+    "notes": "Direct user request (2026-08-08), spotted on the live board's Done lane.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "Story badge component"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:00:00Z",
+    "updated_at": "2026-08-08T17:10:00Z"
+  }
+]

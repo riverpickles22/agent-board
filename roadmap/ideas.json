@@ -38,43 +38,9 @@
     "updated_at": "2026-08-03"
   },
   {
-    "id": "idea-ratify-review",
-    "title": "Ratify review panel — see what changed since last commit",
-    "description": "Before saying 'save', see the pending board changes: server shells out to git status / git diff --stat on the data dir; the UI shows a review panel. Makes commit-=-ratify visible instead of implicit.",
-    "notes": "",
-    "category": "feature",
-    "theme": "Decide fast",
-    "milestone": "",
-    "tags": [],
-    "status": "idea",
-    "priority": "Next",
-    "effort": "medium",
-    "impact": "high",
-    "context": "The culture is 'edit freely, commit = ratify' — but the human ratifies blind unless they drop to the terminal. A panel listing uncommitted changes (cards added, moved, edited since HEAD) turns ratification into an informed review step, which is the whole point of the convention.",
-    "compounding": "First server endpoint that reads git; the board briefing and history timeline ideas build on the same capability. Git becomes a first-class data source, not just passive persistence.",
-    "pros": [
-      "Directly serves the board's central ritual (ratify)",
-      "Git is already there — no new persistence",
-      "Opens the door to briefing + timeline"
-    ],
-    "cons": [
-      "First feature that makes server.js shell out — small growth of the 'tiny server' surface"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm: compounding — makes the commit-=-ratify culture visible in the tool itself."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-02",
-    "updated_at": null
-  },
-  {
     "id": "idea-board-briefing",
     "title": "Board briefing — 'since you last looked'",
-    "description": "A digest on open: new cards, lane moves, stale claims, newly blocked cards — derived from git log plus updated_at. The session-break catch-up, in the tool.",
+    "description": "A digest when you open the board: what changed since you last looked — new cards, lane moves, ideas that advanced, stale claims (claimed but motionless for days), newly blocked or unblocked cards. The session-break catch-up, computed instead of remembered.\n\nTechnical shape: reuses the ratify panel's git-read endpoint and semantic JSON differ, pointed at the last-seen commit instead of HEAD. The client remembers last-seen as a commit hash (localStorage, per browser, like the board-mode memory); the server diffs the two snapshots into the same card-level statements, grouped new / moved / advanced / stale; stale claims computed from claimed_at age. Dismissing the briefing just updates the stored hash — nothing written to the board.",
     "notes": "",
     "category": "feature",
     "theme": "Decide fast",
@@ -84,11 +50,11 @@
       "idea-ratify-review"
     ],
     "status": "idea",
-    "priority": "Later",
+    "priority": "Next",
     "effort": "medium",
     "impact": "medium",
-    "context": "Agents edit the board between the human's visits. Today the human diffs mentally or reads git log by hand. A briefing turns the board from a static snapshot into a conversation that resumes where it left off.",
-    "compounding": "Shares the git-reading endpoint with the ratify review panel; 'stale claim' and 'newly blocked' detection also feed the trust story.",
+    "context": "Agents edit the board between the human's visits — and now move cards in real time while building, so the volume of between-visit change keeps growing. Today the human diffs mentally or reads git log by hand. A briefing turns the board from a static snapshot into a conversation that resumes where it left off — the same trust story as the ratify panel, applied to session boundaries instead of commits.",
+    "compounding": "Second consumer of the git-read endpoint + differ (after the ratify panel) — the pair amortizes fast. Stale-claim and newly-blocked detection are reusable signals: the same checks feed any future board-health surface or agent watchdog.",
     "pros": [
       "Serves the real usage pattern: agent works, human reviews later",
       "Cheap once the git endpoint exists"
@@ -102,16 +68,24 @@
       {
         "at": "2026-08-02",
         "note": "Captured from the capability brainstorm. Sequenced after idea-ratify-review — reuses its git endpoint."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Promoted Later → Next: once the ratify review panel ships its git-read endpoint + semantic differ, the briefing is the same machinery pointed at an older commit — its effective effort drops from medium to low."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (last-seen commit hash in localStorage, reuse of ratify differ, new/moved/advanced/stale grouping); context tied to real-time card movement; compounding extended to board-health signals."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
     "id": "idea-milestone-burnup",
     "title": "Milestone progress viz",
-    "description": "A small per-milestone progress bar / burnup on the Milestones page, computed from the deliverables' epic roll-up that the page already does per-deliverable.",
+    "description": "One aggregate bar per milestone answering 'how far along is this, overall' at a glance — plus a mini-bar per deliverable so the lagging one stands out. The Milestones page already knows the numbers; it just never draws them.\n\nTechnical shape: pure client-side aggregation over epicsOfMilestone() — bucket each mapped epic by lane position (first / middle / last), render a stacked bar with the existing lane color tokens (laneVar), a done-fraction label, and the same stacked mini-bar per deliverable row. Renders only when the milestone maps epics; no new data, no server change, no new tokens.",
     "notes": "",
     "category": "feature",
     "theme": "Decide fast",
@@ -121,8 +95,8 @@
     "priority": "Later",
     "effort": "low",
     "impact": "medium",
-    "context": "The Milestones page already rolls up done/total per deliverable; there's no at-a-glance answer to 'how far along is this milestone overall'. One aggregate bar per milestone tab answers it.",
-    "compounding": "",
+    "context": "The Milestones page already rolls up done/total per deliverable; there's no at-a-glance answer to 'how far along is this milestone overall', and no way to spot the deliverable dragging it. One bar per milestone plus one per deliverable answers both without adding a single field.",
+    "compounding": "The lane-bucket aggregation is the reusable piece: the same computation gives a per-epic story burnup on board cards, and — once multi-board serving exists — a cross-project progress rollup. Draw-a-stacked-bar-from-lane-buckets becomes a small shared primitive.",
     "pros": [
       "All inputs already computed client-side",
       "Makes the milestone tabs scannable"
@@ -135,11 +109,15 @@
       {
         "at": "2026-08-02",
         "note": "Captured from the capability brainstorm."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (lane-position bucketing, laneVar-colored stacked bars, per-deliverable mini-bars); empty compounding filled — the lane-bucket aggregation is a reusable primitive."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
     "id": "idea-live-reload",
@@ -181,39 +159,6 @@
     "updated_at": "2026-08-06"
   },
   {
-    "id": "idea-wip-gates-ui",
-    "title": "WIP limits and gates surfaced in the UI",
-    "description": "config already carries wip_limits and open_gates, but only the agent protocol reads them. Render lane counts red when over limit and a lock chip on gated cards (gate ≠ 'none' and not in open_gates).",
-    "notes": "",
-    "category": "feature",
-    "theme": "Trust the board",
-    "milestone": "",
-    "tags": [],
-    "status": "idea",
-    "priority": "Next",
-    "effort": "low",
-    "impact": "medium",
-    "context": "Two config vocabularies are invisible in the UI they govern. A human can drag a card into a lane past its WIP limit, or wonder why the agent won't pick a card that looks free, because the gate is only visible in JSON.",
-    "compounding": "Reuses the pickability logic from idea-next-up if that lands first.",
-    "pros": [
-      "Config fields already exist; pure rendering",
-      "Explains agent behavior to the human — closes a trust gap"
-    ],
-    "cons": [
-      "Decision needed: advise (badge only) or enforce (block the drop) — enforcement changes drag semantics"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-02",
-    "updated_at": null
-  },
-  {
     "id": "idea-design-drift-check",
     "title": "Design drift curation pass",
     "description": "A curation pass that checks the UX specs in design/ against index.html: anchor grep, wireframe-vs-render skim, spec_state flags. Ships as AGENTS.md §7 pass 6 with the UX spec framework.",
@@ -253,18 +198,18 @@
   {
     "id": "idea-command-palette",
     "title": "Command palette and quick capture",
-    "description": "Keyboard-first operation: '/' opens fuzzy find over every card and idea (jump like the milestone epic chips do), 'n' captures a new idea from anywhere.",
+    "description": "Keyboard-first operation: '/' opens a fuzzy palette over every epic, story, and idea — type a few letters, Enter, and you're on the card (the milestone-chip jump, generalized). 'n' captures a new idea from any page instantly. Capture is the funnel's mouth: any friction there loses ideas.\n\nTechnical shape: an overlay on the shared modal scrim; the index is built in-memory from state (id, title, type — no server change); subsequence fuzzy match with rank-by-match-quality; arrow keys + Enter navigation (the Milestones page's arrow-key pattern); Enter → goToEpic() / navigate() by type; 'n' → openIdea(null) from anywhere. Shortcuts suppressed while any input/textarea has focus.",
     "notes": "",
     "category": "feature",
     "theme": "Flow",
     "milestone": "",
     "tags": [],
     "status": "idea",
-    "priority": "Later",
+    "priority": "Next",
     "effort": "medium",
     "impact": "medium",
-    "context": "Finding a card today means eyeballing lanes or setting filters; capturing an idea means navigating to the Ideas page first. Capture especially should be instant — ideas are the inbox, and any friction loses them.",
-    "compounding": "The jump-to-card machinery (goToEpic's filter+flash) generalizes to search results.",
+    "context": "Finding a card today means eyeballing lanes or setting filters; capturing an idea means navigating to the Ideas page first. Capture especially should be instant — ideas are the inbox, and the user brainstorms across tools (the copy-as-markdown flow), so the round-trip back into the board has to be one keystroke, not a navigation.",
+    "compounding": "The jump-to-card machinery (goToEpic's filter+flash) generalizes to search results, and the in-memory index is the seed of cross-project search once one server serves all boards. Quick capture also makes every other surface cheaper to keep minimal — no page needs its own 'add' affordance to be reachable.",
     "pros": [
       "Serves the heaviest interactive user (the human) daily",
       "goToEpic already solved jump-and-highlight"
@@ -278,61 +223,89 @@
       {
         "at": "2026-08-02",
         "note": "Captured from the capability brainstorm."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Promoted Later → Next: capture is the funnel's mouth and the user works the ideas inbox daily; friction there loses ideas. Jump-to-card also compounds with the growing card count."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (scrim overlay, in-memory index, subsequence fuzzy match, arrow-key pattern, focus-guarded shortcuts); context tied to the cross-tool brainstorm loop; compounding extended."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
-    "id": "idea-context-docs-chips",
-    "title": "context_docs chips in the epic modal (read-only)",
-    "description": "Render an epic's context_docs as read-only label+path chips in the modal, like the Milestones page already does. Editing stays file/skill-only — AGENTS.md's 'no widget' stance holds for writes.",
+    "id": "idea-ratify-review",
+    "title": "Ratify review panel — see what changed since last commit",
+    "description": "Before saying 'save', see exactly what you're ratifying: a review panel listing every board change since the last commit as card-level statements — 'O1-2 moved Doing → Done', 'idea-wip-gates-ui hardened, moved to ready for review', '2 cards reordered' — not raw diffs. Turns commit-=-ratify from an act of faith into an informed review, at the speed a human actually ratifies.\n\nTechnical shape: server shells out to git status --porcelain / git show HEAD:<file> on the data dir and diffs the JSON semantically (by card id and field, reorder-aware since array order is queue state) into change-summary lines served at /api/pending. UI: a pending-count badge on the 'saved' dot; click opens the panel. Rides the existing fs.watch/SSE pipeline, so the panel live-updates while agents work.",
     "notes": "",
     "category": "feature",
-    "theme": "Flow",
+    "theme": "Decide fast",
     "milestone": "",
     "tags": [],
-    "status": "idea",
+    "status": "done",
     "priority": "Next",
-    "effort": "low",
-    "impact": "medium",
-    "context": "'Read the context before building' is the tool's core discipline, but the epic modal — where a human looks at a card — doesn't show what the context is. The ctxDocs renderer already exists for milestones; reusing it read-only respects the deliberate no-editor decision.",
-    "compounding": "",
+    "effort": "medium",
+    "impact": "high",
+    "context": "The culture is 'edit freely, commit = ratify' — but the human ratifies blind unless they drop to the terminal. This gets worse, not better, as the tool succeeds: agents now move cards in real time while building (AGENTS.md §6) and pages live-reload, so the volume of uncommitted churn between ratifications keeps growing. The live board shows changes as they happen; the review panel is the missing other half — the same changes as a reviewable set at the moment of ratification. Together they close the loop that makes git-as-only-persistence trustworthy at agent speed.",
+    "compounding": "Two reusable capabilities in one: (1) the first server endpoint that reads git — the board briefing ('since you last looked') and history timeline ideas are the same read pointed at older commits; (2) the semantic JSON-diff-to-English summarizer, which the briefing reuses verbatim. Git stops being passive persistence and becomes a readable data source, which is also the foundation any future undo/blame affordance needs.",
     "pros": [
-      "Renderer already exists (ctxDocs)",
-      "Surfaces the context stack where decisions happen",
-      "Keeps the deliberate no-edit-widget boundary"
+      "Directly serves the board's central ritual (ratify) — the review step the convention always implied",
+      "Card-level semantic summaries, not raw diffs — readable at ratify speed",
+      "Git is already there — no new persistence, no new state",
+      "Live-updating via the existing SSE pipeline — zero new client machinery",
+      "Unlocks briefing + timeline: both reuse the git-read endpoint and the summarizer"
     ],
     "cons": [
-      "Paths aren't clickable from a browser without a server route — chips are informational only at first"
+      "First feature that makes server.js shell out — small, deliberate growth of the 'tiny server' surface",
+      "Semantic diffing needs care: array reorders are meaningful (queue order) and must read as 'reordered', not as N edits"
     ],
-    "sections": [],
+    "sections": [
+      {
+        "title": "Panel sketch",
+        "body": "Header area: the green 'saved' dot gains a pending count ('● 7 pending'). Click → slide-over panel, newest first, grouped by resource: Epics — 'O1-2 moved Doing → Done', 'O2-1 claimed by claude'; Ideas — 'idea-x → ready for review', 'front burner reordered'. Footer: 'save' hint naming the git commit that ratifies. Empty state: 'Everything ratified — board matches HEAD.' No buttons that write: the panel reviews, the human ratifies in conversation or terminal, same as today."
+      }
+    ],
     "log": [
       {
         "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm."
+        "note": "Captured from the capability brainstorm: compounding — makes the commit-=-ratify culture visible in the tool itself."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened for review: raw git-diff panel upgraded to card-level semantic summaries (readable at ratify speed); tied to the live-board loop — real-time agent card moves make blind ratification the board's biggest remaining trust gap. Compounding sharpened: the git-read endpoint + JSON-diff summarizer are the shared foundation briefing and timeline reuse. Decision-ready: scope, surface sketch, and the one real cost (server shells out) are all on the card."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Moved to ready to implement on the user's direction (in conversation, 2026-08-08): 'implement the top 3 items with the best ROI on user value.' Ranked #1 — high impact on the core ritual, compounding double (git endpoint + semantic differ feed briefing and timeline)."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Shipped as epic B3 (B3-1 /api/pending + semantic differ, B3-2 badge + review panel). Verified live: 23 pending statements on the real dirty board, combined move+edit statements, reorder as one line, live update while editing, clean/no-git/no-commit states, zero write affordances."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T15:10:00Z"
   },
   {
     "id": "idea-ready-queue",
     "title": "Ready queue — what agents can build right now",
-    "description": "A view listing every story with ready: true whose epic is unblocked and ungated, grouped by epic — the 'begin X' menu, visible.",
+    "description": "The 'begin X' menu made visible: one flat queue of every story a human could hand to an agent right now — ready: true, epic unblocked and ungated, story unclaimed — grouped by epic and ranked the way the protocol ranks. Decompose-before-build made stories the unit of all work; this is where they surface.\n\nTechnical shape: a strip on the Board page beside Next up (same visual language), listing pickable stories as '[kind] B4-1 story name' chips grouped under their epic id; pickability = PROTOCOL §3 applied to stories (ready + epic deps done + epic gate open + unclaimed), ranked story priority index → epic rank → file order; click → the story modal. Pure client-side read of loaded state — no new data.",
     "notes": "",
     "category": "feature",
     "theme": "Flow",
     "milestone": "",
     "tags": [],
-    "status": "idea",
-    "priority": "Later",
+    "status": "done",
+    "priority": "Next",
     "effort": "low",
     "impact": "medium",
-    "context": "ready: true is the human's hand-off signal, but ready stories are buried inside per-epic modals (a count badge on cards is all the board shows). One flat queue answers 'what could I say begin to right now?' without opening modals.",
-    "compounding": "Same pickability computation as idea-next-up, applied to stories.",
+    "context": "ready: true is the human's hand-off signal, but ready stories are buried inside per-epic modals (a count badge on cards is all the board shows). One flat queue answers 'what could I say begin to right now' — the story-level twin of the Next-up strip, and the natural landing surface after decompose-before-build turns every approved idea into stories.",
+    "compounding": "Same pickability computation as the Next-up strip, applied at story grain — the two strips together make PROTOCOL §3 fully visible. The queue is also the natural anchor for any future one-click dispatch ('begin' from the browser) — the menu exists before the button does.",
     "pros": [
       "Makes the human→agent hand-off surface explicit",
       "Cheap if next-up lands first"
@@ -349,52 +322,32 @@
       {
         "at": "2026-08-05",
         "note": "Rows mode (idea-board-swimlanes) now shows stories grouped by epic on the board itself, with ready ticks visible — this card stays open only for the flat, pickability-filtered 'begin menu' angle."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-02",
-    "updated_at": "2026-08-05"
-  },
-  {
-    "id": "idea-history-timeline",
-    "title": "History timeline — the board's git log as a page",
-    "description": "Render the data dir's commit history as a board activity timeline: each ratification with message, date, and files touched. Git is already the event store; this is just a lens.",
-    "notes": "",
-    "category": "feature",
-    "theme": "Flow",
-    "milestone": "",
-    "tags": [],
-    "deps": [
-      "idea-ratify-review"
-    ],
-    "status": "idea",
-    "priority": "Someday",
-    "effort": "medium",
-    "impact": "medium",
-    "context": "The Board: commit convention means the project's history already narrates how the backlog evolved — but only in the terminal. A timeline page makes ratification history part of the product.",
-    "compounding": "Third consumer of the git-reading endpoint (after ratify review and briefing) — by this point git-as-data-source is fully amortized.",
-    "pros": [
-      "Zero new persistence",
-      "Rewards the disciplined commit-message convention"
-    ],
-    "cons": [
-      "Read-only nice-to-have; lowest urgency of the git trio"
-    ],
-    "sections": [],
-    "log": [
+      },
       {
-        "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm. Sequenced last of the three git-reading ideas."
+        "at": "2026-08-08",
+        "note": "Promoted Later → Next: decompose-before-build just made stories the unit of all work — the 'begin X' menu is now a daily surface, not a nicety. Low effort, direct workflow enabler."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (Next-up-adjacent strip, story-grain PROTOCOL §3, ranking, click-to-modal); context tied to decompose-before-build; compounding extended to the future dispatch anchor."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Moved to ready to implement on the user's direction (in conversation, 2026-08-08): ranked #2 of the top-3 ROI picks — low effort, quick-win shape, direct enabler of the decompose-before-build workflow."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Shipped as epic B4 (B4-1 ready-queue strip). Verified live: pickable stories grouped under epic ids, claimed/in-flight/gated exclusions, chip → story modal, hidden with no stories, honest empty-state counts (finished ≠ stuck)."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T15:10:00Z"
   },
   {
     "id": "idea-project-switcher",
     "title": "Project switcher in the header",
-    "description": "A dropdown reading projects.json so one server serves all boards — switch between arc, chaim, and board without restarting with a different name.",
+    "description": "Switch between arc, chaim, and board from the header — one server serves every board registered in projects.json, no restart, no second port.\n\nTechnical shape: the server reads projects.json and scopes data routes by project (/api/<project>/board, /api/<project>/events), watching each active project's data dir; the client carries the project in the URL (e.g. #/board?p=arc or a path prefix) so links deep-link across boards, and the header dropdown re-fetches + re-renders via the existing applyBoard() path. Touches every data route plus the client fetch layer — honest medium effort.",
     "notes": "",
     "category": "feature",
     "theme": "Agent enablement",
@@ -404,8 +357,8 @@
     "priority": "Later",
     "effort": "medium",
     "impact": "medium",
-    "context": "Today ./board <name> binds the server to one data dir; comparing or hopping between project boards means a second port. With three projects registered, switching is now a daily motion, not an edge case.",
-    "compounding": "Multi-board serving is the substrate for any future cross-project view (one 'everything I could work on' queue across arc + chaim + board).",
+    "context": "Today ./board <name> binds the server to one data dir; comparing or hopping between project boards means a second port. With three projects registered and agents working several backlogs, switching is a daily motion, not an edge case — and the current workaround (PORT=4301) is exactly the kind of terminal detour the tool exists to remove.",
+    "compounding": "Multi-board serving is the substrate for every cross-project surface: one 'everything I could work on' queue across arc + chaim + board, cross-project search in the command palette, a portfolio-level briefing. Nothing cross-project can exist before this does.",
     "pros": [
       "projects.json already exists as the registry",
       "Removes the PORT=4301 workaround"
@@ -419,11 +372,15 @@
       {
         "at": "2026-08-02",
         "note": "Captured from the capability brainstorm — promoted from edge case to daily motion by this board's existence."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (route scoping by project, per-project watch, deep-linkable project in URL, applyBoard reuse); effort honestly kept medium — it touches every data route."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": null
+    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
     "id": "idea-ux-spec-framework",
@@ -507,5 +464,139 @@
     "rejected_reason": null,
     "created_at": "2026-08-05",
     "updated_at": "2026-08-05"
+  },
+  {
+    "id": "idea-wip-gates-ui",
+    "title": "WIP limits and gates surfaced in the UI",
+    "description": "Make the board's own rules visible: lane headers show count vs limit and go red when over WIP; gated cards wear a lock chip naming their gate until a human opens it. The rules agents already obey stop being invisible to the human watching them work.\n\nTechnical shape: pure rendering from config the client already loads — wip_limits drives 'N/limit' lane counts with an over-limit state; a lock chip renders when gate ≠ 'none' and the gate isn't in open_gates. Advise, don't enforce: no drop is ever blocked — the UI informs, the human stays the authority, and enforcement remains the agent protocol's job (PROTOCOL §3). No new fields, no server changes.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Trust the board",
+    "milestone": "",
+    "tags": [],
+    "status": "done",
+    "priority": "Next",
+    "effort": "low",
+    "impact": "high",
+    "context": "Two config vocabularies (wip_limits, open_gates) govern agent behavior but are invisible in the UI they govern. The trust gap runs both ways: a human can drag a lane past its WIP limit without knowing, and can stare at a free-looking card wondering why no agent picks it — because the gate exists only in JSON. It matters more now that agents move cards through the lanes in real time while building: the human watches lanes fill live, and the board should show the rules the motion is obeying. Advise-only is the aligned answer to the old open question — the UI is a lens, not a policeman; a human deliberately overruling a limit is allowed and visible, not prevented.",
+    "compounding": "First rendering of PROTOCOL state in the UI. The visual vocabulary it establishes — red over-limit counts, lock chips with gate names — is exactly what the next-up panel (pickability, the rest of PROTOCOL §3) will reuse, and it moves the board toward explaining itself: every rule an agent follows should be visible where humans look.",
+    "pros": [
+      "Config fields already exist; pure client-side rendering — hours, not days",
+      "Explains agent behavior to the human — closes the 'why won't it pick this card' trust gap",
+      "Live feedback channel: with agents moving cards in real time, over-limit lanes light up as it happens",
+      "Advise-only resolves the enforce-vs-inform question in line with the tool's philosophy"
+    ],
+    "cons": [
+      "Advise-only means the board can show a rule being broken without stopping it — deliberate, but the over state must be loud enough to notice"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened for review: resolved the open advise-vs-enforce question (advise-only — the UI is a lens, enforcement stays in the agent protocol) and reframed around the live board: agents now move cards in real time, so surfaced limits/gates become live feedback on agent behavior, not static decoration. Impact raised medium → high: low effort + closes the human side of the protocol trust loop — this is the definition of a quick win."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Shipped as epic B1 (stories B1-1 lane WIP counts, B1-2 gate lock chips) — decomposed per the new build rule, criteria verified on a live board (over-limit red 2/0, at-limit 1/1, ⛔ chip clearing live when the gate opened, drops never blocked)."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-08T13:05:00Z"
+  },
+  {
+    "id": "idea-context-docs-chips",
+    "title": "context_docs chips in the epic modal (read-only)",
+    "description": "Show an epic's reading list where decisions happen: context_docs render as labeled chips in the epic modal, and clicking a chip copies its path — ready to paste into an editor, a terminal, or another Claude session. Editing stays file/skill-only; the modal just finally shows what a builder must read.\n\nTechnical shape: reuse the Milestones page's ctxDocs renderer read-only inside the epic modal; chip click → navigator.clipboard.writeText(path) + confirmation toast, following the copy convention the Ideas page established. No new endpoint, no write path — AGENTS.md's 'no widget' stance holds.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Flow",
+    "milestone": "",
+    "tags": [],
+    "status": "done",
+    "priority": "Next",
+    "effort": "low",
+    "impact": "medium",
+    "context": "'Read the context before building' is the tool's core discipline, but the epic modal — where a human actually looks at a card — doesn't show what the context is. This bites hardest at the new decompose-before-build step: every ready-to-implement idea now becomes an epic the human reviews in this modal, and the reading list should be visible at exactly that moment. The ctxDocs renderer already exists for milestones; reusing it read-only respects the deliberate no-editor decision while making the discipline visible.",
+    "compounding": "Establishes the read-only context-surface pattern — labeled chips + copy-to-clipboard — that the story modal's context and idea deep-dive context can reuse as-is. Also extends the board→other-tools flow the Ideas page's copy button started: the board keeps becoming the place you launch work from, without ever growing an editor.",
+    "pros": [
+      "Renderer already exists (ctxDocs) — this is reuse, not construction",
+      "Surfaces the context stack at the exact moment of epic review (decompose-before-build made the modal the review surface)",
+      "Copy-on-click makes chips actionable without any server growth",
+      "Keeps the deliberate no-edit-widget boundary"
+    ],
+    "cons": [
+      "Chips copy, they don't open — an in-browser doc viewer would need a server file route, deliberately out of scope for now"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened for review: chips upgraded from informational to actionable via copy-on-click (reusing the Ideas page's copy convention — no server growth), tied to decompose-before-build (the epic modal is now where humans review decomposed ideas, so the reading list belongs there), and compounding filled: the chip+copy pattern extends to story and idea context surfaces."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Shipped as epic B2 (story B2-1) — context_docs chips render read-only in the epic modal with copy-on-click (verified: 'Copied design/board.md' toast, no section when docs absent or on create, no edit widget anywhere)."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-08T13:05:00Z"
+  },
+  {
+    "id": "idea-history-timeline",
+    "title": "History timeline — the board's git log as a page",
+    "description": "The board's ratification history as a page: every Board: commit with date, message, and what changed — the backlog's story, told by git. Turns the commit-=-ratify convention into a browsable product surface instead of a terminal-only artifact.\n\nTechnical shape: an /api/history endpoint (git log --format=… -- <data dir>, newest first, capped ~50) feeding a #/history page — one entry per ratification: relative date, message, files touched; expanding an entry lazily diffs that commit against its parent with the ratify panel's semantic differ, showing the same card-level statements. Nav tab beside Docs; read-only throughout.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Flow",
+    "milestone": "",
+    "tags": [],
+    "deps": [
+      "idea-ratify-review"
+    ],
+    "status": "done",
+    "priority": "Someday",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "The Board: commit convention means the project's history already narrates how the backlog evolved — but only in the terminal. A timeline page makes ratification history part of the product: 'when did we decide this' and 'what shipped last week' become clicks, and the convention itself becomes visible, which reinforces it.",
+    "compounding": "Third consumer of the git-reading endpoint (after ratify review and briefing) — by this point git-as-data-source is fully amortized and every future git-backed surface (blame a card, undo a ratification) is an increment, not a project.",
+    "pros": [
+      "Zero new persistence",
+      "Rewards the disciplined commit-message convention"
+    ],
+    "cons": [
+      "Read-only nice-to-have; lowest urgency of the git trio"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm. Sequenced last of the three git-reading ideas."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (/api/history via git log, lazy per-commit semantic diff on expand, nav tab beside Docs); context sharpened — making the convention visible reinforces it."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Confirmed as #3 of the top-3 ROI picks (user direction in conversation, 2026-08-08; the human had already dragged it to ready to implement): after the ratify panel ships the git endpoint + differ, the timeline's marginal effort drops to low — best marginal ROI on the list."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Shipped as epic B5 (B5-1 /api/history endpoints, B5-2 #/history page + design/history.md). Verified live: newest-first timeline with files touched, lazy cached per-commit card-level diffs (0 refetches), root-commit and no-commit states. Third consumer of the git-read capability, as predicted."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-08T15:10:00Z"
   }
 ]

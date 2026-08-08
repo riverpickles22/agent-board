@@ -1,1 +1,231 @@
-[]
+[
+  {
+    "id": "B1-1",
+    "epic_id": "B1",
+    "name": "Lane WIP counts — n/limit, loud when over",
+    "description": "Epics-mode column headers show 'n/limit' for lanes with a configured wip_limit (n = total epics in lane, board-wide like the protocol's check — not the filtered count). Over-limit renders in a loud red state with a title explaining. Advise-only: no drop is ever refused because of a limit.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A lane with a wip_limit renders its epics-mode header count as 'n/limit'; lanes without a limit render exactly as today",
+      "When n exceeds the limit, the count renders in a loud over state (red) with a hover title naming the limit",
+      "The n compares total epics in the lane (protocol semantics), not the filtered count, and the filtered 'X of N shown' behavior still works",
+      "Dragging a card into an over-limit lane is not blocked and writes normally"
+    ],
+    "context": "design/board.md (Column component, States); index.html render(); PROTOCOL §3 + wipBlocked() for the semantics being surfaced; idea-wip-gates-ui deep dive for the advise-only decision",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T12:30:00Z",
+    "updated_at": "2026-08-08T12:45:00Z"
+  },
+  {
+    "id": "B1-2",
+    "epic_id": "B1",
+    "name": "Gate lock chips on epic cards",
+    "description": "Epics-mode cards whose gate ≠ 'none' and isn't in open_gates wear a lock chip naming the gate — same visual language as rows mode's .egate badge. Open or absent gate → no chip. Existing move-guard semantics untouched.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A card with a closed gate shows a chip naming the gate; gate 'none' or open (in open_gates) shows nothing",
+      "The chip's language matches the rows-mode .egate badge (one gate vocabulary across modes)",
+      "Opening the gate in config.json removes the chip on the live-reloaded page without a manual reload",
+      "Dragging a gated card behaves exactly as before — the chip advises, the protocol enforces"
+    ],
+    "context": "design/board.md (Card component, rows .egate for the shared language); index.html cardEl() + gateOpen(); idea-wip-gates-ui deep dive",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T12:45:00Z",
+    "updated_at": "2026-08-08T12:55:00Z"
+  },
+  {
+    "id": "B2-1",
+    "epic_id": "B2",
+    "name": "context_docs chips in the epic modal, copy on click",
+    "description": "The epic edit modal renders context_docs as read-only chips (label, with path/note as hover title); clicking a chip copies the path to the clipboard with a confirming toast, following the Ideas page's copy convention. No editing widget; section absent when the epic has no context_docs and on create.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An epic with context_docs shows a read-only chip per doc in the edit modal (label visible; path and note in the hover title)",
+      "Clicking a chip copies the doc's path to the clipboard and a toast confirms",
+      "An epic without context_docs (and the create modal) shows no section at all",
+      "No input/edit affordance for context_docs exists anywhere in the modal — file/skill-only editing holds"
+    ],
+    "context": "design/board.md (Epic modal component); design/milestones.md + index.html ctxDocs() for the renderer being reused; AGENTS.md §2 no-widget stance; idea-context-docs-chips deep dive",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T12:55:00Z",
+    "updated_at": "2026-08-08T13:05:00Z"
+  },
+  {
+    "id": "B3-1",
+    "epic_id": "B3",
+    "name": "Server: /api/pending — git-aware semantic board diff",
+    "description": "server.js gains a git-read capability: /api/pending diffs the working data files against HEAD and returns card-level statements. Shared summarize function (old snapshot, new snapshot → statements) built for reuse by /api/history later.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "/api/pending returns JSON {clean, statements[], files[]} — clean:true with empty lists when the data dir matches HEAD",
+      "Statements are card-level: added / removed / moved (lane or status, old → new) / edited (changed field names) / reordered (one statement per resource, not N edits)",
+      "A card edited AND moved yields one combined statement, not two",
+      "Graceful degradation: no git repo or no commits yet → {clean:null, reason} without crashing; no shell injection (execFile, no string interpolation into a shell)"
+    ],
+    "context": "AGENTS.md §4 (commit = ratify), server.js existing route+watch style, roadmap/ideas.json idea-ratify-review Technical shape; the differ must treat array order as meaningful (queue order)",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T13:45:00Z",
+    "updated_at": "2026-08-08T14:00:00Z"
+  },
+  {
+    "id": "B3-2",
+    "epic_id": "B3",
+    "name": "UI: pending badge + review panel",
+    "description": "The header's saved dot gains a pending count; clicking opens a review slide-over listing the statements grouped by resource, live-updating via the SSE refresh path. Empty state: 'Everything ratified — board matches HEAD.' No write affordances.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "With uncommitted board changes, the header shows a pending count; clean tree shows the plain saved dot",
+      "Clicking opens the panel with card-level statements grouped by resource; a footer hint names the ratify convention ('save' in conversation / git commit)",
+      "The panel and badge update live while agents edit (SSE refresh path), and after saves from the page itself",
+      "Zero write affordances in the panel; clean tree shows the 'Everything ratified' empty state"
+    ],
+    "context": "design/system.md (header chrome — spec first per DESIGN.md), index.html wireLiveRefresh()/refresh() for the update hook, B3-1's endpoint",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:00:00Z",
+    "updated_at": "2026-08-08T14:20:00Z"
+  },
+  {
+    "id": "B4-1",
+    "epic_id": "B4",
+    "name": "Ready-queue strip on the Board page",
+    "description": "A strip beside Next up listing pickable stories ('[kind] B4-1 name' chips grouped under epic ids): ready + epic deps done + epic gate open + story unclaimed, ranked story priority → epic rank → file order. Click opens the story modal. Hidden when no stories exist; explains itself when stories exist but none are pickable.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Every story satisfying PROTOCOL §3's story rule appears exactly once, grouped under its epic, ranked story-priority → epic rank → file order",
+      "Stories failing any condition (not ready, epic gated/blocked, claimed) do not appear; claimed ready stories don't appear",
+      "Click on a queue chip opens that story's modal",
+      "No stories on the board → strip absent; stories exist but none pickable → one-line reason (mirrors Next-up's empty language)"
+    ],
+    "context": "design/board.md (Next-up strip component — match its language), index.html nextUp()/renderNextUp()/gateOpen()/depsOf(), PROTOCOL §3 stories addendum",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:20:00Z",
+    "updated_at": "2026-08-08T14:40:00Z"
+  },
+  {
+    "id": "B5-1",
+    "epic_id": "B5",
+    "name": "Server: /api/history — the data dir's git log",
+    "description": "/api/history returns the data dir's commits (hash, date, message, files touched), newest first, capped; /api/history/<hash> returns that commit's card-level statements by running the B3-1 differ against its parent.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "/api/history returns [{hash, date, message, files}] for commits touching the data dir, newest first, capped (~50)",
+      "/api/history/<hash> returns the same statement format as /api/pending, diffing the commit against its parent (root commit: everything 'added')",
+      "Invalid/unknown hash → 404-style JSON error, no crash; execFile only, hash validated against /^[0-9a-f]{4,40}$/i",
+      "No-git and no-commit data dirs degrade gracefully like /api/pending"
+    ],
+    "context": "B3-1's summarize function and git plumbing in server.js; AGENTS.md §4 Board: commit convention",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:40:00Z",
+    "updated_at": "2026-08-08T14:55:00Z"
+  },
+  {
+    "id": "B5-2",
+    "epic_id": "B5",
+    "name": "UI: #/history timeline page",
+    "description": "A History nav tab and #/history page: one entry per ratification (relative date, message, files chips); expanding an entry lazily fetches its card-level changes. New design/history.md spec per the design contract.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "History tab in the nav renders the timeline newest-first with date, message, and files touched per entry",
+      "Expanding an entry fetches /api/history/<hash> once (cached thereafter) and shows card-level statements",
+      "Page is read-only; works when history is empty (fresh board) with an explanatory empty state",
+      "design/history.md exists (frontmatter, layout, components, interactions, states, data) and matches the built UI (spec_state: matches-ui)"
+    ],
+    "context": "design/DESIGN.md (spec file format), design/system.md (nav tabs, page chrome), B5-1 endpoints",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T14:55:00Z",
+    "updated_at": "2026-08-08T15:10:00Z"
+  },
+  {
+    "id": "B6-1",
+    "epic_id": "B6",
+    "name": "FLIP-animate cards across live refreshes",
+    "description": "Capture card rects before applyBoard, re-render as today, then FLIP moved cards with a lift effect; .flash pulse for edited-in-place; fade-in for new cards; reduced motion falls back to the instant snap. Board (epics + rows) and Ideas pages.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An agent editing epics.json to move a card between lanes makes the card visibly lift, glide to the new lane, and set down on the open page (no reload)",
+      "A reorder glides the affected cards to their new positions; an edit-in-place pulses the flash ring without motion; a new card fades in",
+      "The user's own drags never trigger the animation (own-write echo skip), and prefers-reduced-motion falls back to the instant snap",
+      "Works on board epics mode, rows mode story cards, and ideas columns"
+    ],
+    "context": "design/system.md live refresh; index.html refresh()/render()/renderIdeas(); the approved FLIP plan",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T16:00:00Z",
+    "updated_at": "2026-08-08T16:40:00Z"
+  },
+  {
+    "id": "B7-1",
+    "epic_id": "B7",
+    "name": "Exclude done-lane stories from the badge's ready count",
+    "description": "cardEl()'s story badge: ready segment counts stories with ready: true whose column isn't the done lane; segment absent when that count is zero.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A card whose ready stories are all in the done lane shows 'N stories' with no ready segment",
+      "A card with a ready story still pending shows that story in the ready count",
+      "Story count itself still includes done stories"
+    ],
+    "context": "design/board.md Story badge; index.html cardEl(); the ready-queue's finished-≠-stuck precedent",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T17:00:00Z",
+    "updated_at": "2026-08-08T17:10:00Z"
+  }
+]
