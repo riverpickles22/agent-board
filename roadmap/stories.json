@@ -317,5 +317,48 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T18:05:00Z",
     "updated_at": "2026-08-08T18:20:00Z"
+  },
+  {
+    "id": "B10-1",
+    "epic_id": "B10",
+    "name": "stop subcommand + kill hint in the port-busy error",
+    "description": "board script gains 'stop [port]' (default 4300): report what's listening, kill it, confirm. server.js EADDRINUSE message names both escape hatches: ./board stop and the second-port option.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "./board stop kills the listener on 4300 and reports the pid; ./board stop 4301 targets that port; nothing listening → friendly no-op",
+      "The port-busy error message tells the user to run ./board stop (or use PORT=)",
+      "Usage header and ./board list output mention stop"
+    ],
+    "context": "board launcher script; server.js EADDRINUSE handler",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T19:00:00Z",
+    "updated_at": "2026-08-08T19:20:00Z"
+  },
+  {
+    "id": "B11-1",
+    "epic_id": "B11",
+    "name": "Fix banner [hidden] and rows-mode padding leak",
+    "description": ".briefing[hidden]{display:none} so the hidden attribute wins; rows mode moves the scroll container's top padding onto the sticky head so scrolled content can't show above it.",
+    "kind": "chore",
+    "acceptance_criteria": [
+      "A board with no briefing to show renders no banner at all (hidden attribute effective despite display:flex)",
+      "Rows mode: scrolling shows no story text above the sticky lane strip; epics mode layout unchanged"
+    ],
+    "context": "index.html .briefing CSS, .board/.board.rows/.rows-head CSS",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T19:00:00Z",
+    "updated_at": "2026-08-08T19:20:00Z"
   }
 ]

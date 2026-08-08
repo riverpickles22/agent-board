@@ -303,5 +303,47 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:55:00Z",
     "updated_at": "2026-08-08T18:20:00Z"
+  },
+  {
+    "id": "B10",
+    "name": "./board stop — kill a running board from the CLI",
+    "description": "The port-busy error now says how to stop the squatter, and a ./board stop [port] subcommand does it: shows what's listening, kills it. No more hunting for lsof incantations.",
+    "notes": "Direct user request (2026-08-08) after hitting EADDRINUSE against a board another session had started.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T19:00:00Z",
+    "updated_at": "2026-08-08T19:20:00Z"
+  },
+  {
+    "id": "B11",
+    "name": "Chrome fixes: briefing hidden override, rows-mode top leak",
+    "description": "Two rendering bugs: (1) .briefing{display:flex} defeats the hidden attribute, so an empty banner ('view dismiss' with no text) shows on boards where it should be hidden; (2) in rows mode, scrolled swimlane content shows through the board container's top padding band above the sticky lane strip.",
+    "notes": "Direct user report with screenshot (2026-08-08, arc board). Both are implementation bugs — the specs already describe the correct behavior; no spec change.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T19:00:00Z",
+    "updated_at": "2026-08-08T19:20:00Z"
   }
 ]
