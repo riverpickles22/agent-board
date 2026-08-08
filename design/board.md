@@ -99,7 +99,8 @@ Modal (over everything, via the shared shell in `system.md`):
 | Rows: swimlane | `swimEl()` `.swim` | one row per shown epic with ≥1 story | row order = epic array order (queue order) |
 | Rows: row header | `.swim-h` | epic id, name, gate badge (`.egate`, when gate closed), done-count "d/N {last lane}" | click → `openEdit(id)` |
 | Rows: cell | `.swim .cell` | the epic's stories in that lane | one per lane per row; drop target via `wireStoryDrop()` |
-| Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, ✓ ready tick, name | draggable within its row; click opens the story modal |
+| Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, **state chip** (`.sstate`), name | draggable within its row; click opens the story modal |
+| Story state chip | `storyState()` `.sstate` | one chip from one rule — lane + `ready` + claim + epic health (the ready-queue rule, extended to display). In priority order: done + unfinished siblings → `✓ done · waiting on <sibling>` (+N); done, epic complete → pooled `✓ shipped` / `✓ plated` / `✓ in the books` (stable per story via id hash — variety without randomness); middle lane → activity by `kind`: feature `cooking` · test `testing` · chore `tidying up` · docs `writing` · integration `wiring up` (tooltip: real lane + claim); first lane + ready → `✓ ready` when pickable, `⛔ gated: <gate>` / `⏳ waiting on <dep>` when the epic is blocked, `claimed` when claimed; first lane, not ready → dim `needs prep` | color: green ok / amber blocked / accent active / dim quiet (`--lane-5`/`--lane-2`/accent/`--ink-3`). The same chip renders read-only in the epic modal's story rows beside the lane text — the ready checkbox stays the editor. `✓ ready` never appears outside the first lane |
 | Rows: note | `.rows-note` | "N epics without stories — shown in Epics mode" / rows-empty guidance | renders only when it has something to say |
 | Epic modal | `renderModal()` | all epic fields per AGENTS.md §2 | `context_docs` renders read-only (below) — still no edit widget; lane change re-runs `checkMove` |
 | Context docs chips | `.field .ctxdocs` (modal) | the epic's `context_docs` as read-only label+path+note chips, reusing the Milestones `ctxDocs()` renderer; click copies the doc's path (toast confirms) | edit mode only, and only when the epic has docs — no section otherwise, and the create modal never shows it. Copy-on-click follows the Ideas-page copy convention; **no input exists** — `context_docs` stays file/skill-edited (AGENTS.md §2) |
@@ -180,6 +181,10 @@ Modal (over everything, via the shared shell in `system.md`):
   points back to Epics mode. Counts in the header flip to story counts.
 - Rows mode dragging: same `.drop-hover` / `.no-drop` language as
   columns — other rows' cells and gated rows dim.
+- Story states are display-only vocabulary: `storyState()` never writes
+  and every surface (rows chip, modal chip, epic badge, ready queue)
+  derives from the same inputs — no surface may read `ready` without
+  also reading the lane.
 
 ## Data
 
