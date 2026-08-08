@@ -383,5 +383,28 @@
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T20:00:00Z",
     "updated_at": "2026-08-08T20:25:00Z"
+  },
+  {
+    "id": "B13-1",
+    "epic_id": "B13",
+    "name": "archived_at + Current/Shipped toggle + archive action",
+    "description": "Epic schema gains archived_at; epicShown() filters by view; (Current)(Shipped N) chips beside the view toggle; 'Ship & archive' button in the modal for epics whose stories are all done (Unarchive in shipped view); shipped view is read-only (no drag), next-up/ready strips hidden there; goToEpic follows the target into the right view; archived epics keep counting for milestones and deps.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An epic in the done lane with all stories done shows 'Ship & archive' in its modal; archiving stamps archived_at, removes it from the current view, and it appears under the Shipped toggle (with its stories in rows mode)",
+      "An epic with unfinished stories (or not in the done lane) gets no archive button — done items stay on the board until the epic closes",
+      "Shipped view: cards not draggable, next-up/ready strips hidden, counts read 'N shipped'; Unarchive returns an epic to the current view",
+      "Milestone rollups and dependency checks still see archived epics; palette/milestone-chip jumps to an archived epic land in the Shipped view"
+    ],
+    "context": "design/board.md; design/ideas.md archive toggle; index.html epicShown()/renderFilters()/renderModal()/goToEpic(); AGENTS.md §2 schema + §3 rules",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T21:00:00Z",
+    "updated_at": "2026-08-08T21:35:00Z"
   }
 ]

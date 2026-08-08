@@ -34,7 +34,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T12:30:00Z",
-    "updated_at": "2026-08-08T12:55:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B2",
@@ -71,7 +72,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T12:55:00Z",
-    "updated_at": "2026-08-08T13:05:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B3",
@@ -108,7 +110,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T13:45:00Z",
-    "updated_at": "2026-08-08T14:20:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B4",
@@ -145,7 +148,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T14:20:00Z",
-    "updated_at": "2026-08-08T14:40:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B5",
@@ -179,7 +183,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T14:40:00Z",
-    "updated_at": "2026-08-08T15:10:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B6",
@@ -211,7 +216,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T16:00:00Z",
-    "updated_at": "2026-08-08T16:40:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B7",
@@ -238,7 +244,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:00:00Z",
-    "updated_at": "2026-08-08T17:10:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B8",
@@ -270,7 +277,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:35:00Z",
-    "updated_at": "2026-08-08T17:55:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B9",
@@ -302,7 +310,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T17:55:00Z",
-    "updated_at": "2026-08-08T18:20:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B10",
@@ -323,7 +332,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T19:00:00Z",
-    "updated_at": "2026-08-08T19:20:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B11",
@@ -344,7 +354,8 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T19:00:00Z",
-    "updated_at": "2026-08-08T19:20:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
   },
   {
     "id": "B12",
@@ -371,6 +382,39 @@
     "column": "Done",
     "claimed_by": "claude (this session)",
     "claimed_at": "2026-08-08T20:00:00Z",
-    "updated_at": "2026-08-08T20:25:00Z"
+    "updated_at": "2026-08-08T21:20:00Z",
+    "archived_at": "2026-08-08"
+  },
+  {
+    "id": "B13",
+    "name": "Ship & archive — completed epics leave the board",
+    "description": "An epic whose stories are all done can be closed: archived_at stamps it, and it moves off the active board into a Shipped view (Current/Shipped toggle beside Epics|Rows — the Ideas page's archive pattern). Done-column items stay put until the whole epic closes; archived epics still count for milestones and dependencies.",
+    "notes": "Direct user request (2026-08-08): remove complete epics from the board, keep them reachable (toggle over history page — chosen for consistency with the ideas archive), leave stories in Done until the epic closes, then clean up the board. Workflow impact: the active board only ever shows live work; shipped work becomes a browsable museum.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md"
+      },
+      {
+        "label": "Ideas archive pattern",
+        "path": "design/ideas.md",
+        "note": "the toggle being mirrored"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": "claude (this session)",
+    "claimed_at": "2026-08-08T21:00:00Z",
+    "updated_at": "2026-08-08T21:35:00Z",
+    "archived_at": "2026-08-08"
   }
 ]
