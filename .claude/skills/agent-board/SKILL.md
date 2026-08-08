@@ -74,17 +74,23 @@ for the human to decide, move the idea to `ready for review` yourself**
 with a dated `log` entry saying what made it decision-ready — that
 status is your hand-off; it's the one transition you make unprompted
 (AGENTS.md §2). `ready to implement` (the thumbs-up) and `rejected`
-stay the human's call. From "ready to implement": groom into an epic +
-stories when it's scoped work, or build a small ad hoc request straight
-from the idea — milestone optional either way; mark the idea `done`
-when it ships.
+stay the human's call. From "ready to implement": **decompose before
+building** — groom the idea into an epic + stories on the board backlog
+(even a small ad hoc request gets a lightweight epic with one story),
+then build card by card; milestone optional; mark the idea `done` when
+it ships.
 
 **Build** ("begin O1-2" / "begin epic O1"). Verify `ready` (the user
 saying it's ready in-conversation counts — record it), claim, read the
 story + epic + `context` + the target repo's own CLAUDE/AGENTS conventions,
 implement in the code repo, write the tests the acceptance criteria call
 for, run the project's checks, verify each criterion and report, move the
-card. If the work created a **new value driver** — a capability,
+card. **Move cards in real time**: in-progress lane before you write
+code, done lane the moment criteria verify — the live-reloading board
+is the human's progress view, so never batch moves at session end. If
+the request traces to a `ready to implement` idea, decompose it into an
+epic + stories first and work those cards — never build straight off
+the idea card. If the work created a **new value driver** — a capability,
 convention, or workflow future agents should use — fold it into the
 contract docs (AGENTS.md, this skill, PROTOCOL.md, `design/` specs) in
 the same change; medium-or-larger capability changes also update

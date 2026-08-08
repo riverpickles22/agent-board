@@ -68,7 +68,10 @@ by their own priority, then their epic's rank.
    This is the one write that should be atomic — see §5.
 4. **Work** the card. Stories, if used, live in `stories.json` keyed by
    `epic_id`; break work down there if it's useful, but the board itself is
-   card-grained.
+   card-grained. Lane position is live status: make each move at the
+   moment it happens (claim before starting, done when verified), not
+   retrospectively at the end of a session — an open board page
+   live-reloads, so the human is watching the cards move.
 5. **Move** the card: to the last lane when done, or back to an earlier
    lane (clearing `claimed_by`/`claimed_at`) if it can't be finished — leave
    a note explaining why in the card's `notes` field.

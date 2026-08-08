@@ -70,9 +70,10 @@ Four layers, each answering a different question:
    archive toggle (with a reason, never silently deleted). **Ready for
    review** is the AI's hand-off: an agent moves an idea there itself
    once the deep dive holds enough for you to decide; **ready to
-   implement** is your thumbs-up. Approved ideas become epics/stories
-   when they're real scoped work; small ad hoc requests can be built
-   straight from the idea, milestone optional.
+   implement** is your thumbs-up. Approved ideas are decomposed into an
+   epic + stories on the board before building — even a small ad hoc
+   request gets a lightweight epic with one story, milestone optional —
+   and the agent moves those cards through the lanes live as it works.
 
 Themes, milestones, lanes, and priority tiers are all defined per project
 in that project's `config.json` — the app has no hardcoded vocabulary.

@@ -146,10 +146,12 @@ honest, not padded), the agent moves it to `ready for review` itself and
 records a dated `log` entry saying what made it decision-ready. It is
 the one status transition an agent makes on its own initiative;
 `ready to implement` (the human's thumbs-up) and `rejected` are the
-human's call. From `ready to implement`: groom into an epic + stories
-(§5) when it's scoped work — but a small **ad hoc request** may be built
-straight from the idea, and a `milestone` link is optional in both
-cases; mark the idea `done` when the work ships. Legacy statuses
+human's call. From `ready to implement`: **decompose before you build**
+— groom the idea into an epic + stories on the board backlog (§5) so
+the work exists as cards the human can watch move; even a small ad hoc
+request gets a lightweight epic with a single story rather than being
+implemented straight off the idea card. A `milestone` link stays
+optional; mark the idea `done` when the work ships. Legacy statuses
 (`considering`, `planned`, `building`) render as their modern
 equivalents in the UI but should be migrated whenever you touch the
 record. Rejecting requires `rejected_reason`; never delete an idea for
@@ -262,6 +264,15 @@ When the user says to build a story (e.g. "begin O1-2"):
 
 An epic is "begin"-able too: work its ready stories in dependency/priority
 order, one at a time, reporting between stories.
+
+**The board moves while you work, not after.** Lane position is live
+status — the page live-reloads, so the human watches progress through
+the board. Claim and move the card to the in-progress lane *before*
+writing code (step 2), and move each finished card the moment its
+criteria verify (step 6) — never batch the moves at the end of a
+session. When the work comes from a `ready to implement` idea,
+decompose it first (§2 → §5): create the epic + stories on the board,
+then work them card by card — don't implement straight from the idea.
 
 **Capture new value drivers.** If building something created a new
 capability, workflow, or convention that future work should use — a new
