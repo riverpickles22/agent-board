@@ -254,6 +254,19 @@ const server = http.createServer(async (req, res) => {
       commits.forEach((c) => { c.files = filesBy[c.hash] || []; });
       return sendJSON(res, 200, { available: true, commits });
     }
+    // Briefing: everything that changed between an earlier commit (the
+    // client's last-seen marker) and HEAD, plus the current HEAD hash so
+    // the client can advance the marker.
+    if (req.method === "GET" && url.startsWith("/api/since/")) {
+      const hash = url.slice("/api/since/".length);
+      if (!/^[0-9a-f]{4,40}$/i.test(hash)) return sendJSON(res, 200, { available: false, reason: "invalid commit hash" });
+      const head = ((await git(["rev-parse", "--verify", "HEAD"])) || "").trim();
+      if (!head) return sendJSON(res, 200, { available: false, reason: "no commits yet" });
+      const resolved = ((await git(["rev-parse", "--verify", hash + "^{commit}"])) || "").trim();
+      if (!resolved) return sendJSON(res, 200, { available: false, reason: "unknown commit (history rewritten?)", head });
+      const statements = resolved === head ? [] : summarizeChanges(await snapshotAt(resolved), await snapshotAt("HEAD"));
+      return sendJSON(res, 200, { available: true, head, statements });
+    }
     if (req.method === "GET" && url.startsWith("/api/history/")) {
       const hash = url.slice("/api/history/".length);
       if (!/^[0-9a-f]{4,40}$/i.test(hash)) return sendJSON(res, 400, { error: "invalid commit hash" });

@@ -57,6 +57,7 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 | Counts | `#counts` | "N cards · M done", or "X of N shown" when filtered | board page only — hidden elsewhere by `route()` |
 | Save indicator | `#save` `persistResource()` | dot + saved / saving… / save failed | dot color: `--lane-5` / `--lane-2` pulsing / `--lane-4` |
 | Pending badge | `#pending-badge` `updatePending()` | "N pending" chip beside the save dot when uncommitted board changes exist (`GET /api/pending`); absent when the tree is clean or the data dir isn't git-tracked | click → the review panel. Refetched on load, after every live `refresh()`, when the tab regains visibility (covers terminal-side commits), and on panel open |
+| Briefing banner | `#briefing` `wireBriefing()` | "Since you last looked: N changes · M stale claims" bar under the header, with **view** (expands to the card-level statements + the stale-claim list) and **dismiss** | shows only when the per-browser last-seen HEAD (`localStorage`, keyed by board title like the mode memory) is older than the current HEAD with actual statements between (`GET /api/since/<hash>`); first visit stores silently; a rewritten-history marker resets silently. Dismiss stores the new HEAD. Stale claim = `claimed_by` set, `claimed_at` older than 48h, card not in the done lane — computed client-side over epics + stories. Briefing covers **ratified** history (commits); the pending badge covers the unratified working state — the two never overlap |
 | Review panel | `#pending-panel` `renderPending()` | slide-over from the right: "Pending ratification" header, card-level change statements grouped by resource (epics / stories / ideas / config / milestones), files list, footer naming the ritual (say "save" in conversation, or commit the data dir) | read-only — zero write affordances; the panel reviews, the human ratifies. Empty state: "Everything ratified — board matches HEAD." Close: ✕, Escape, or click outside. Statements come from the server's semantic differ (`/api/pending`): moves as `old → new`, edits name their fields, a queue reorder is one statement |
 | View sections | `#view-board` `#view-milestones` `#view-ideas` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
 | Footer hints | `#footer-note` `updateFooter()` | per-page interaction hints | board / milestones / ideas variants |
@@ -66,6 +67,8 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 | Modal fields | `.field` `.field.row2` `.field.mono` | label + input/textarea/select | `.mono` variant for ids, tags, paths |
 | Buttons | `.btn` `.btn.primary` `.btn.danger` | actions row (`.actions`) | danger sits `margin-left:auto` |
 | Toast | `#toast` `showToast()` | transient message, bottom-center | 4.5s, `--lane-4` left border — used for refused moves |
+| Command palette | `#pal-scrim` `#palette` `openPalette()` | top-centered overlay on its own scrim: search input + up to 12 ranked results (type chip · mono id · title) over every epic, story, and idea | opened with `/` anywhere outside form fields and modals; subsequence fuzzy match (`fuzzyScore()` — gaps and late first-hits penalized) over `id + title`, in-memory index rebuilt per keystroke from `state` (always current, no cache). ↑/↓ move the selection, Enter/click jumps: epic → `goToEpic()` (board, flash), story → `renderStoryModal()`, idea → its deep-dive page. Escape or scrim click closes |
+| Quick capture | (global keydown) | `n` outside fields/modals → `openIdea(null)` from any page | capture is the funnel's mouth — no navigation to the Ideas page needed; create still lands in the inbox and jumps to the deep dive |
 | Pills | `.tagpill` `.tagpill.sys` `.st` `.prio` | milestone/theme/tag, systems, status, priority (variants p0–p3) | priority class = index into `config.priorities` (`prioClass()`) |
 | Helpers | `esc()` `short()` `opts()` `laneVar()` | escaping, "M0 Reliable…"→"M0", select options, lane color cycling | used by every screen |
 | Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | a changed board **moves**: cards lift, glide to their new lane/position, and set down; edited-in-place cards pulse the `.flash` ring; new cards fade in | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, or a save is pending (`refreshBlocked()`, applied on `applyPendingRefresh()`) |
@@ -76,7 +79,11 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 - Tab click → `navigate(page)` → hash change → `route()` shows the view;
   writes nothing.
 - Escape anywhere / click on scrim backdrop → `closeModal()`; writes
-  nothing.
+  nothing. Escape closes surfaces in order: palette → pending panel →
+  modal (one layer per press).
+- `/` (outside fields/modals) → palette; `n` → new-idea modal from any
+  page; both inert while typing anywhere or while a modal is open.
+  Footer hints name them.
 - All persistence funnels through `persistResource(resource, val)`:
   150ms debounce per resource (`saveTimers`), `PUT /api/<resource>`,
   save indicator cycles; failure shows "save failed — is the server

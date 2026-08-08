@@ -70,7 +70,13 @@ it for the **ratify review panel**: every pending change as a readable
 statement ("B1 moved Backlog → Done", "ideas reordered"), grouped by
 resource, live-updating as agents work. The panel reviews; the human
 ratifies (say "save", or commit the data dir) — commit-=-ratify made
-visible at both ends.
+visible at both ends. Opening the board after time away starts with a
+**briefing banner** — "Since you last looked: N changes · M stale
+claims" — the ratified history since your last visit as the same
+card-level statements, computed from a per-browser last-seen marker.
+And everything is keyboard-reachable: **`/`** opens a fuzzy command
+palette over every epic, story, and idea (Enter jumps straight to the
+card), **`n`** captures a new idea from any page.
 
 A fourth **Docs** tab renders this document inside the UI, so a person
 browsing the board sees the capabilities without the repo or curl.
@@ -133,6 +139,8 @@ browsing the board sees the capabilities without the repo or curl.
 statements — powers the ratify review panel) ·
 `GET /api/history` + `GET /api/history/<hash>` (the data dir's commit
 log, and one commit's card-level changes — powers the History page) ·
+`GET /api/since/<hash>` (changes between an earlier commit and HEAD —
+powers the briefing banner) ·
 `GET /docs` + `GET /llms.txt` (this document). The three git-backed
 routes read git only (`execFile`, no shell) and degrade gracefully when
 the data dir isn't a repo yet.

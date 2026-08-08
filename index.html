@@ -444,6 +444,30 @@
   .hline:last-child{border-bottom:0}
   .hempty{font-size:13.5px;color:var(--ink-3)}
 
+  /* ---- board briefing (since you last looked) ---- */
+  .briefing{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 22px 0;
+    padding:10px 16px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);
+    border-radius:10px;font-size:13.5px;color:var(--ink)}
+  .brf-sum b{font-weight:700}
+  .brf-body{flex-basis:100%;border-top:1px solid var(--line-2);margin-top:6px;padding-top:4px}
+  .brf-body h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);
+    margin:10px 0 4px;font-weight:700}
+
+  /* ---- command palette ---- */
+  .scrim.pal{align-items:flex-start;justify-content:center}
+  .palette{width:min(560px,92vw);margin-top:12vh;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .palette input{width:100%;border:0;outline:0;background:none;color:var(--ink);font:inherit;
+    font-size:15px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
+  .pal-results{max-height:46vh;overflow:auto;padding:6px}
+  .pal-row{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .pal-row.sel, .pal-row:hover{background:var(--accent-soft)}
+  .pal-row .pt{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:20px;padding:1px 7px;flex:0 0 auto}
+  .pal-row .pid{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);flex:0 0 auto}
+  .pal-row .pnm{font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pal-none{font-size:13px;color:var(--ink-3);padding:10px 12px}
+
   /* ---- live-refresh motion: agent changes read as pick-up → glide → set-down ----
      The transition lives on the class so the reduced-motion media query
      (transition:none!important) collapses it back to today's instant snap. */
@@ -492,6 +516,13 @@
     </div>
   </header>
 
+  <div class="briefing" id="briefing" hidden>
+    <span class="brf-sum" id="brf-sum"></span>
+    <button class="chip" id="brf-view" type="button">view</button>
+    <button class="chip" id="brf-dismiss" type="button">dismiss</button>
+    <div class="brf-body" id="brf-body" hidden></div>
+  </div>
+
   <section class="view" id="view-board" hidden>
     <div class="filters" id="filters"></div>
     <div class="nextup" id="nextup"></div>
@@ -508,6 +539,13 @@
     <span id="stories-note"></span>
     <span style="margin-left:auto">data → <b id="data-path">./data</b></span>
   </footer>
+
+  <div class="scrim pal" id="pal-scrim">
+    <div class="palette" id="palette" role="dialog" aria-label="Command palette">
+      <input id="pal-input" type="text" placeholder="Jump to any epic, story, or idea…" autocomplete="off" spellcheck="false">
+      <div class="pal-results" id="pal-results"></div>
+    </div>
+  </div>
 
   <aside class="ppanel" id="pending-panel" aria-label="Pending ratification">
     <div class="pp-head"><h2>Pending ratification</h2>
@@ -692,6 +730,8 @@ async function load(){
   route();
   wireLiveRefresh();
   wirePending();
+  wirePalette();
+  wireBriefing();
 }
 
 function allTags(){
@@ -1200,11 +1240,138 @@ function deleteEpic(id){
 
 function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; applyPendingRefresh(); }
 document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.id==="scrim") closeModal(); });
+/* ---- board briefing: since you last looked ---- */
+// Covers ratified history only (commits since the per-browser last-seen
+// HEAD); the pending badge covers unratified working state — no overlap.
+function seenKey(){ return "agent-board:seen:" + (((state.config||{}).view||{}).title || "board"); }
+function storeSeen(hash){ try{ localStorage.setItem(seenKey(), hash); }catch(e){} }
+function staleClaims(){
+  const cutoff = Date.now() - 48*3600*1000;
+  const stale = [];
+  for(const x of [...(state.epics||[]), ...(state.stories||[])]){
+    if(!x.claimed_by || x.column === doneLane()) continue;
+    const at = Date.parse(x.claimed_at || "");
+    if(!isNaN(at) && at < cutoff) stale.push(x.id+" — claimed by "+x.claimed_by+" since "+x.claimed_at.slice(0,10));
+  }
+  return stale;
+}
+async function wireBriefing(){
+  let lastSeen = null;
+  try{ lastSeen = localStorage.getItem(seenKey()); }catch(e){}
+  try{
+    if(!lastSeen){
+      // first visit: remember where we are, silently
+      const h = await (await fetch("/api/history")).json();
+      if(h.available && h.commits.length) storeSeen(h.commits[0].hash);
+      return;
+    }
+    const d = await (await fetch("/api/since/"+lastSeen)).json();
+    if(!d.available){ if(d.head) storeSeen(d.head); return; }   // rewritten history: reset quietly
+    if(!d.statements.length){ storeSeen(d.head); return; }
+    const stale = staleClaims();
+    const el = document.getElementById("briefing");
+    document.getElementById("brf-sum").innerHTML =
+      'Since you last looked: <b>'+d.statements.length+' change'+(d.statements.length===1?'':'s')+'</b>'+
+      (stale.length ? ' · <b>'+stale.length+' stale claim'+(stale.length===1?'':'s')+'</b>' : '');
+    document.getElementById("brf-body").innerHTML =
+      d.statements.map(s => '<div class="pp-line">'+esc(s.text)+'</div>').join("")+
+      (stale.length ? '<h4>Stale claims (>48h, not done)</h4>'+
+        stale.map(t => '<div class="pp-line">'+esc(t)+'</div>').join("") : '');
+    el.hidden = false;
+    document.getElementById("brf-view").onclick = () => {
+      const b = document.getElementById("brf-body"); b.hidden = !b.hidden;
+      document.getElementById("brf-view").textContent = b.hidden ? "view" : "hide";
+    };
+    document.getElementById("brf-dismiss").onclick = () => { storeSeen(d.head); el.hidden = true; };
+  }catch(e){}
+}
+
+/* ---- command palette (/ to find, n to capture) ---- */
+// The index is rebuilt from state per keystroke — always current, no
+// cache to invalidate when live refresh swaps the arrays underneath.
+function paletteIndex(){
+  const ix = [];
+  (state.epics||[]).forEach(e => ix.push({ type:"epic", id:e.id, title:e.name||"" }));
+  (state.stories||[]).forEach(s => ix.push({ type:"story", id:s.id, title:s.name||"", epic:s.epic_id }));
+  (state.ideas||[]).forEach(i => ix.push({ type:"idea", id:i.id, title:i.title||"" }));
+  return ix;
+}
+// Subsequence match; lower = better. Gaps and a late first hit cost,
+// shorter targets win ties. null = no match.
+function fuzzyScore(q, text){
+  q = q.toLowerCase(); text = text.toLowerCase();
+  let ti = 0, gaps = 0, first = -1;
+  for(const ch of q){
+    const at = text.indexOf(ch, ti);
+    if(at < 0) return null;
+    if(first < 0) first = at;
+    gaps += at - ti;
+    ti = at + 1;
+  }
+  return gaps + first * 2 + text.length / 100;
+}
+let palItems = [], palSel = 0;
+function renderPalResults(){
+  const q = document.getElementById("pal-input").value.trim();
+  const scored = paletteIndex()
+    .map(it => ({ it, s: q ? fuzzyScore(q, it.id + " " + it.title) : 0 }))
+    .filter(x => x.s !== null);
+  if(q) scored.sort((a,b) => a.s - b.s);
+  palItems = scored.slice(0, 12).map(x => x.it);
+  palSel = Math.max(0, Math.min(palSel, palItems.length - 1));
+  document.getElementById("pal-results").innerHTML = palItems.length
+    ? palItems.map((it, i) =>
+        '<div class="pal-row'+(i===palSel?' sel':'')+'" data-ix="'+i+'">'+
+        '<span class="pt">'+it.type+'</span><span class="pid">'+esc(it.id)+'</span>'+
+        '<span class="pnm">'+esc(it.title)+'</span></div>').join("")
+    : '<div class="pal-none">no matches</div>';
+  document.querySelectorAll("#pal-results .pal-row").forEach(row =>
+    row.addEventListener("click", () => palGo(palItems[+row.dataset.ix])));
+}
+function openPalette(){
+  palSel = 0;
+  document.getElementById("pal-input").value = "";
+  document.getElementById("pal-scrim").classList.add("on");
+  renderPalResults();
+  document.getElementById("pal-input").focus();
+}
+function closePalette(){ document.getElementById("pal-scrim").classList.remove("on"); }
+function palGo(it){
+  if(!it) return;
+  closePalette();
+  if(it.type === "epic") goToEpic(it.id);
+  else if(it.type === "story") renderStoryModal(it.epic, it.id);
+  else navigate("ideas", it.id);
+}
+function wirePalette(){
+  const input = document.getElementById("pal-input");
+  input.addEventListener("input", () => { palSel = 0; renderPalResults(); });
+  input.addEventListener("keydown", ev => {
+    if(ev.key === "ArrowDown"){ ev.preventDefault(); palSel = Math.min(palSel+1, palItems.length-1); renderPalResults(); }
+    else if(ev.key === "ArrowUp"){ ev.preventDefault(); palSel = Math.max(palSel-1, 0); renderPalResults(); }
+    else if(ev.key === "Enter"){ ev.preventDefault(); palGo(palItems[palSel]); }
+  });
+  document.getElementById("pal-scrim").addEventListener("click", ev => {
+    if(ev.target === document.getElementById("pal-scrim")) closePalette();
+  });
+}
+const typingTarget = t => t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" ||
+  t.tagName === "SELECT" || t.isContentEditable);
+
 document.addEventListener("keydown", ev => {
-  if(ev.key!=="Escape") return;
-  const pp = document.getElementById("pending-panel");
-  if(pp.classList.contains("on")) pp.classList.remove("on");
-  else closeModal();
+  const paletteOpen = document.getElementById("pal-scrim").classList.contains("on");
+  const modalOpen = document.getElementById("scrim").classList.contains("on");
+  if(ev.key === "Escape"){
+    const pp = document.getElementById("pending-panel");
+    if(paletteOpen) closePalette();
+    else if(pp.classList.contains("on")) pp.classList.remove("on");
+    else closeModal();
+    return;
+  }
+  if(typingTarget(ev.target) || modalOpen || paletteOpen) return;
+  if(ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if(ev.key === "/"){ ev.preventDefault(); openPalette(); }
+  else if(ev.key === "n" || ev.key === "N"){ ev.preventDefault(); openIdea(null); }
 });
 
 /* ---- pending ratification (ratify review panel) ---- */
@@ -1406,7 +1573,8 @@ function renderTabs(){
 }
 function updateFooter(page){
   const fn = document.getElementById("footer-note"); if(!fn) return;
-  fn.innerHTML = page==="board"
+  const keys = ' · <b>/</b> find · <b>n</b> capture';
+  fn.innerHTML = (page==="board"
     ? (boardMode==="rows"
       ? '<b>Rows</b>: one swimlane per epic · <b>drag</b> a story across lanes · <b>click a row header</b> to edit the epic'
       : '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>')
@@ -1416,7 +1584,7 @@ function updateFooter(page){
     ? 'what this tool can do · source: <b>CAPABILITIES.md</b> · also served at <b>/docs</b> and <b>/llms.txt</b>'
     : page==="history"
     ? 'every save is a commit · <b>click an entry</b> to see its card-level changes · read-only'
-    : '<b>click</b> an idea to deep-dive · <b>drag</b> to reorder or change status/burner · <b>+ new idea</b> to capture one';
+    : '<b>click</b> an idea to deep-dive · <b>drag</b> to reorder or change status/burner · <b>+ new idea</b> to capture one') + keys;
 }
 function route(){
   const { page, param } = currentRoute();
