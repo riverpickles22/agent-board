@@ -577,6 +577,7 @@ let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overv
 let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
 let filterMS = "all", filterTheme = "all", filterTag = "all";
 let boardMode = "epics";   // "epics" (columns of epic cards) | "rows" (story swimlanes by epic)
+let boardArchive = false;  // false = current work, true = the Shipped view (archived_at epics)
 let modalMode = "edit";
 let editingId = null;
 const byId = () => Object.fromEntries(state.epics.map(e => [e.id, e]));
@@ -700,7 +701,7 @@ function readyQueue(){
 function renderReadyQueue(){
   const el = document.getElementById("readyq");
   if(!el) return;
-  if(!state.stories.length){ el.style.display = "none"; el.innerHTML = ""; return; }
+  if(boardArchive || !state.stories.length){ el.style.display = "none"; el.innerHTML = ""; return; }
   el.style.display = "";
   const { picks, readyButStuck } = readyQueue();
   let html = '<span class="flabel">Ready</span>';
@@ -727,7 +728,7 @@ function renderReadyQueue(){
 function renderNextUp(){
   const el = document.getElementById("nextup");
   if(!el) return;
-  if(!state.epics.length){ el.style.display = "none"; el.innerHTML = ""; return; }
+  if(boardArchive || !state.epics.length){ el.style.display = "none"; el.innerHTML = ""; return; }
   el.style.display = "";
   const { picks, notes, wip } = nextUp();
   let html = '<span class="flabel">Next up</span>';
@@ -821,6 +822,11 @@ function renderFilters(){
   let html = '<span class="flabel">View</span>'+
     '<button class="chip mode" data-mode="epics" aria-pressed="'+(boardMode==="epics")+'" title="Kanban of epic cards">Epics</button>'+
     '<button class="chip mode" data-mode="rows" aria-pressed="'+(boardMode==="rows")+'" title="Story swimlanes, one row per epic">Rows</button>';
+  // Shipped toggle appears once there's anything shipped (or while viewing it)
+  const shippedN = state.epics.filter(e => e.archived_at).length;
+  if(shippedN || boardArchive) html +=
+    '<button class="chip" data-arch="0" aria-pressed="'+(!boardArchive)+'">Current</button>'+
+    '<button class="chip" data-arch="1" aria-pressed="'+boardArchive+'" title="Closed epics — archived off the active board, still counted by milestones and deps">Shipped ('+shippedN+')</button>';
   if(MILESTONES.length) html += row("Milestone","ms",MILESTONES,filterMS,false);
   if(THEMES.length)     html += row("Theme","theme",THEMES,filterTheme,false);
   if(tags.length)       html += row("Tag","tag",tags,filterTag,true);
@@ -842,6 +848,10 @@ function renderFilters(){
     rememberBoardMode();
     renderFilters(); render();
   }));
+  f.querySelectorAll(".chip[data-arch]").forEach(c => c.addEventListener("click", () => {
+    boardArchive = c.dataset.arch === "1";
+    renderFilters(); render();
+  }));
   const sv = document.getElementById("save-view");
   if(sv) sv.addEventListener("click", () => {
     state.config.view = Object.assign({}, state.config.view, {
@@ -857,6 +867,7 @@ function renderFilters(){
   });
 }
 function epicShown(e){
+  if(!!e.archived_at !== boardArchive) return false;   // Current vs Shipped, before everything
   if(filterMS!=="all" && e.milestone!==filterMS) return false;
   if(filterTheme!=="all" && e.theme!==filterTheme) return false;
   if(filterTag!=="all" && !(e.tags||[]).includes(filterTag)) return false;
@@ -874,9 +885,12 @@ function render(){
     renderSwimlanes(board, shown);
     const rowStories = shown.flatMap(e => storiesOf(e.id));
     const sdone = rowStories.filter(s => s.column===doneLane()).length;
+    const viewStoryN = state.epics.filter(e => !!e.archived_at === boardArchive)
+      .flatMap(e => storiesOf(e.id)).length;
     document.getElementById("counts").textContent =
-      filtered ? (rowStories.length + " of " + state.stories.length + " stories shown")
-               : (rowStories.length + (rowStories.length===1?" story":" stories") + " · " + sdone + " done");
+      filtered ? (rowStories.length + " of " + viewStoryN + " stories shown")
+               : (rowStories.length + (rowStories.length===1?" story":" stories") + " · " + sdone + " done"
+                  + (boardArchive ? " · shipped" : ""));
   } else {
     COLUMNS.forEach(col => {
       const items = shown.filter(e => e.column === col);
@@ -887,8 +901,10 @@ function render(){
       // WIP-limited lanes show board-wide total/limit — the number
       // wipBlocked() compares — and go loud when over. Advise-only:
       // limits never block a drop (that stays the agent protocol's job).
-      const limit = (state.config.wip_limits||{})[col];
-      const laneTotal = state.epics.filter(e => e.column === col).length;
+      // The Shipped view shows plain counts: limits are a property of
+      // live work, and archived epics never count toward them.
+      const limit = boardArchive ? null : (state.config.wip_limits||{})[col];
+      const laneTotal = state.epics.filter(e => !e.archived_at && e.column === col).length;
       const ctHtml = limit != null
         ? '<span class="ct wlim'+(laneTotal>limit?' over':'')+'" title="WIP limit '+limit+
           (laneTotal>limit?' — over by '+(laneTotal-limit):'')+' · '+laneTotal+' in lane, board-wide">'+laneTotal+'/'+limit+'</span>'
@@ -906,10 +922,12 @@ function render(){
       wireDrop(sec);
       board.appendChild(sec);
     });
-    const total = state.epics.length, done = state.epics.filter(e=>e.column===doneLane()).length;
-    document.getElementById("counts").textContent =
-      filtered ? (shown.length + " of " + total + " shown")
-               : (total + " cards · " + done + " done");
+    const viewEpics = state.epics.filter(e => !!e.archived_at === boardArchive);
+    const total = viewEpics.length, done = viewEpics.filter(e=>e.column===doneLane()).length;
+    document.getElementById("counts").textContent = boardArchive
+      ? (filtered ? (shown.length + " of " + total + " shipped shown") : (total + " shipped"))
+      : (filtered ? (shown.length + " of " + total + " shown")
+                  : (total + " cards · " + done + " done"));
   }
   document.getElementById("stories-note").innerHTML = state.stories.length
     ? "<b>"+state.stories.length+"</b> stories" : "";
@@ -920,7 +938,7 @@ function render(){
 
 function cardEl(e){
   const el = document.createElement("article");
-  el.className = "card"; el.tabIndex = 0; el.draggable = true; el.dataset.id = e.id;
+  el.className = "card"; el.tabIndex = 0; el.draggable = !boardArchive; el.dataset.id = e.id;
   const unmet = depsOf(e).filter(d => d.column !== doneLane()).map(d => d.id);
   const depBits = e.deps && e.deps.length
     ? (unmet.length
@@ -1132,12 +1150,19 @@ function renderModal(e){
     '<div class="actions">'+
       '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
       '<button class="btn" id="m-cancel">Cancel</button>'+
+      (create ? '' : (e.archived_at
+        ? '<button class="btn" id="m-arch" title="Return this epic to the active board">Unarchive</button>'
+        : (e.column === doneLane() && storiesOf(e.id).every(s => s.column === doneLane())
+          ? '<button class="btn" id="m-arch" title="Close the epic — every story is done. Moves it off the active board into Shipped; milestones and deps still count it">⌂ Ship &amp; archive</button>'
+          : "")))+
       (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
     '</div>';
   document.getElementById("scrim").classList.add("on");
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
+  const ab = document.getElementById("m-arch");
+  if(ab) ab.addEventListener("click", () => toggleArchiveEpic(e.id));
   if(!create) wireStoriesSection(e.id);
   // Context-docs chips copy their path — a launchpad for editors/agents,
   // never an editor (context_docs stays file/skill-edited, AGENTS.md §2).
@@ -1275,6 +1300,21 @@ function saveModal(){
     Object.assign(e, vals, { id: e.id, updated_at: new Date().toISOString() });
   }
   closeModal(); render(); persist();
+}
+
+// Ship-and-close (or reopen). Archiving hides, never deletes: milestones
+// and dependency checks keep reading archived epics from state.epics.
+function toggleArchiveEpic(id){
+  const e = byId()[id]; if(!e) return;
+  if(e.archived_at){
+    e.archived_at = null;
+    showToast(e.id+" back on the active board.");
+  } else {
+    e.archived_at = new Date().toISOString().slice(0,10);
+    showToast(e.id+" shipped — find it under the Shipped toggle.");
+  }
+  e.updated_at = new Date().toISOString();
+  closeModal(); renderFilters(); render(); persist();
 }
 
 function deleteEpic(id){
@@ -1867,6 +1907,7 @@ function renderMilestones(param){
 function goToEpic(id){
   const e = byId()[id]; if(!e) return;
   boardMode = "epics";   // the .card[data-id] target only exists in Epics mode
+  boardArchive = !!e.archived_at;   // follow the target into its view (Shipped or Current)
   filterMS = (e.milestone && MILESTONES.includes(e.milestone)) ? e.milestone : "all";
   filterTheme = "all"; filterTag = "all";
   renderFilters(); render();

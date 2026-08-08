@@ -70,9 +70,16 @@ default view") — never as a side effect of other edits; the UI's
   "systems": ["chaim-server", "chaim-ui"],
   "context_docs": [ {"label": "…", "path": "architecture/….md", "note": "§5"} ],
   "gate": "none", "deps": ["other-epic-ids"], "column": "Backlog",
-  "claimed_by": null, "claimed_at": null, "updated_at": null }
+  "claimed_by": null, "claimed_at": null,
+  "archived_at": null, "updated_at": null }
 ```
 `theme` and `milestone` must come from config vocab (empty string allowed).
+`archived_at` (ISO date, absent/null = active) is the **ship-and-close**
+stamp: an agent may set it only when the epic *and every one of its
+stories* sit in the done lane — done cards stay on the board until the
+whole epic closes. Archived epics leave the active board for its
+Shipped view but still count for milestone roll-ups and dependency
+checks; clearing `archived_at` (unarchive) is the human's call.
 `gate` other than `"none"` means the epic is closed until that gate appears
 in config `open_gates` — a human records that; you never flip it. `status`
 is informational maturity, independent of `column`. `systems` names the

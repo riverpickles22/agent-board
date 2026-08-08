@@ -83,6 +83,7 @@ Modal (over everything, via the shared shell in `system.md`):
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
 | View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
+| Shipped toggle | `.chip[data-arch]` | (Current)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
 | Filter rows | `renderFilters()` `#filters` | milestone / theme / tag chip rows | rows render only when vocab non-empty; labels via `short()` except tags (full) |
 | Next up strip | `renderNextUp()` `#nextup` | top 5 pickable epics as `.pick` chips: id, name, why (priority · unblocks N); "+N more" overflow; or a nothing-pickable reason line (`.none`) | `nextUp()` implements PROTOCOL §3 exactly: first lane + deps done + gate in `open_gates` (`gateOpen()`) + unclaimed + successor lane under `wip_limits` (`wipBlocked()`); ranked priority index → unblock count (`unblockCount()`) → file order. Board-wide — ignores the filter chips |
 | Ready queue strip | `readyQueue()` `renderReadyQueue()` `#readyq` | pickable stories as `[kind] id name` chips (`.rpick`) grouped under their epic's mono id — the "begin X" menu | story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
@@ -107,6 +108,7 @@ Modal (over everything, via the shared shell in `system.md`):
 | Stories section | `storiesSection()` `wireStoriesSection()` | story rows + ready checkboxes inside the epic modal | edit mode only, not on create |
 | Story modal | `renderStoryModal()` | story fields: name, description, acceptance criteria (one per line), context, systems, kind ▾, lane ▾, priority ▾, ready ✓ | "Back to epic" returns to `openEdit(epicId)` |
 | Save epic | `saveModal()` | validation → create/update | duplicate-id and empty-name errors in `.m-err` |
+| Ship & archive | `archiveEpic()` `#m-arch` | "⌂ Ship & archive" button in the edit modal — only when the epic **and every story** sit in the done lane and it isn't archived yet | stamps `archived_at` (AGENTS.md §2), persists, toast; the epic leaves the current view (done cards stay on the board until this moment — the whole epic closes at once). In the Shipped view the button reads "Unarchive" and clears the stamp (the human's call). Archived epics still feed milestone roll-ups and dependency checks — archiving hides, never deletes |
 | Delete epic | `deleteEpic()` | confirm listing dependents + story cascade | deletes epic + its stories |
 
 ## Interactions
@@ -173,7 +175,12 @@ Modal (over everything, via the shared shell in `system.md`):
 - Jump-in from milestones (`goToEpic()`): switches to Epics mode first
   (the `.card[data-id]` target only exists there) without overwriting
   the remembered toggle choice, filters set to the epic's milestone,
-  card scrolled into view with a 1.3s `.flash` ring.
+  card scrolled into view with a 1.3s `.flash` ring. Follows the target
+  into the right view — jumping to an archived epic lands in Shipped.
+- Shipped view: the museum, not the workshop — read-only cards, no
+  strips, no WIP counts (`total/limit` is a property of live work).
+  `epicShown()` gates on `archived_at` first, so every reader of the
+  shown set (render, counts) agrees on the view.
 - Unknown card column (stale data): normalized to first lane on load —
   stories too.
 - Rows mode, epics without stories: skipped, counted in `.rows-note`.

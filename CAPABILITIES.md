@@ -50,7 +50,11 @@ swimlanes: one row per epic, its stories as draggable cards across the
 same lanes — stories move within their row, gated epics refuse drops,
 and the preferred mode saves with the default view. Stories (buildable
 slices with acceptance criteria and a human-set `ready` flag) also live
-inside each epic's modal. The board's rules are visible, not just
+inside each epic's modal. Completed work leaves the stage: once an
+epic and every story sit in Done, "⌂ Ship & archive" closes it off the
+active board into a **Shipped** view (Current/Shipped toggle) — hidden,
+never deleted; milestones and dependencies still count it. The board's
+rules are visible, not just
 enforced: WIP-limited lanes show board-wide `total/limit` counts that
 go red when over, and closed-gate cards wear a `⛔` chip naming their
 gate in both modes — advisory (drops are never blocked; the agent
