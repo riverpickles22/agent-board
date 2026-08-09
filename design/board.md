@@ -33,7 +33,9 @@ Epics mode (the default):
 │ │ Epic name…   │ │                  │ │ …            │               │
 │ │ (M0)(T1)(tag)│ │                  │ └──────────────┘               │
 │ │ (sys) status │ │                  │                                │
-│ │ 3 stories·1 ready  ⊸ F2  ↯ needs F4  claimed: session             │
+│ │ 3 stories·1 ready  ⊸ ✓F2 F4  ⛔{gate}  claimed: session           │
+│ ├──────────────┤ │                  │  (green edge + ▶ ready to start│
+│ │▍F7 all deps ✓│ │                  │   when the last dep lands)     │
 │ └──────────────┘ │                  │                                │
 ├──────────────────┴──────────────────┴────────────────────────────────┤
 ```
