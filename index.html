@@ -379,7 +379,7 @@
   .ei{font-size:11.5px;font-weight:500;color:var(--ink-2);border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:var(--card-2)}
 
   /* ---- idea detail (deep dive) ---- */
-  .idd{max-width:none}
+  .idd{max-width:1760px}   /* bounded so ultrawide doesn't produce one enormous line */
   .idd .back{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:0;margin-bottom:14px}
   .idd .back:hover{text-decoration:underline}
   .idd h2{font-size:24px;margin:0 0 6px;letter-spacing:-.02em}
@@ -410,7 +410,7 @@
   @media (max-width:1100px){.idd-grid{grid-template-columns:1fr}}
   /* description halves live at the top of the two body columns (plain left,
      technical right) so each column flows with no cross-column gap */
-  .dplain{font-size:15.5px;color:var(--ink-2);line-height:1.6;margin:6px 0 20px;white-space:pre-line;max-width:72ch}
+  .dplain{font-size:15.5px;color:var(--ink-2);line-height:1.6;margin:6px 0 20px;white-space:pre-line}
   .dtech{border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel) 60%,var(--ground));padding:14px 16px;margin-bottom:16px}
   .dtech h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 7px;font-weight:600}
   .dtech p{font-size:13.5px;color:var(--ink-2);line-height:1.55;margin:0;white-space:pre-line}
@@ -419,8 +419,17 @@
   .idd-block h3 .eb{margin-left:auto;font-size:12px;font-weight:500;color:var(--accent);background:transparent;border:none;cursor:pointer;letter-spacing:0;text-transform:none}
   .idd-block h3 .eb:hover{text-decoration:underline}
   .idd-block p, .idd-block li{font-size:15px;line-height:1.6;color:var(--ink)}
-  .idd-block p{margin:0 0 8px;white-space:pre-wrap;max-width:75ch}
+  .idd-block p{margin:0 0 8px;white-space:pre-wrap}   /* the grid column is the measure */
   .idd-block.loose{background:transparent;border:none;padding:6px 2px}
+  .idd-block.lead{background:transparent;border:none;padding:0 2px;margin-bottom:14px}
+  .idd-block.lead h3{opacity:0;transition:opacity .12s}
+  .idd-block.lead:hover h3, .idd-block.lead:focus-within h3{opacity:1}
+  .ilab{display:block;font-size:11.5px;color:var(--ink-3);margin:10px 0 4px}
+  .ilab:first-child{margin-top:0}
+  .promote-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+  .idd h2 input{font:inherit;font-size:24px;letter-spacing:-.02em;color:var(--ink);width:100%;
+    background:var(--card-2);border:1px solid var(--accent);border-radius:8px;padding:2px 8px}
+  .idd h2{cursor:text}
   .idd-block .empty{color:var(--ink-3);font-size:14px;font-style:italic}
   .idd-block textarea{width:100%;font-family:var(--sans);font-size:14.5px;color:var(--ink);background:var(--card-2);
     border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:90px;resize:vertical;line-height:1.55}
@@ -2592,9 +2601,9 @@ function renderIdeaDetail(id){
             ' · <a href="#/history" style="color:var(--accent)">implementation history</a></p>';
         })()
       : (ideaStatus(i) === "ready to implement"
-        ? '<p><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Board</button> '+
-          '<span class="empty">intent is settled — turn it into committed work</span></p>'
-        : '')), false);
+        ? '<div class="promote-row"><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Board</button>'+
+          '<span class="empty">intent is settled — turn it into committed work</span></div>'
+        : '')));
   left += block("context", "Context — what is this really about?",
     text(i.context, "No context yet. What problem does it solve, for whom, and why now?"));
   left += block("proscons", "Pros / Cons",
@@ -2637,11 +2646,31 @@ function renderIdeaDetail(id){
     lifecycleEl(i)+
     metaRowEl(i)+
     '<div class="idd-grid"><div>'+
-      (dp.plain ? '<p class="dplain">'+esc(dp.plain)+'</p>' : "")+left+'</div><div>'+
+      '<div class="idd-block lead" data-k="description"><h3>Description'+
+        '<button class="eb" data-edit="description">edit</button></h3><div class="bwrap">'+
+        (dp.plain ? '<p class="dplain">'+esc(dp.plain)+'</p>'
+                  : '<p class="empty">No description yet — the plain-language half, then "Technical shape:".</p>')+
+      '</div></div>'+left+'</div><div>'+
       (dp.tech ? '<div class="dtech"><h4>Technical shape</h4><p>'+esc(dp.tech)+'</p></div>' : "")+right+'</div></div></div>';
 
   document.getElementById("idd-back").addEventListener("click", () => navigate("ideas"));
   document.getElementById("idd-edit").addEventListener("click", () => openIdea(i.id));
+  // The title edits in place too — nothing on this page needs the modal.
+  const h2 = v.querySelector(".idd h2");
+  if(h2){
+    h2.title = "Click to rename";
+    h2.addEventListener("click", () => {
+      h2.innerHTML = '<input type="text" id="e-title" value="'+esc(i.title)+'">';
+      const inp = h2.querySelector("#e-title");
+      const commit = () => { const nv = inp.value.trim();
+        if(nv && nv !== i.title){ i.title = nv; i.updated_at = today(); saveIdeas(); }
+        renderIdeaDetail(id); };
+      inp.addEventListener("keydown", ev => { if(ev.key==="Enter") commit();
+        if(ev.key==="Escape") renderIdeaDetail(id); });
+      inp.addEventListener("blur", commit);
+      inp.focus(); inp.select();
+    });
+  }
   v.querySelectorAll(".lens .seg button").forEach(b => b.addEventListener("click", () => {
     const k = b.closest(".seg").dataset.k;
     if(i[k] === b.dataset.v) return;
@@ -2663,12 +2692,41 @@ function renderIdeaDetail(id){
   v.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => inlineEdit(b.dataset.edit)));
 
   // swap a block's content for an editor
+  // Every prose region edits where it sits. Plain single-value fields go
+  // through this map; the shaped ones (pros/cons, reasoning) follow.
+  const INLINE = {
+    context:     { get:()=>i.context||"",         set:v=>{i.context=v;} },
+    compounding: { get:()=>i.compounding||"",     set:v=>{i.compounding=v;} },
+    reject:      { get:()=>i.rejected_reason||"", set:v=>{i.rejected_reason=v.trim()||null;} },
+    description: { get:()=>i.description||"",     set:v=>{i.description=v;}, tall:true,
+                   hint:"The plain-language half, then a blank line and \"Technical shape: …\" for the implementation half." },
+  };
   function inlineEdit(key){
     const blockEl = v.querySelector('.idd-block[data-k="'+key+'"] .bwrap') || v.querySelector('.lens .bwrap');
     const isLens = key==="compounding";
     const target = isLens ? v.querySelector('.lens .bwrap') : blockEl;
     if(!target) return;
-    let val = key==="context" ? (i.context||"") : key==="compounding" ? (i.compounding||"") : key==="reject" ? (i.rejected_reason||"") : "";
+    const spec = INLINE[key];
+    let val = spec ? spec.get() : "";
+    if(key==="reasoning"){
+      target.innerHTML =
+        '<label class="ilab">Why now — what makes this timely rather than merely good?</label>'+
+        '<input type="text" id="e-why" value="'+esc(i.why_now||"")+'">'+
+        '<label class="ilab">Decision needed — the question a reviewer must answer</label>'+
+        '<input type="text" id="e-dec" value="'+esc(i.decision||"")+'">'+
+        '<label class="ilab">Conviction — separate from stage</label>'+
+        '<select id="e-conv"><option value="">—</option>'+opts(CONVICTIONS, i.conviction||"")+'</select>'+
+        '<div class="actions"><button class="btn primary" id="e-save">Save</button><button class="btn" id="e-cancel">Cancel</button></div>';
+      target.querySelector("#e-save").addEventListener("click", () => {
+        i.why_now = target.querySelector("#e-why").value.trim();
+        i.decision = target.querySelector("#e-dec").value.trim();
+        i.conviction = target.querySelector("#e-conv").value;
+        i.updated_at = today(); saveIdeas(); renderIdeaDetail(id);
+      });
+      target.querySelector("#e-cancel").addEventListener("click", () => renderIdeaDetail(id));
+      target.querySelector("#e-why").focus();
+      return;
+    }
     if(key==="proscons"){
       target.innerHTML =
         '<div class="procon"><div><h4>Pros (one per line)</h4><textarea id="e-pros">'+esc(i.pros.join("\n"))+'</textarea></div>'+
@@ -2680,13 +2738,12 @@ function renderIdeaDetail(id){
         i.updated_at = today(); saveIdeas(); renderIdeaDetail(id);
       });
     } else {
-      target.innerHTML = '<textarea id="e-val">'+esc(val)+'</textarea>'+
+      if(!spec) return;
+      target.innerHTML = (spec.hint ? '<label class="ilab">'+esc(spec.hint)+'</label>' : '')+
+        '<textarea id="e-val"'+(spec.tall?' style="min-height:340px"':'')+'>'+esc(val)+'</textarea>'+
         '<div class="actions"><button class="btn primary" id="e-save">Save</button><button class="btn" id="e-cancel">Cancel</button></div>';
       target.querySelector("#e-save").addEventListener("click", () => {
-        const nv = target.querySelector("#e-val").value;
-        if(key==="context") i.context = nv;
-        else if(key==="compounding") i.compounding = nv;
-        else if(key==="reject") i.rejected_reason = nv.trim()||null;
+        spec.set(target.querySelector("#e-val").value);
         i.updated_at = today(); saveIdeas(); renderIdeaDetail(id);
       });
     }

@@ -840,5 +840,50 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T16:45:00Z"
+  },
+  {
+    "id": "B20-1",
+    "epic_id": "B20",
+    "name": "Prose fills its column",
+    "description": "Drop the 72ch/75ch caps that left half the left column empty; bound the page instead so columns stay readable on ultrawide displays.",
+    "kind": "chore",
+    "acceptance_criteria": [
+      "Description and block prose fill their grid column with no large empty gutter",
+      "The page is bounded on very wide screens rather than producing one enormous line",
+      "The two-column layout and its sub-1100px single-column fallback still work"
+    ],
+    "context": "index.html .dplain, .idd-block p, .idd, .idd-grid",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T17:40:00Z"
+  },
+  {
+    "id": "B20-2",
+    "epic_id": "B20",
+    "name": "Every prose region editable in place",
+    "description": "Title, description (both halves), and the why-now/decision/conviction block join context, compounding, pros/cons and sections as click-to-edit-in-place, each with room to write. Edit core keeps only the small structured metadata.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Title, description and the reasoning fields can each be edited from the page without opening Edit core",
+      "Editors are sized for their content — the description gets a tall textarea, not a one-line input",
+      "Save writes and re-renders; Cancel restores; Escape from an editor does not lose the rest of the page",
+      "Edit core still exists for status, priority, category, milestone, theme, tags, deps, constraints and acceptance"
+    ],
+    "context": "index.html renderIdeaDetail(), inlineEdit(), block(); design/idea-detail.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T17:40:00Z"
   }
 ]

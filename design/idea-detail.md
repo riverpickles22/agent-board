@@ -66,6 +66,9 @@ log is a borderless journal, everything else is the standard panel.)
 | Technical shape | `.dtech` | the description's technical half | recessed surface (mixed toward `--ground`) — reference material, not a competing panel |
 | Inline editor | `inlineEdit()` | swaps a block's body for textarea + Save/Cancel | per-key: context / proscons / compounding / reject |
 
+| Editable in place | `inlineEdit()` `INLINE` `.eb` | **every prose region edits where it sits** — title (click it), description (tall textarea holding both halves), why-now/decision/conviction, context, compounding, pros/cons, deep-dive sections, rejected reason | each editor is sized for its content; Save writes + re-renders, Cancel restores, Escape leaves the title untouched. `Edit core` keeps only the small structured metadata (status, priority, category, milestone, theme, tags, deps, constraints, acceptance) — the fields a modal is actually good at |
+| Lead description | `.idd-block.lead` `data-k="description"` | the plain half as lead prose, its edit affordance revealed on hover | borderless so it still reads as the opening paragraph rather than a form field |
+
 ## Interactions
 
 - Every inline save (context, pros/cons, compounding, reject, sections),
@@ -79,6 +82,11 @@ log is a borderless journal, everything else is the standard panel.)
 - Log add: Enter in the input or the Add button; empty input is ignored.
 - Section delete lives inside the section editor (Delete section).
 - Cancel on any inline editor → re-render, nothing written.
+
+- Click the title → inline rename (Enter commits, Escape cancels, blur
+  commits). Click any block's **edit** → that block becomes its editor.
+- Prose fills its grid column: no character cap, with the page bounded
+  at 1760px so ultrawide screens don't produce one enormous line.
 
 ## States
 

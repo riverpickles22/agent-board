@@ -611,5 +611,32 @@
     "claimed_at": null,
     "updated_at": "2026-08-09T16:45:00Z",
     "archived_at": "2026-08-09"
+  },
+  {
+    "id": "B20",
+    "name": "Idea deep dive: fill the page, edit in place",
+    "description": "Prose was capped at ~72 characters inside a 1000px column, leaving a ragged void down the left side, and the long-form fields could only be edited through the cramped 'Edit core' modal. Let the columns carry their content, and make every prose region on the page editable where it sits.",
+    "notes": "Workflow impact: the deep dive becomes a document you write in rather than a read-only view with a modal bolted on. Edit core shrinks to what it is good at — small structured metadata. Direct user request with screenshot (2026-08-09).",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Idea detail spec",
+        "path": "design/idea-detail.md"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T17:40:00Z",
+    "archived_at": "2026-08-09"
   }
 ]
