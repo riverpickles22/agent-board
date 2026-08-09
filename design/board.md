@@ -92,12 +92,13 @@ Modal (over everything, via the shared shell in `system.md`):
 | Card | `cardEl()` `.card` | id, priority pill, name, milestone/theme/tags/systems pills, status, story badge, dep badge, gate chip, claim | draggable, tabIndex 0 |
 | Gate chip | `.card .egate` | `⛔ {gate}` when the epic's gate is closed (`gate ≠ "none"` and not in `open_gates`) | same markup, title, and `--lane-2` color as the rows-mode row-header badge — one gate vocabulary across modes. Absent when the gate is `"none"` or open. Advises only: the chip explains why agents won't pick the card; drag behavior is unchanged (`checkMove` never reads gates) |
 | Story badge | `.stbadge` | "N stories · M ready" | ready count in `--lane-5`; M counts ready stories **not yet in the done lane** — a shipped story is done, not "ready" (finished ≠ pending, the ready-queue's rule). Segment absent when M = 0; N still counts all stories |
-| Dep badge | `.dep` / `.dep.warn` | `⊸ F2` when deps met, `↯ needs F4` when not | warn = any dep not in done lane |
+| Dep badge | `depChips()` `.dep` `.depid` | `⊸` then **one chip per dependency**, each colored by its own state: `✓F2` in `--lane-5` when that dep sits in the done lane, `F4` in `--lane-4` (bold) when it doesn't; a dep id naming nothing renders dim with a "not found" title | per-dep, not lumped — you can see *which* of four deps cleared. Each chip's `title` names the dep and where it currently sits. Unknown ids are shown, never silently dropped |
+| Unblocked card | `.card.unblocked` | green left edge + faint `--lane-5` wash + a `▶ ready to start` marker (`.rdytag`) | renders only when the card **has** deps, **all** are satisfied, and nothing else stops a start: first lane, gate open, unclaimed. A gated / claimed / already-moved card with satisfied deps gets nothing — it isn't startable, and the board never says "ready" about work you can't take. Dep-free cards are untouched: the signal marks a *transition* (the last dep landed), not merely an empty queue. Same left-edge idiom as the ideas page's front burner |
 | Claim | `.claim` | "claimed: {claimed_by}" | accent, only when claimed |
 | Move guard | `checkMove()` | — | can't enter done lane with unmet deps; can't leave it while a done dependent points here |
 | Drop wiring | `wireDrop()` | drop-hover highlight; refused drop → toast with reason | `.no-drop` columns dim during drag (`body.is-dragging`) |
 | Rows: lane strip | `renderSwimlanes()` `.rows-head` | swatch + lane name + story count per lane | sticky atop the scrolling board; same positional `--lc` colors as columns |
-| Rows: swimlane | `swimEl()` `.swim` | one row per shown epic with ≥1 story | row order = epic array order (queue order) |
+| Rows: swimlane | `swimEl()` `.swim` `.swim.unblocked` | one row per shown epic with ≥1 story | row order = epic array order (queue order); an unblocked epic (same rule as `.card.unblocked`) carries the green left edge so the cue reads identically in both modes |
 | Rows: row header | `.swim-h` | epic id, name, gate badge (`.egate`, when gate closed), done-count "d/N {last lane}" | click → `openEdit(id)` |
 | Rows: cell | `.swim .cell` | the epic's stories in that lane | one per lane per row; drop target via `wireStoryDrop()` |
 | Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, **state chip** (`.sstate`), name | draggable within its row; click opens the story modal |
@@ -188,6 +189,12 @@ Modal (over everything, via the shared shell in `system.md`):
   points back to Epics mode. Counts in the header flip to story counts.
 - Rows mode dragging: same `.drop-hover` / `.no-drop` language as
   columns — other rows' cells and gated rows dim.
+- Dependency states repaint themselves: a dep card reaching the done
+  lane turns its chip green everywhere it appears, and the card whose
+  last dep just landed flips to `.unblocked` — arriving over live
+  refresh, so the transition animates rather than appears. The epic's
+  stories change in step (`storyState()` drops `⏳ waiting on X` for
+  `✓ ready`), because both read the same epic health.
 - Story states are display-only vocabulary: `storyState()` never writes
   and every surface (rows chip, modal chip, epic badge, ready queue)
   derives from the same inputs — no surface may read `ready` without

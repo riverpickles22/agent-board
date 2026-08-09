@@ -122,6 +122,16 @@
   .prio.p2{color:var(--ink-3)} .prio.p3{color:var(--ink-3);opacity:.75}
   .card .dep{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
   .card .dep.warn{color:var(--lane-4);font-weight:600}
+  /* one chip per dependency, coloured by that dep's own state */
+  .depid{margin-left:4px}
+  .depid.met{color:var(--lane-5);font-weight:600}
+  .depid.unmet{color:var(--lane-4);font-weight:600}
+  .depid.unknown{color:var(--ink-3);text-decoration:underline dotted}
+  /* the last dep landed and nothing else blocks a start */
+  .card.unblocked{border-left:3px solid var(--lane-5);
+    background:color-mix(in srgb, var(--lane-5) 7%, var(--card))}
+  .rdytag{font-size:11px;font-weight:700;color:var(--lane-5)}
+  .swim.unblocked{border-left:3px solid var(--lane-5)}
   .claim{font-size:11.5px;color:var(--accent);font-weight:600}
   .stbadge{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .stbadge .rdy{color:var(--lane-5);font-weight:600}
@@ -271,6 +281,10 @@
     border-radius:12px;padding:12px 12px 3px;margin-top:18px}
   .bsec.back .idea{background:color-mix(in srgb, var(--panel) 55%, var(--ground))}
   .bsec.back .idea .it{color:var(--ink-2)}
+  /* must outrank .bsec:not(.back) .idea's accent edge (0,3,0) — hence the
+     .bsec-qualified selector, and the plain one for the archive view */
+  .bsec .idea.unblocked, .idea.unblocked{border-left:3px solid var(--lane-5);
+    background:color-mix(in srgb, var(--lane-5) 7%, var(--panel))}
   .idea[draggable=true]{cursor:grab}
   .idea[draggable=true]:active{cursor:grabbing}
   .idea.dragging{opacity:.4}
@@ -598,6 +612,37 @@ function short(s){
 // is already there.
 function doneLane(){ return COLUMNS[COLUMNS.length-1]; }
 function depsOf(e){ return (e.deps||[]).map(d=>byId()[d]).filter(Boolean); }
+// One chip per dependency, coloured by that dep's own state, so you can
+// see *which* of several cleared. Unknown ids are shown, never dropped.
+// `soft` (ideas) keeps unresolved deps dim: idea deps are informational
+// sequencing with no ordering rule, so they must not look like violations.
+function depChips(ids, soft){
+  return (ids||[]).map(id => {
+    const d = byId()[id] || (typeof ideaById === "function" ? ideaById(id) : null);
+    if(!d) return '<span class="depid unknown" title="'+esc(id)+' — no card or idea with this id">'+esc(id)+'</span>';
+    const met = d.column ? d.column === doneLane() : ideaStatus(d) === "done";
+    const where = d.column || ideaStatus(d);
+    return '<span class="depid '+(met ? "met" : (soft ? "unknown" : "unmet"))+'" title="'+
+      esc(id + " — " + (met ? "done" : "still in " + where))+'">'+(met?"✓":"")+esc(id)+'</span>';
+  }).join("");
+}
+// "Every dependency landed and nothing else stops a start" — deliberately
+// narrower than "no deps": this marks the transition, not an empty queue.
+// Ideas: deps are informational sequencing, so "unblocked" means the
+// precondition landed — free to pursue, not a queue position.
+function ideaUnblocked(i){
+  if(!(i.deps||[]).length) return false;
+  if(IDEA_STATUS_ARCHIVE.includes(ideaStatus(i))) return false;   // nothing left to pursue
+  return (i.deps||[]).every(id => {
+    const ep = byId()[id]; if(ep) return ep.column === doneLane();
+    const other = ideaById(id); return other ? ideaStatus(other) === "done" : false;
+  });
+}
+function epicUnblocked(e){
+  if(!(e.deps||[]).length) return false;
+  if(e.column !== COLUMNS[0] || e.claimed_by || !gateOpen(e)) return false;
+  return (e.deps||[]).every(id => { const d = byId()[id]; return d && d.column === doneLane(); });
+}
 function checkMove(e, target){
   if(target === doneLane()){
     const waiting = depsOf(e).filter(d => d.column !== doneLane());
@@ -938,12 +983,13 @@ function render(){
 
 function cardEl(e){
   const el = document.createElement("article");
-  el.className = "card"; el.tabIndex = 0; el.draggable = !boardArchive; el.dataset.id = e.id;
-  const unmet = depsOf(e).filter(d => d.column !== doneLane()).map(d => d.id);
-  const depBits = e.deps && e.deps.length
-    ? (unmet.length
-        ? '<span class="dep warn" title="Must reach '+esc(doneLane())+' before this can move">↯ needs '+esc(unmet.join(" "))+'</span>'
-        : '<span class="dep">⊸ '+esc(e.deps.join(" "))+'</span>')
+  el.className = "card" + (epicUnblocked(e) ? " unblocked" : "");
+  el.tabIndex = 0; el.draggable = !boardArchive; el.dataset.id = e.id;
+  const depBits = (e.deps||[]).length
+    ? '<span class="dep">⊸'+depChips(e.deps)+'</span>'
+    : "";
+  const readyTag = epicUnblocked(e)
+    ? '<span class="rdytag" title="Every dependency is done and nothing else blocks this — it can be started now">▶ ready to start</span>'
     : "";
   const claimBit = e.claimed_by ? '<span class="claim">claimed: '+esc(e.claimed_by)+'</span>' : "";
   // Same badge as the rows-mode row header — one gate vocabulary across
@@ -967,7 +1013,7 @@ function cardEl(e){
       (e.theme?'<span class="tagpill" title="'+esc(e.theme)+'">'+esc(short(e.theme))+'</span>':"")+
       (e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
       (e.systems||[]).map(s=>'<span class="tagpill sys" title="system involved">'+esc(s)+'</span>').join("")+
-      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+gateBit+claimBit+'</div>';
+      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+gateBit+claimBit+readyTag+'</div>';
   el.addEventListener("dragstart", ev => {
     ev.dataTransfer.setData("text/plain", e.id);
     ev.dataTransfer.effectAllowed = "move";
@@ -1026,7 +1072,7 @@ function renderSwimlanes(board, shown){
 
 function swimEl(e){
   const el = document.createElement("section");
-  el.className = "swim"; el.dataset.id = e.id;
+  el.className = "swim" + (epicUnblocked(e) ? " unblocked" : ""); el.dataset.id = e.id;
   const st = storiesOf(e.id);
   const done = st.filter(s => s.column === doneLane()).length;
   const gated = !gateOpen(e);
@@ -1953,10 +1999,11 @@ function renderIdeas(param){
     '</div>';
   const ideaCard = i => {
     const rel = [i.milestone, i.theme].filter(Boolean).map(short).concat(i.tags||[]);
-    return '<div class="idea" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'><div class="it">'+esc(i.title)+'</div>'+
+    return '<div class="idea'+(ideaUnblocked(i)?' unblocked':'')+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'><div class="it">'+esc(i.title)+'</div>'+
       (descParts(i.description).plain ? '<div class="ia">'+esc(descParts(i.description).plain)+'</div>' : '')+
       '<div class="imeta">'+(i.category?'<span class="tagpill">'+esc(i.category)+'</span>':"")+eiBadge(i)+'</div>'+
-      ((i.deps||[]).length ? '<div class="idep">⊸ depends on: '+esc(i.deps.join(" "))+'</div>' : '')+
+      ((i.deps||[]).length ? '<div class="idep">⊸ depends on:'+depChips(i.deps, true)+
+        (ideaUnblocked(i) ? ' <span class="rdytag" title="Everything this idea was waiting on has landed">▶ clear to pursue</span>' : '')+'</div>' : '')+
       (rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+
       '</div>';
   };

@@ -76,7 +76,8 @@ archive — so each view is always a single row; single column under
 | Status column | `.ideas-col` | label + count per view's status list | active: `IDEA_STATUS` (idea → ready for review → ready to implement); archive: `IDEA_STATUS_ARCHIVE` (done, rejected). "Ready for review" is the agent's hand-off; "ready to implement" is the human's thumbs-up (AGENTS.md §2). Legacy statuses (considering/planned/building) render via `ideaStatus()` normalization |
 | Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next), accent-colored; back = the rest, dim, above a dashed divider; each section renders only when non-empty; header `title` names the priority tiers it covers; cards sorted by priority index (unknown priority sinks to back). `.bsec.back .idea` carries the quieter card treatment |
 | Idea card | `ideaCard()` | title, plain description half, category pill, effort/impact / quick-win badge, `.irel` line, dependencies line | shared by every column/section; shows only `descParts().plain` — the "Technical shape:" paragraph stays on the detail page, keeping cards condensed |
-| Dependencies line | `.idep` | `⊸ depends on: <ids>` in mono, dim | renders **only when `deps` is non-empty** — absent otherwise; ids may name ideas or epics; informational, no ordering enforcement (unlike epic deps) |
+| Dependencies line | `.idep` `depChips(ids, soft)` | `⊸ depends on:` then one chip per id, resolved ones `✓id` in `--lane-5` | renders **only when `deps` is non-empty**; ids may name ideas (done) or epics (in the done lane), and unknown ids render dim-dotted rather than vanishing. Unresolved deps stay **dim, never loud** — idea deps are informational sequencing with no ordering rule, so they must not look like the board's dependency violations |
+| Unblocked idea | `.idea.unblocked` `ideaUnblocked()` | green left edge + faint wash + `▶ clear to pursue` | when an **active** idea names deps and every one has landed: the sequencing precondition is met, so the idea is free to develop. Never on archived (done/rejected) ideas, and never on dep-free ideas — like the board's `.card.unblocked`, it marks the transition, not the absence of blockers. Outranks the front-burner accent edge in the cascade; back-burner ideas can show it too |
 | Idea card | `.idea` | title, plain description half, category pill, effort/impact or quick-win badge, milestone·theme·tags line (`.irel`) | whole card clickable |
 | Quick win | `quickWin()` `.qwin` | "★ quick win" when effort low + impact high | else `eiBadge()` shows "low effort · high impact" style summary (`.ei`) |
 | Idea drag | `wireIdeaDrop()` `dropIdea()` | active view only: cards draggable between the three status columns; the Idea column's `.bsec` sections are finer drop targets | drop on a column → set `status` (legacy raw statuses normalize on the way); drop on a burner section → also nudge `priority` into that tier (front → lowest front tier, back → highest back tier); drop on the Idea column outside a section keeps priority. Archive view: no drag — `rejected` requires a reason, so it can't be a drop target |
@@ -122,6 +123,10 @@ archive — so each view is always a single row; single column under
 - Live refresh motion: an agent moving or reordering ideas glides the
   cards to their new column/position with the lift effect; edits pulse
   `.flash` (system.md → Refresh motion).
+- Dependency resolution repaints in place: finishing the idea or epic a
+  card names turns that chip green, and the last one flips the whole
+  card to `.unblocked` — the same language the board page uses, so one
+  visual vocabulary covers both surfaces.
 - Statuses are code-level, not config vocab — the one fixed vocabulary
   in the app (see Open questions).
 - The toggle stays visible in both views so you can always flip back.
