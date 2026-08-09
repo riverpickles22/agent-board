@@ -1,6 +1,6 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-08-08.
+*The medium-altitude view, for humans and agents. As of 2026-08-09.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
@@ -22,18 +22,29 @@ Binds to 127.0.0.1 only.
 
 ## The five surfaces (in flow order: capture → intent → work → record)
 
-**Ideas** — the funnel that decides what enters execution (Ideas asks *what might this become*; the Board asks *what are we building*). Colour tracks maturity — gray dormant, blue being shaped, amber decision-required, green cleared — and each card grows as it matures, ending with **⇥ Promote to Board**, the one recorded moment an idea becomes committed work. Three active columns: `idea` →
-`ready for review` (the agent's hand-off: the deep dive holds enough to
-decide) → `ready to implement` (the human's thumbs-up — from there the
-idea is decomposed into an epic + stories on the Board page before
-building, and the agent moves those cards through the lanes in real
-time as it works). Cards drag
-between the active columns (and between burners, nudging priority);
-the archive is not a drop target since rejecting requires a reason.
-The Idea column
-splits into **Front burner / Back burner** by priority so attention goes
-to the top. `done` and `rejected` live behind an archive toggle.
-Ideas can declare informational `deps` (shown only when set). Each idea
+**Ideas** — the funnel that decides what enters execution. *Ideas* asks
+"what might this become"; the *Board* asks "what are we building". The
+lifecycle runs **capture → back burner → front burner → review → ready
+→ promote**, and each stage answers one of two questions: how much do
+we believe in this, and is it defined enough to graduate? **Back
+burner** is preserved but not worth design time; **front burner** is
+being actively shaped; **ready for review** is shaped enough that only
+a decision remains; **ready to implement** means intent is settled.
+
+Colour is the maturity scale — gray dormant, blue shaping, amber
+decision-required, green cleared — and it is the *only* colour on a
+card, so the stage always reads at a glance. Cards grow as they mature
+rather than being rewritten: a back-burner card is a title, a
+one-sentence outcome and a bet; front burner adds why-now, **Opens**
+(the inverse of dependencies, making architectural leverage visible)
+and what it waits on; a review card leads with **Decision needed**; a
+ready card states constraints and its acceptance boundary. Then
+**⇥ Promote to Board** creates the execution epic — the one recorded
+moment an idea becomes committed work.
+
+Cards drag between the active columns (and between burners, nudging
+priority); the archive is not a drop target since rejecting requires a
+reason. `done` and `rejected` live behind an archive toggle. Each idea
 has a deep-dive page: context, pros/cons, a **decision lens** (effort ×
 impact, quick-win flag, compounding), freeform sections, and an
 append-only dated brainstorm log.
