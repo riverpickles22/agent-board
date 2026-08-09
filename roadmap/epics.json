@@ -32,8 +32,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T12:30:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -70,8 +70,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T12:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -108,8 +108,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T13:45:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -146,8 +146,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:20:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -181,8 +181,8 @@
       "B3"
     ],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:40:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -214,8 +214,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T16:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -242,8 +242,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -275,8 +275,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:35:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -308,8 +308,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -330,8 +330,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T19:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -352,8 +352,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T19:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -380,8 +380,8 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T20:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:20:00Z",
     "archived_at": "2026-08-08"
   },
@@ -412,9 +412,42 @@
     "gate": "none",
     "deps": [],
     "column": "Done",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T21:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:35:00Z",
+    "archived_at": "2026-08-08"
+  },
+  {
+    "id": "B14",
+    "name": "Agent onboarding — the contract explains itself on arrival",
+    "description": "An agent should be able to act correctly within one short read. AGENTS.md gains a §0 orientation map (what this is, the five files, the five surfaces, the inviolable rules, where depth lives); the skill lists what the tool can do today; PROTOCOL learns about archived_at; CAPABILITIES and README catch up with the twelve features shipped this session; and the contract itself becomes fetchable over HTTP so an agent with only the URL can read it.",
+    "notes": "Workflow impact: onboarding drops from ~600 lines of prose to a ~40-line map that names everything and points at depth on demand. Direct user request (2026-08-08). Audit found real drift: archived_at absent from PROTOCOL, './board stop' documented nowhere, SKILL.md unaware of every feature shipped today.",
+    "theme": "Agent enablement",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "The contract",
+        "path": "AGENTS.md",
+        "note": "§0 is the new entry point"
+      },
+      {
+        "label": "Capability inventory",
+        "path": "CAPABILITIES.md",
+        "note": "served at /docs and /llms.txt"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-08T23:00:00Z",
     "archived_at": "2026-08-08"
   }
 ]

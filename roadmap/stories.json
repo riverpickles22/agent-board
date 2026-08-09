@@ -18,8 +18,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T12:30:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T12:45:00Z"
   },
   {
@@ -41,8 +41,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T12:45:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T12:55:00Z"
   },
   {
@@ -64,8 +64,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T12:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T13:05:00Z"
   },
   {
@@ -87,8 +87,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T13:45:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T14:00:00Z"
   },
   {
@@ -110,8 +110,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T14:20:00Z"
   },
   {
@@ -133,8 +133,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:20:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T14:40:00Z"
   },
   {
@@ -156,8 +156,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:40:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T14:55:00Z"
   },
   {
@@ -179,8 +179,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T14:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T15:10:00Z"
   },
   {
@@ -202,8 +202,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T16:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T16:40:00Z"
   },
   {
@@ -224,8 +224,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T17:10:00Z"
   },
   {
@@ -247,8 +247,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:35:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T17:55:00Z"
   },
   {
@@ -269,8 +269,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T17:55:00Z"
   },
   {
@@ -291,8 +291,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T17:55:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T18:05:00Z"
   },
   {
@@ -314,8 +314,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T18:05:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T18:20:00Z"
   },
   {
@@ -336,8 +336,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T19:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T19:20:00Z"
   },
   {
@@ -357,8 +357,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T19:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T19:20:00Z"
   },
   {
@@ -380,8 +380,8 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T20:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T20:25:00Z"
   },
   {
@@ -403,8 +403,54 @@
     "ready": true,
     "column": "Done",
     "priority": "Now",
-    "claimed_by": "claude (this session)",
-    "claimed_at": "2026-08-08T21:00:00Z",
+    "claimed_by": null,
+    "claimed_at": null,
     "updated_at": "2026-08-08T21:35:00Z"
+  },
+  {
+    "id": "B14-1",
+    "epic_id": "B14",
+    "name": "AGENTS.md §0 orientation + contract drift fixes",
+    "description": "A compact orientation section at the top of AGENTS.md (the first file the skill mandates) mapping the whole tool; PROTOCOL.md learns archived_at and states that shipped epics are out of the selection set; SKILL.md gains a current capability list and ./board stop.",
+    "kind": "docs",
+    "acceptance_criteria": [
+      "AGENTS.md opens with an orientation section naming the five data files, the five UI surfaces, the inviolable rules, and where each detail lives — readable in under a minute",
+      "PROTOCOL.md documents archived_at and excludes archived epics from the selection set",
+      "SKILL.md lists the capabilities available today (including History, ratify panel, briefing, palette, ship & archive) and documents ./board stop",
+      "Every cross-reference resolves: no doc points at a section that doesn't exist"
+    ],
+    "context": "AGENTS.md, PROTOCOL.md, .claude/skills/agent-board/SKILL.md; audit found archived_at/board-stop/today's-features missing",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-08T22:45:00Z"
+  },
+  {
+    "id": "B14-2",
+    "epic_id": "B14",
+    "name": "CAPABILITIES + README refresh; serve the contract over HTTP",
+    "description": "CAPABILITIES.md restructured for five surfaces (not 'three pages'), with story states and ./board stop added and the date bumped; README refreshed for humans; server.js serves AGENTS.md and PROTOCOL.md so an agent holding only the URL can read the contract it must follow.",
+    "kind": "docs",
+    "acceptance_criteria": [
+      "CAPABILITIES.md describes five surfaces accurately, mentions story-state vocabulary, ./board stop, and archived_at, with a current 'as of' date",
+      "README.md mentions the History page, ratify/briefing, palette, and shipped archive",
+      "GET /AGENTS.md and GET /PROTOCOL.md return those files as markdown; /docs and /llms.txt still serve CAPABILITIES.md",
+      "The HTTP surface list in CAPABILITIES.md includes the new contract routes"
+    ],
+    "context": "CAPABILITIES.md, README.md, server.js (sendFile pattern, existing /docs + /llms.txt routes)",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-08T23:00:00Z"
   }
 ]
