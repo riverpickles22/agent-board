@@ -658,5 +658,164 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T13:00:00Z"
+  },
+  {
+    "id": "B18-1",
+    "epic_id": "B18",
+    "name": "Collapse Back Burner by default",
+    "description": "The back burner is memory, not workspace: 'Back Burner 16 ▸' collapses its section, remembered per browser and project.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Back burner renders collapsed by default showing only its header and count",
+      "Clicking the header expands/collapses it and the choice survives a reload",
+      "Front burner and the other columns are unaffected; the collapsed section is not a drop target for new drags mid-collapse"
+    ],
+    "context": "design/ideas.md; index.html renderIdeas(), modeKey()/rememberBoardMode() memory pattern",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T14:20:00Z"
+  },
+  {
+    "id": "B18-2",
+    "epic_id": "B18",
+    "name": "Condense the filter wall to one row",
+    "description": "Default board header is Current/Shipped · Milestone ▾ · Theme ▾ · More filters; tags and the save-view chip move behind the disclosure.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The board header occupies one row by default on a board with 5 milestones and 6 themes",
+      "Milestone and theme filtering still work through the selects, with 'All' available",
+      "Tag filtering and '★ set as default view' remain reachable under More filters",
+      "Filter state and the saved default view behave exactly as before"
+    ],
+    "context": "design/board.md; index.html renderFilters(), filterMS/filterTheme/filterTag",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T14:35:00Z"
+  },
+  {
+    "id": "B18-3",
+    "epic_id": "B18",
+    "name": "Collapse completed work, with an inline archive nudge",
+    "description": "Done column collapses to '✓ N done · View'; in rows mode done stories collapse per row and a fully-done unarchived epic collapses to one line offering Ship & archive inline.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The done lane renders collapsed with a count and expands on click",
+      "A fully-done unarchived epic's swimlane collapses to a single line and offers Ship & archive there",
+      "Archiving from that line removes the epic from the active board exactly as the modal action does",
+      "An epic with work remaining still shows its unfinished stories prominently"
+    ],
+    "context": "design/board.md; index.html render(), swimEl(), toggleArchiveEpic()",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T14:50:00Z"
+  },
+  {
+    "id": "B18-4",
+    "epic_id": "B18",
+    "name": "The needs-you state: waiting on a human, not a dependency",
+    "description": "Optional needs {kind, reason} on stories and epics, rendered amber at the top of storyState()'s priority order so an agent can say why it stopped.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A story with needs renders an amber '⚠ needs decision' state naming the reason, ahead of every other state",
+      "It is visually and semantically distinct from dependency-blocked and from gated",
+      "AGENTS.md documents the field and instructs agents to set it instead of stalling silently",
+      "Clearing needs returns the card to its normal computed state"
+    ],
+    "context": "AGENTS.md §2; design/board.md; index.html storyState(), cardEl()",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T15:05:00Z"
+  },
+  {
+    "id": "B18-5",
+    "epic_id": "B18",
+    "name": "Lanes: Ready | In Progress | Review | Done, with positional colour",
+    "description": "Arc migrates to four lanes; lane colour becomes positional-semantic (first gray, middle accent, review amber, last green) with no hardcoded lane names; promoted epics with no stories show 'needs grooming'.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Lane colours derive from position, so any project's lane names work unchanged",
+      "Next up, the ready queue, the dependency guard and WIP counts all still key off COLUMNS[0] and doneLane() correctly",
+      "An epic in the first lane with no ready stories renders a 'needs grooming' state",
+      "Arc's config and cards are migrated in the working tree and left uncommitted"
+    ],
+    "context": "design/system.md execution scale; design/board.md; index.html laneVar()/render(); arc roadmap/config.json",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T15:20:00Z"
+  },
+  {
+    "id": "B18-6",
+    "epic_id": "B18",
+    "name": "Epic rows tell the story; Ready becomes the work queue",
+    "description": "Row headers gain '4/7 done · 3 ready · 0 blocked' with a thin progress bar; the ready strip becomes a labelled 'Ready to pick up · N' block naming why each item qualifies.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Each swimlane header shows done/total, ready count and blocked count with a progress indicator",
+      "The ready strip is visually a block with a count, not an inline chip row",
+      "Each ready item shows why it is pickable from data readyQueue() already computes",
+      "Counts stay correct as cards move, over live refresh"
+    ],
+    "context": "design/board.md; index.html swimEl(), renderReadyQueue(), readyQueue()",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T15:40:00Z"
+  },
+  {
+    "id": "B18-7",
+    "epic_id": "B18",
+    "name": "Provenance: an idea shows what shipped from it",
+    "description": "An idea with promoted_to renders 'Implemented by A7 · N stories · shipped <date>', computed from the epic.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A promoted idea's deep dive shows the epic, its story count and whether it has shipped",
+      "The line updates as the epic progresses, without storing anything new on the idea",
+      "An unpromoted idea shows nothing extra"
+    ],
+    "context": "index.html renderIdeaDetail(); epic lookup via promoted_to",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T15:40:00Z"
   }
 ]

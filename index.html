@@ -74,6 +74,12 @@
 
   .filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:13px;padding:0 22px}
   .flabel{font-size:12px;color:var(--ink-3);margin-right:3px}
+  .fsel{display:inline-flex;align-items:center;gap:5px}
+  .fsel select{font:inherit;font-size:12.5px;color:var(--ink);background:var(--card);
+    border:1px solid var(--line);border-radius:20px;padding:4px 8px;cursor:pointer;max-width:19ch}
+  .fsel select:hover{border-color:var(--accent)}
+  .fmore .fdot{color:var(--accent)}
+  .frow2{flex-basis:100%;display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}
   .chip{font-family:var(--sans);font-size:14px;font-weight:500;padding:6px 13px;border-radius:20px;
     border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer;transition:all .12s ease}
   .chip:hover{border-color:var(--accent);color:var(--ink)}
@@ -92,7 +98,21 @@
   .nextup .pick .pnm{color:var(--ink);font-weight:500;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nextup .pick .pwhy{font-size:11.5px;color:var(--ink-3);white-space:nowrap}
   .nextup .none{font-size:13px;color:var(--ink-3)}
-  .readyq{margin-top:6px}
+  /* the agent work queue reads as a block, not an aside */
+  .readyq{margin:8px 22px 0;padding:10px 14px;border:1px solid var(--line);border-radius:10px;
+    background:var(--panel);display:block}
+  .readyq.empty{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0 22px}
+  .rq-h{font-size:12px;font-weight:700;color:var(--ink-2);display:flex;align-items:baseline;gap:8px}
+  .rq-n{font-family:var(--mono);color:var(--st-ready);font-size:13px}
+  .rq-sub{font-weight:400;font-size:11px;color:var(--ink-3);margin-left:auto}
+  .rq-list{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .rq-item{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border:0;border-radius:7px;
+    background:none;cursor:pointer;text-align:left;width:100%}
+  .rq-item:hover{background:var(--accent-soft)}
+  .rq-item .rid{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);flex:0 0 auto}
+  .rq-item .rnm{font-size:13.5px;color:var(--ink)}
+  .rq-item .rq-why{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+  .readyq-old{margin-top:6px}
   .readyq .repic{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-3);margin-right:-1px}
   .readyq .rpick{display:inline-flex;align-items:baseline;gap:7px;font-size:13px;padding:5px 11px;border-radius:9px;
     border:1px solid var(--line);background:var(--card);cursor:pointer}
@@ -173,6 +193,22 @@
   .swim-h .eid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent)}
   .swim-h .en{font-size:14.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em;transition:color .12s ease}
   .swim-h .egate{font-size:11px;color:var(--lane-2);font-weight:600}
+  .swim-h .edone{margin-left:auto;font-size:12px;color:var(--st-ready);font-weight:600}
+  .swim.done-fold{opacity:.72}
+  .swim.done-fold .swim-h{border-bottom:0}
+  .rowarch{margin-left:10px;font-size:11px;padding:2px 9px}
+  .eroll{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .eroll .bar{display:inline-block;width:56px;height:4px;border-radius:3px;background:var(--line);overflow:hidden}
+  .eroll .bar i{display:block;height:100%;background:var(--st-ready)}
+  .eroll .rdy{color:var(--st-ready);font-weight:700}
+  .eroll .needs{color:var(--st-blocked);font-weight:700}
+  /* the one state that is asking for a person — amber edge, reason on the card */
+  .scard.needs-you, .card.needs-you{border-left:3px solid var(--st-blocked)}
+  .needsline{font-size:11.5px;color:var(--st-blocked);margin-top:5px;line-height:1.4}
+  .donefold{font-size:12px;color:var(--st-ready);background:none;border:1px dashed var(--line);
+    border-radius:8px;padding:7px 10px;cursor:pointer;width:100%;text-align:left}
+  .donefold:hover{border-color:var(--st-ready)}
   .card .egate{font-size:11px;color:var(--lane-2);font-weight:600}
   .swim-h .eprog{margin-left:auto;font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .swim-b{display:grid;grid-template-columns:repeat(var(--lanes),1fr)}
@@ -320,6 +356,10 @@
   .idea[data-state="rejected"]{border-left-color:var(--st-problem)}
   .bsec.back{background:color-mix(in srgb, var(--ground) 65%, var(--panel));border:1px dashed var(--line);
     border-radius:12px;padding:12px 12px 3px;margin-top:18px}
+  .bsec.back.folded{padding-bottom:12px}
+  .bsec.back.folded .idea{display:none}
+  h4.burner[role=button]{cursor:pointer;user-select:none}
+  h4.burner .fold{font-size:9px;margin-right:1px}
   .bsec.back .idea .it{color:var(--ink-2)}
   .idea[draggable=true]{cursor:grab}
   .idea[draggable=true]:active{cursor:grabbing}
@@ -628,10 +668,42 @@ let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
 let filterMS = "all", filterTheme = "all", filterTag = "all";
 let boardMode = "epics";   // "epics" (columns of epic cards) | "rows" (story swimlanes by epic)
 let boardArchive = false;  // false = current work, true = the Shipped view (archived_at epics)
+let moreFilters = false;   // taxonomy stays hidden until asked for — the board is for execution
+const expandedRows = new Set();   // finished epics the human opened back up
+const expandedDone = new Set();   // rows whose done column was expanded
+// Completed work is the least demanding thing on the board; it summarises
+// unless asked for. Epic-level counts the row header reports.
+function epicRollup(e, st){
+  const done = st.filter(s => s.column === doneLane()).length;
+  const ready = st.filter(s => s.ready && s.column === COLUMNS[0] && !s.claimed_by).length;
+  const stuck = st.filter(s => s.needs && s.column !== doneLane()).length;
+  const pct = st.length ? Math.round(done/st.length*100) : 0;
+  return '<span class="eroll">'+
+    '<span class="bar" title="'+pct+'% complete"><i style="width:'+pct+'%"></i></span>'+
+    done+'/'+st.length+' done'+
+    (ready ? ' · <b class="rdy">'+ready+' ready</b>' : '')+
+    (stuck ? ' · <b class="needs">'+stuck+' needs you</b>' : '')+'</span>';
+}
 let modalMode = "edit";
 let editingId = null;
 const byId = () => Object.fromEntries(state.epics.map(e => [e.id, e]));
-const laneVar = col => "var(--lane-"+(COLUMNS.indexOf(col)%6)+")";
+// Lane colour is positional and semantic, never keyed to lane *names* —
+// projects define their own vocabulary. First lane is queued (gray), the
+// last is done (green), the one before it reads as verification (amber)
+// once a board has a dedicated review lane, and everything between is
+// active work (accent).
+function laneVar(col){
+  const i = COLUMNS.indexOf(col), n = COLUMNS.length;
+  if(i <= 0) return "var(--st-idle)";
+  if(i === n-1) return "var(--st-ready)";
+  if(n > 3 && i === n-2) return "var(--st-blocked)";
+  return "var(--accent)";
+}
+// A promoted epic arrives with no stories: committed, but not yet
+// broken down. Say so rather than letting it look ready.
+function needsGrooming(e){
+  return e.column === COLUMNS[0] && !e.archived_at && storiesOf(e.id).length === 0;
+}
 const prioClass = p => "p"+Math.max(0, PRIOS.indexOf(p));
 const storiesOf = id => state.stories.filter(s => s.epic_id === id);
 // "M0 Reliable foundation" -> "M0", "Phase 2 The story…" -> "Phase 2"; no code prefix -> full string
@@ -752,8 +824,21 @@ function hashPick(id, pool){
 }
 const KIND_VERB = { feature:"cooking", test:"testing", chore:"tidying up", docs:"writing", integration:"wiring up" };
 const DONE_POOL = ["✓ shipped", "✓ plated", "✓ in the books"];
+// "Waiting on you" is not "blocked" — a dependency resolves itself when
+// other work lands, but this one only moves when a human answers. It
+// outranks every other state because it is the only one asking for you.
+function needsBit(x){
+  const n = x && x.needs;
+  if(!n || x.column === doneLane()) return null;
+  const kind = (typeof n === "string") ? "decision" : (n.kind || "decision");
+  const reason = (typeof n === "string") ? n : (n.reason || "");
+  return { cls:"warn", label:"⚠ needs "+kind, reason,
+           title:"Waiting on you — "+(reason || "no reason recorded") };
+}
 function storyState(s){
   const done = doneLane();
+  const needs = needsBit(s);
+  if(needs) return needs;
   if(s.column === done){
     const waiting = storiesOf(s.epic_id).filter(x => x.id !== s.id && x.column !== done).map(x => x.id);
     if(waiting.length)
@@ -782,6 +867,12 @@ function stateChip(s){
   const st = storyState(s);
   return '<span class="sstate '+st.cls+'" title="'+esc(st.title)+'">'+esc(st.label)+'</span>';
 }
+// The reason belongs on the card, not only in a tooltip — that's the
+// whole point: you should be able to answer it without opening anything.
+function needsLine(x){
+  const n = needsBit(x);
+  return n && n.reason ? '<div class="needsline">'+esc(n.reason)+'</div>' : "";
+}
 
 // Story-grain PROTOCOL §3 — the "begin X" menu. A story is pickable when
 // ready (the human's flag), sitting in the first lane, unclaimed, and its
@@ -808,25 +899,29 @@ function renderReadyQueue(){
   if(boardArchive || !state.stories.length){ el.style.display = "none"; el.innerHTML = ""; return; }
   el.style.display = "";
   const { picks, readyButStuck } = readyQueue();
-  let html = '<span class="flabel">Ready</span>';
+  // This strip is the agent work queue — the board's most operational
+  // element — so it reads as a block with a count, not an inline aside,
+  // and each item says why it qualified.
   if(!picks.length){
-    html += '<span class="none">nothing ready to begin — '+
+    el.className = "readyq empty";
+    el.innerHTML = '<span class="flabel">Ready to pick up · 0</span>'+
+      '<span class="none">'+
       (readyButStuck ? readyButStuck+" ready "+(readyButStuck===1?"story is":"stories are")+" claimed, in flight, or behind a gate/dep"
                      : "no story has ready: true (the human's flag)")+'</span>';
-  } else {
-    // group under each epic's id, epics ordered by their best story's rank
-    const seen = [];
-    picks.forEach(p => { if(!seen.includes(p.ep.id)) seen.push(p.ep.id); });
-    html += seen.map(eid =>
-      '<span class="repic" title="epic '+esc(eid)+'">'+esc(eid)+' ▸</span>'+
-      picks.filter(p => p.ep.id === eid).map(({s}) =>
-        '<button class="rpick" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'" title="'+esc(s.name)+'">'+
-        '<span class="rk">'+esc(s.kind||"feature")+'</span><span class="rid">'+esc(s.id)+'</span>'+
-        '<span class="rnm">'+esc(s.name)+'</span></button>').join("")
-    ).join("");
+    return;
   }
-  el.innerHTML = html;
-  el.querySelectorAll(".rpick").forEach(b =>
+  el.className = "readyq";
+  el.innerHTML = '<div class="rq-h">Ready to pick up <span class="rq-n">'+picks.length+'</span>'+
+      '<span class="rq-sub">dependencies satisfied · criteria defined · unclaimed</span></div>'+
+    '<div class="rq-list">'+picks.map(({s, ep}) =>
+      '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
+        '<span class="rid">'+esc(s.id)+'</span>'+
+        '<span class="rnm">'+esc(s.name)+'</span>'+
+        '<span class="rq-why">'+esc(ep.id+" · "+(s.kind||"feature"))+
+          ((s.acceptance_criteria||[]).length ? ' · '+(s.acceptance_criteria||[]).length+' criteria' : '')+
+        '</span>'+
+      '</button>').join("")+'</div>';
+  el.querySelectorAll(".rq-item").forEach(b =>
     b.addEventListener("click", () => renderStoryModal(b.dataset.eid, b.dataset.sid)));
 }
 function renderNextUp(){
@@ -880,6 +975,7 @@ async function load(){
   // An explicit hash in the URL wins over default_page so bookmarks keep working.
   const d = viewDefaults();
   filterMS = d.ms; filterTheme = d.theme; boardMode = savedBoardMode() || d.mode;
+  loadBurnerFold();
   if(!location.hash && d.page !== "board") location.hash = "#/" + d.page;
   renderFilters();
   render();
@@ -899,6 +995,18 @@ function allTags(){
 // The Epics/Rows toggle is remembered per browser, keyed by project title,
 // so it survives reloads without touching the shared config.json default.
 function modeKey(){ return "agent-board:mode:" + (((state.config||{}).view||{}).title || "board"); }
+// Back burner starts folded (it's the archive of intent, not the workspace);
+// the choice is remembered per browser and project, like the mode toggle.
+function burnerKey(){ return "agent-board:backburner:" + (((state.config||{}).view||{}).title || "board"); }
+let backBurnerOpen = false;
+function loadBurnerFold(){
+  try { backBurnerOpen = localStorage.getItem(burnerKey()) === "open"; } catch(e){ backBurnerOpen = false; }
+}
+function toggleBurnerFold(){
+  backBurnerOpen = !backBurnerOpen;
+  try { localStorage.setItem(burnerKey(), backBurnerOpen ? "open" : "folded"); } catch(e){}
+  renderIdeas(null);
+}
 function savedBoardMode(){
   try { const m = localStorage.getItem(modeKey()); return (m==="epics"||m==="rows") ? m : null; }
   catch(e){ return null; }
@@ -931,14 +1039,35 @@ function renderFilters(){
   if(shippedN || boardArchive) html +=
     '<button class="chip" data-arch="0" aria-pressed="'+(!boardArchive)+'">Current</button>'+
     '<button class="chip" data-arch="1" aria-pressed="'+boardArchive+'" title="Closed epics — archived off the active board, still counted by milestones and deps">Shipped ('+shippedN+')</button>';
-  if(MILESTONES.length) html += row("Milestone","ms",MILESTONES,filterMS,false);
-  if(THEMES.length)     html += row("Theme","theme",THEMES,filterTheme,false);
-  if(tags.length)       html += row("Tag","tag",tags,filterTag,true);
-  // Offer to save the current view as this project's default, only when it differs.
+  // The header prioritises execution over taxonomy: milestone and theme
+  // collapse to selects, and everything else hides until asked for. Chip
+  // rows returned as many as there are vocab entries — three rows before
+  // you reached the work.
+  const sel = (label, key, values, current) =>
+    '<label class="fsel"><span class="flabel">'+label+'</span>'+
+      '<select data-fk="'+key+'"><option value="all"'+(current==="all"?" selected":"")+'>All</option>'+
+      values.map(v => '<option value="'+esc(v)+'"'+(v===current?" selected":"")+'>'+esc(short(v))+'</option>').join("")+
+    '</select></label>';
+  if(MILESTONES.length) html += sel("Milestone","ms",MILESTONES,filterMS);
+  if(THEMES.length)     html += sel("Theme","theme",THEMES,filterTheme);
   const d = viewDefaults();
-  if(filterMS!==d.ms || filterTheme!==d.theme || boardMode!==d.mode)
-    html += '<button class="chip savev" id="save-view" title="Save the current filters as this project\'s default view (writes config.json)">★ set as default view</button>';
+  const viewDiffers = filterMS!==d.ms || filterTheme!==d.theme || boardMode!==d.mode;
+  const extras = tags.length || viewDiffers;
+  if(extras) html += '<button class="chip fmore" id="more-filters" aria-expanded="'+moreFilters+'">'+
+    (moreFilters?"Fewer filters":"More filters")+(filterTag!=="all"?' <span class="fdot">•</span>':'')+'</button>';
+  if(extras && moreFilters){
+    html += '<div class="frow2">';
+    if(tags.length) html += row("Tag","tag",tags,filterTag,true);
+    if(viewDiffers) html += '<button class="chip savev" id="save-view" title="Save the current filters as this project\'s default view (writes config.json)">★ set as default view</button>';
+    html += '</div>';
+  }
   f.innerHTML = html;
+  f.querySelectorAll("select[data-fk]").forEach(s => s.addEventListener("change", () => {
+    if(s.dataset.fk==="ms") filterMS = s.value; else filterTheme = s.value;
+    renderFilters(); render();
+  }));
+  const mf = document.getElementById("more-filters");
+  if(mf) mf.addEventListener("click", () => { moreFilters = !moreFilters; renderFilters(); });
   f.querySelectorAll(".chip[data-k]").forEach(c => c.addEventListener("click", () => {
     const v = c.dataset.v;
     if(c.dataset.k==="ms") filterMS = v;
@@ -1042,7 +1171,8 @@ function render(){
 
 function cardEl(e){
   const el = document.createElement("article");
-  el.className = "card" + (epicUnblocked(e) ? " unblocked" : "");
+  const epicNeeds = needsBit(e);
+  el.className = "card" + (epicNeeds ? " needs-you" : (epicUnblocked(e) ? " unblocked" : ""));
   el.tabIndex = 0; el.draggable = !boardArchive; el.dataset.id = e.id;
   const depBits = (e.deps||[]).length
     ? '<span class="dep">⊸'+depChips(e.deps)+'</span>'
@@ -1072,7 +1202,11 @@ function cardEl(e){
       (e.theme?'<span class="tagpill" title="'+esc(e.theme)+'">'+esc(short(e.theme))+'</span>':"")+
       (e.tags||[]).map(t=>'<span class="tagpill">'+esc(t)+'</span>').join("")+
       (e.systems||[]).map(s=>'<span class="tagpill sys" title="system involved">'+esc(s)+'</span>').join("")+
-      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+gateBit+claimBit+readyTag+'</div>';
+      (e.status?'<span class="st">'+esc(e.status)+'</span>':"")+storyBit+depBits+gateBit+claimBit+
+      (epicNeeds ? '<span class="sstate warn" title="'+esc(epicNeeds.title)+'">'+esc(epicNeeds.label)+'</span>'
+        : needsGrooming(e) ? '<span class="sstate warn" title="Committed but not broken down yet — groom it into stories with acceptance criteria">⚠ needs grooming</span>'
+        : readyTag)+
+      '</div>'+needsLine(e);
   el.addEventListener("dragstart", ev => {
     ev.dataTransfer.setData("text/plain", e.id);
     ev.dataTransfer.effectAllowed = "move";
@@ -1119,6 +1253,8 @@ function renderSwimlanes(board, shown){
   }).join("");
   board.appendChild(head);
   withStories.forEach(e => board.appendChild(swimEl(e)));
+  board.querySelectorAll("[data-arch-epic]").forEach(b =>
+    b.addEventListener("click", ev => { ev.stopPropagation(); toggleArchiveEpic(b.dataset.archEpic); }));
   const without = shown.length - withStories.length;
   const note = document.createElement("div");
   note.className = "rows-note";
@@ -1131,39 +1267,68 @@ function renderSwimlanes(board, shown){
 
 function swimEl(e){
   const el = document.createElement("section");
-  el.className = "swim" + (epicUnblocked(e) ? " unblocked" : ""); el.dataset.id = e.id;
   const st = storiesOf(e.id);
   const done = st.filter(s => s.column === doneLane()).length;
+  const finished = st.length > 0 && done === st.length && e.column === doneLane() && !e.archived_at;
+  const folded = finished && !expandedRows.has(e.id);
+  el.className = "swim" + (epicUnblocked(e) ? " unblocked" : "") + (folded ? " done-fold" : "");
+  el.dataset.id = e.id;
   const gated = !gateOpen(e);
   const h = document.createElement("div");
-  h.className = "swim-h"; h.title = "Edit "+e.id;
-  h.innerHTML =
-    '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
-    (gated ? '<span class="egate" title="Closed until a human adds this gate to open_gates in config.json">⛔ '+esc(e.gate)+'</span>' : "")+
-    '<span class="eprog">'+done+'/'+st.length+' '+esc(doneLane())+'</span>';
-  h.addEventListener("click", () => openEdit(e.id));
-  const b = document.createElement("div");
-  b.className = "swim-b";
-  COLUMNS.forEach(col => {
-    const cell = document.createElement("div");
-    cell.className = "cell"; cell.dataset.col = col; cell.dataset.epic = e.id;
-    cell.style.setProperty("--lc", laneVar(col));
-    st.filter(s => s.column === col).forEach(s => cell.appendChild(storyCardEl(s)));
-    wireStoryDrop(cell);
-    b.appendChild(cell);
+  h.className = "swim-h"; h.title = folded ? "Finished — click to expand" : "Edit "+e.id;
+  // A finished-but-unarchived epic is one line plus the action that clears
+  // it off the board — the archive lives in the modal, which rows mode
+  // can't reach, so it comes to the row instead.
+  h.innerHTML = folded
+    ? '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
+      '<span class="edone">✓ '+done+'/'+st.length+'</span>'+
+      '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="Close this epic off the active board — milestones and dependencies still count it">⌂ Ship &amp; archive</button>'
+    : '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
+      (gated ? '<span class="egate" title="Closed until a human adds this gate to open_gates in config.json">⛔ '+esc(e.gate)+'</span>' : "")+
+      epicRollup(e, st);
+  h.addEventListener("click", ev => {
+    if(ev.target.closest("[data-arch-epic]")) return;      // the button owns its click
+    if(finished){ expandedRows.has(e.id) ? expandedRows.delete(e.id) : expandedRows.add(e.id); render(); return; }
+    openEdit(e.id);
   });
-  el.appendChild(h); el.appendChild(b);
+  el.appendChild(h);
+  if(!folded){
+    const b = document.createElement("div");
+    b.className = "swim-b";
+    COLUMNS.forEach(col => {
+      const cell = document.createElement("div");
+      cell.className = "cell"; cell.dataset.col = col; cell.dataset.epic = e.id;
+      cell.style.setProperty("--lc", laneVar(col));
+      const inCol = st.filter(s => s.column === col);
+      // Finished stories inside a still-active epic collapse to a count:
+      // the remaining work should own the row's attention.
+      if(col === doneLane() && inCol.length && !expandedDone.has(e.id) && done !== st.length){
+        const sum = document.createElement("button");
+        sum.className = "donefold"; sum.type = "button";
+        sum.textContent = "✓ "+inCol.length+" done · view";
+        sum.addEventListener("click", ev => { ev.stopPropagation(); expandedDone.add(e.id); render(); });
+        cell.appendChild(sum);
+      } else {
+        inCol.forEach(s => cell.appendChild(storyCardEl(s)));
+      }
+      wireStoryDrop(cell);
+      b.appendChild(cell);
+    });
+    el.appendChild(b);
+  }
   return el;
 }
 
 function storyCardEl(s){
   const el = document.createElement("article");
-  el.className = "scard"; el.tabIndex = 0; el.draggable = true; el.dataset.sid = s.id;
+  el.className = "scard" + (needsBit(s) ? " needs-you" : "");
+  el.tabIndex = 0; el.draggable = true; el.dataset.sid = s.id;
   el.innerHTML =
     '<div class="srow"><span class="sk">'+esc(s.kind||"feature")+'</span>'+
       '<span class="sid">'+esc(s.id)+'</span>'+
       stateChip(s)+'</div>'+
-    '<div class="snm">'+esc(s.name)+'</div>';
+    '<div class="snm">'+esc(s.name)+'</div>'+
+    needsLine(s);
   el.addEventListener("dragstart", ev => {
     ev.dataTransfer.setData("text/plain", "story:"+s.id);
     ev.dataTransfer.effectAllowed = "move";
@@ -2119,7 +2284,12 @@ function renderIdeas(param){
       const back  = items.filter(i => prioIx(i) >= burnerCut);
       body =
         (front.length ? '<div class="bsec" data-burner="front"><h4 class="burner" title="priority: '+esc(PRIOS.slice(0,burnerCut).join(" / "))+'">Front burner <span class="cnt">'+front.length+'</span></h4>'+front.map(ideaCard).join("")+'</div>' : "")+
-        (back.length ? '<div class="bsec back" data-burner="back"><h4 class="burner back" title="priority: '+esc(PRIOS.slice(burnerCut).join(" / "))+'">Back burner <span class="cnt">'+back.length+'</span></h4>'+back.map(ideaCard).join("")+'</div>' : "");
+        // The back burner is memory, not workspace — collapsed until asked for.
+        (back.length ? '<div class="bsec back'+(backBurnerOpen?"":" folded")+'" data-burner="back">'+
+          '<h4 class="burner back" role="button" tabindex="0" title="priority: '+esc(PRIOS.slice(burnerCut).join(" / "))+
+          ' — click to '+(backBurnerOpen?"collapse":"expand")+'">'+
+          '<span class="fold">'+(backBurnerOpen?"▾":"▸")+'</span>Back burner <span class="cnt">'+back.length+'</span></h4>'+
+          back.map(ideaCard).join("")+'</div>' : "");
     } else {
       body = items.map(ideaCard).join("");
     }
@@ -2143,6 +2313,10 @@ function renderIdeas(param){
             : res==="current" ? "Already up to date."
             : res==="deferred" ? "Changes found — applying once the current edit settles."
             : "Could not reach the server.");
+  });
+  v.querySelectorAll("h4.burner[role=button]").forEach(h => {
+    h.addEventListener("click", toggleBurnerFold);
+    h.addEventListener("keydown", ev => { if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggleBurnerFold(); } });
   });
   v.querySelectorAll(".ideas-toggle .chip").forEach(b => b.addEventListener("click", () => {
     ideasArchive = b.dataset.arch === "1";
@@ -2377,7 +2551,18 @@ function renderIdeaDetail(id){
     (unlocks.length ? '<p><b>Opens '+unlocks.length+':</b> '+
       esc(unlocks.map(u => u.title).join(" · "))+'</p>' : '')+
     (i.promoted_to
-      ? '<p><b>Promoted:</b> this became <a href="#/board" style="color:var(--accent)">'+esc(i.promoted_to)+'</a> on the execution board.</p>'
+      ? (() => {
+          // Provenance: six months on, this answers "why does this exist?"
+          const ep = byId()[i.promoted_to];
+          if(!ep) return '<p><b>Promoted:</b> '+esc(i.promoted_to)+' <span class="empty">(no longer on the board)</span></p>';
+          const st = storiesOf(ep.id), done = st.filter(x => x.column === doneLane()).length;
+          const shipped = ep.column === doneLane();
+          return '<p><b>Implemented by '+esc(ep.id)+':</b> '+esc(ep.name)+' — '+
+            (st.length ? done+'/'+st.length+' stories' : 'not groomed yet')+
+            (shipped ? ' · <b>shipped</b>'+(ep.archived_at ? ' '+esc(ep.archived_at) : '')
+                     : ' · in '+esc(ep.column))+
+            ' · <a href="#/history" style="color:var(--accent)">implementation history</a></p>';
+        })()
       : (ideaStatus(i) === "ready to implement"
         ? '<p><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Board</button> '+
           '<span class="empty">intent is settled — turn it into committed work</span></p>'

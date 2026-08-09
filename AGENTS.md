@@ -143,8 +143,23 @@ default view") — never as a side effect of other edits; the UI's
   "context_docs": [ {"label": "…", "path": "architecture/….md", "note": "§5"} ],
   "gate": "none", "deps": ["other-epic-ids"], "column": "Backlog",
   "claimed_by": null, "claimed_at": null,
+  "needs": null,
   "archived_at": null, "updated_at": null }
 ```
+
+**`needs` — "I cannot continue without you."** Set it on an epic *or a
+story* (same shape) the moment you hit a question only a human can
+answer, instead of stalling silently or guessing:
+```json
+"needs": { "kind": "decision", "reason": "Generated style rule conflicts with the book-level rule — which wins?" }
+```
+`kind` is free text (`decision`, `author`, `input`); `reason` must be a
+specific question, not "blocked". It renders amber at the top of every
+state display and counts in the epic's roll-up, so it is the loudest
+thing on the board — use it honestly and **clear it the moment the
+answer arrives**. It is deliberately different from a dependency: a
+dependency resolves when other work lands; `needs` only resolves when a
+person answers.
 `theme` and `milestone` must come from config vocab (empty string allowed).
 `archived_at` (ISO date, absent/null = active) is the **ship-and-close**
 stamp: an agent may set it only when the epic *and every one of its
@@ -172,8 +187,9 @@ after. Grooming and curation add it; builders read it.
   "context": "repos, paths, docs the builder should read",
   "systems": ["chaim-server"],
   "ready": false, "column": "Backlog", "priority": "Now",
-  "claimed_by": null, "claimed_at": null, "updated_at": null }
+  "claimed_by": null, "claimed_at": null, "needs": null, "updated_at": null }
 ```
+`needs` works exactly as on epics (above) — the honest way to stop.
 `kind` ∈ `feature | test | integration | chore | docs`. Story ids are
 `<epic_id>-<n>`. **`ready` is the definition-of-ready flag: only the human
 sets it to true.** A story you drafted while grooming always lands

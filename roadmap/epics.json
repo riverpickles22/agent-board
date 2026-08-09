@@ -549,5 +549,40 @@
     "claimed_at": null,
     "updated_at": "2026-08-09T13:00:00Z",
     "archived_at": "2026-08-09"
+  },
+  {
+    "id": "B18",
+    "name": "Execution board reoriented around agent work",
+    "description": "The board should answer what an agent can start now, what is running, what needs a human, and what is blocked. Today its chrome and its completed work crowd out the two epics actually in flight. Collapse what is memory (back burner, done work), condense the filter wall, give agents a way to say 'I need you' distinctly from 'I am blocked', restructure lanes to Ready | In Progress | Review | Done, and close the loop by showing an idea what shipped from it.",
+    "notes": "Workflow impact: Ideas and Board stop being two boards and become one product-development system with a visible boundary — promote in, provenance back. Review becomes a first-class state because an agent finishing code is not the work being done. From the user's execution-board critique (2026-08-09).",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Approved plan",
+        "path": "../.claude/plans/floating-gathering-hummingbird.md"
+      },
+      {
+        "label": "Board spec",
+        "path": "design/board.md"
+      },
+      {
+        "label": "State legend",
+        "path": "design/system.md"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T15:55:00Z",
+    "archived_at": "2026-08-09"
   }
 ]

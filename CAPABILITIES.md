@@ -55,7 +55,16 @@ epic chips with live done-counts** (click a chip to jump to the card on
 the board). Optional architecture block showing subsystems as
 new/changed/existing. ←/→ keys step through milestones.
 
-**Board** — the work. Kanban over epics with drag-and-drop, a
+**Board** — committed execution, and it answers four questions: *what
+can an agent start now, what is running, what needs a human, what is
+blocked.* A **Ready to pick up** block is the agent work queue, naming
+why each story qualified; a **`needs`** record on any card raises an
+amber "⚠ needs decision" with the question on the card — the one state
+waiting on a person rather than on other work; completed work collapses
+(`✓ 4 done · view`, and a finished epic folds to one line offering
+Ship & archive); and lane colour is positional — gray queued, accent
+active, amber review, green done — so any lane vocabulary works. Under
+that: kanban over epics with drag-and-drop, a
 **dependency guard** (a card can't enter the done lane before its deps;
 deps can't leave while dependents are done), and a **Next up strip** that
 renders the agent selection rule with each pick's why (priority ·

@@ -21,10 +21,12 @@ Epics mode (the default):
 
 ```
 ├──────────────────────────────────────────────────────────────────────┤
-│ View (Epics)(Rows)  Milestone (All)({M0})({M1})  Theme (All)({T1})   │
-│ Tag (All)(x)                           [★ set as default view]      │  filters
+│ View(Epics)(Rows) (Current)(Shipped 6) Milestone▾ Theme▾ (More…)    │  filters
 │ Next up  [F2 Epic name…  Now · unblocks 3] [F5 …  Now] +2 more      │  next-up
-│ Ready    F1 ▸ [feature F1-2 Story name…] [test F1-3 …]  F3 ▸ […]    │  ready-q
+│ ┌──────────────────────────────────────────────────────────────────┐│
+│ │ Ready to pick up  3        dependencies satisfied · criteria · … ││  ready-q
+│ │ F1-2  Story name…                          F1 · feature · 4 crit ││
+│ └──────────────────────────────────────────────────────────────────┘│
 ├──────────────────┬──────────────────┬────────────────────────────────┤
 │ ▍{lane 1}     5  │ ▍{lane …}  3/2  │ ▍{last lane}                 4  │
 │ [+ add card]     │ [+ add card]     │ [+ add card]                   │
@@ -53,9 +55,11 @@ vertically scrolling, lane strip sticky):
 │ │ Story name… ││ …  ✓ ready │ │              │ │ …           │       │
 │ └─────────────┘└────────────┘ │              │ └─────────────┘       │
 ├──────────────────────────────────────────────────────────────────────┤
-│ F3  Epic name…                                       0/2 {last lane} │
-│ ┌─────────────┐               │              │                       │
+│ F3  Epic name…              ▬▬▬▭▭  2/5 done · 1 ready · 1 needs you │  row hdr
+│ ┌─────────────┐               │              │ ✓ 2 done · view       │
 │ └─────────────┘               │              │                       │
+├──────────────────────────────────────────────────────────────────────┤
+│ F9  Finished epic…                        ✓ 4/4   [⌂ Ship & archive] │  folded
 ├──────────────────────────────────────────────────────────────────────┤
 │ 2 epics without stories — shown in Epics mode                        │  note
 ```
@@ -86,10 +90,15 @@ Modal (over everything, via the shared shell in `system.md`):
 |---|---|---|---|
 | View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Shipped toggle | `.chip[data-arch]` | (Current)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
-| Filter rows | `renderFilters()` `#filters` | milestone / theme / tag chip rows | rows render only when vocab non-empty; labels via `short()` except tags (full) |
+| Filter header | `renderFilters()` `#filters` | **one row**: view toggle · Current/Shipped · `Milestone ▾` · `Theme ▾` · `More filters` | the board prioritises execution over taxonomy, so vocabulary collapses to selects (`.fsel`) and the rest hides behind the disclosure (`moreFilters`, `.frow2`): tag chips and ★ set-as-default. A dot on the button marks an active tag filter. Chip rows returned one row per vocab entry — three rows before you reached the work |
 | Next up strip | `renderNextUp()` `#nextup` | top 5 pickable epics as `.pick` chips: id, name, why (priority · unblocks N); "+N more" overflow; or a nothing-pickable reason line (`.none`) | `nextUp()` implements PROTOCOL §3 exactly: first lane + deps done + gate in `open_gates` (`gateOpen()`) + unclaimed + successor lane under `wip_limits` (`wipBlocked()`); ranked priority index → unblock count (`unblockCount()`) → file order. Board-wide — ignores the filter chips |
-| Ready queue strip | `readyQueue()` `renderReadyQueue()` `#readyq` | pickable stories as `[kind] id name` chips (`.rpick`) grouped under their epic's mono id — the "begin X" menu | story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
-| Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
+| Ready queue block | `readyQueue()` `renderReadyQueue()` `#readyq` | **the agent work queue**, rendered as a titled block: "Ready to pick up · N" with one row per story (id, name) and why it qualified (`epic · kind · N criteria`); the header names the rule in words — dependencies satisfied · criteria defined · unclaimed. Empty state stays a single dim line | story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
+| Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
+| Needs-you state | `needsBit()` `needsLine()` `.needs-you` | amber `⚠ needs decision` (or the record's own `kind`) with the **reason on the card**, plus an amber left edge — on stories and epics alike | the one state asking for a *person*, so it outranks every other in `storyState()`. Deliberately distinct from a dependency: a dependency clears when other work lands, this clears only when you answer. Set from the `needs` field (AGENTS.md §2), accepts `{kind, reason}` or a bare string; never shown on done cards |
+| Needs grooming | `needsGrooming()` | amber `⚠ needs grooming` on a first-lane epic with **no stories** | the promotion gap made visible: an idea promoted from the funnel arrives committed but not broken down, and would otherwise sit in the first lane looking ready |
+| Epic roll-up | `epicRollup()` `.eroll` | progress bar + `N/M done · N ready · N needs you` in every swimlane header | ready and needs-you counts come from the same rules the strips use, so the row header and the queue can never disagree |
+| Done collapse | `.donefold` `expandedDone` | the done lane inside an active row collapses to `✓ N done · view` | completed work demands the least attention; the remaining stories should own the row. Expanding is per-row and view-only |
+| Finished row fold | `.swim.done-fold` `expandedRows` | a fully-done **unarchived** epic collapses to one line: `id · name · ✓ 4/4` with an inline **⌂ Ship & archive** | archive previously lived only in the epic modal, unreachable from rows mode — the affordance comes to the row rather than duplicating the feature. Clicking the row expands it; clicking the button runs `toggleArchiveEpic()` |
 | Add card | `.addcard` | "+ add card" atop each lane body | → `openCreate(col)` with the lane preset |
 | Card | `cardEl()` `.card` | id, priority pill, name, milestone/theme/tags/systems pills, status, story badge, dep badge, gate chip, claim | draggable, tabIndex 0 |
 | Gate chip | `.card .egate` | `⛔ {gate}` when the epic's gate is closed (`gate ≠ "none"` and not in `open_gates`) | same markup, title, and `--lane-2` color as the rows-mode row-header badge — one gate vocabulary across modes. Absent when the gate is `"none"` or open. Advises only: the chip explains why agents won't pick the card; drag behavior is unchanged (`checkMove` never reads gates) |

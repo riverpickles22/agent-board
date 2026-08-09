@@ -52,11 +52,15 @@ matured*, and the progression reads left to right:
 | `--st-ready` | `--lane-5` | Ready to implement | intent settled; cleared to become executable work |
 | `--st-problem` | `--lane-4` | Rejected | the only red on this page |
 
-**Board — execution state.** Lanes keep their positional identity
-colours (`laneVar()`); on top of those, `--st-blocked` (amber) marks
-work waiting on something outside its own control (closed gate, unmet
-dependency) and `--st-ready` marks done or startable. `--st-problem`
-stays for genuine failures: refused moves, over-WIP counts.
+**Board — execution state.** Lane colour is **positional**, so it
+carries meaning without hardcoding any project's lane names
+(`laneVar()`): first lane gray (queued), last green (done), the one
+before it amber on boards of four or more lanes (the review position),
+accent for the active middle. On top of that, `--st-blocked` marks work
+waiting on something outside its own control — a closed gate, an unmet
+dependency, or a **`needs`** record, the one state waiting on a *person*
+— and `--st-problem` stays for genuine failures: refused moves,
+over-WIP counts.
 
 Amber reads the same way on both: **waiting on someone**. On ideas
 that's a decision from you; on the board it's a gate or a dependency.
