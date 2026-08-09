@@ -1,5 +1,190 @@
 [
   {
+    "id": "idea-claim-hygiene",
+    "title": "Claim hygiene — sessions end, claims don't",
+    "description": "A claimed card whose agent walked away looks like work in flight forever. Surface stale claims where they live (a dim 'claimed 3d ago' on the card itself), give the human a one-click release, and let an agent clear its own claims when it stops.\n\nTechnical shape: the briefing already computes staleness (claimed_at > 48h, not done) — lift that into a shared staleClaims() and render an age hint on cards/story chips past the threshold, with a 'release claim' action in the modal that nulls claimed_by/claimed_at. Contract side: AGENTS.md §6 gains 'clear your claim when you stop working a card, even mid-story'. No new fields, no server change.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Trust the board",
+    "milestone": "",
+    "tags": [],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "low",
+    "impact": "high",
+    "context": "PROTOCOL §3 makes 'already claimed' a reason a card is unpickable — so a stale claim silently removes work from the queue, and the ready-queue's empty state says 'claimed, in flight, or behind a gate/dep' without saying which. This session created the problem at scale: every epic and story it touched still carries claimed_by 'claude (this session)', a session that no longer exists. Multiply by every future agent run.",
+    "compounding": "Makes the selection rule trustworthy — the one property everything else (next-up, ready queue, briefing, any future dispatch) reads. Cheap now because the briefing already detects staleness; the same signal becomes the seed of any board-health surface.",
+    "pros": [
+      "The detection logic already exists (briefing) — this is surfacing plus one write",
+      "Directly protects PROTOCOL §3's pickability from silent rot",
+      "Closes a gap this very session created on two boards"
+    ],
+    "cons": [
+      "48h is a guess at a threshold; may want it configurable later (deliberately not now — simplest thing first)"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-08",
+        "note": "Captured from the session retrospective: after two days of agent-driven card movement, every touched card carries a claim from a dead session. The board's own dogfooding surfaced it."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-08",
+    "updated_at": "2026-08-08T22:00:00Z"
+  },
+  {
+    "id": "idea-milestone-burnup",
+    "title": "Milestone progress viz",
+    "description": "One aggregate bar per milestone answering 'how far along is this, overall' at a glance — plus a mini-bar per deliverable so the lagging one stands out. The Milestones page already knows the numbers; it just never draws them.\n\nTechnical shape: pure client-side aggregation over epicsOfMilestone() — bucket each mapped epic by lane position (first / middle / last), render a stacked bar with the existing lane color tokens (laneVar), a done-fraction label, and the same stacked mini-bar per deliverable row. Renders only when the milestone maps epics; no new data, no server change, no new tokens.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Decide fast",
+    "milestone": "",
+    "tags": [],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "low",
+    "impact": "medium",
+    "context": "The Milestones page already rolls up done/total per deliverable; there's no at-a-glance answer to 'how far along is this milestone overall', and no way to spot the deliverable dragging it. One bar per milestone plus one per deliverable answers both without adding a single field.",
+    "compounding": "The lane-bucket aggregation is the reusable piece: the same computation gives a per-epic story burnup on board cards, and — once multi-board serving exists — a cross-project progress rollup. Draw-a-stacked-bar-from-lane-buckets becomes a small shared primitive.",
+    "pros": [
+      "All inputs already computed client-side",
+      "Makes the milestone tabs scannable"
+    ],
+    "cons": [
+      "Progress bars can imply precision the epic-count metric doesn't have"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (lane-position bucketing, laneVar-colored stacked bars, per-deliverable mini-bars); empty compounding filled — the lane-bucket aggregation is a reusable primitive."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Promoted Later → Next: arc just finished every epic in its Foundations milestone with 5 milestones defined and 21 active ideas — 'how far along is each milestone' is now a live question on a real board, not a hypothetical. Low effort, and the answer is already computed per-deliverable."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-08T22:00:00Z"
+  },
+  {
+    "id": "idea-board-doctor",
+    "title": "Board doctor — validate what the contract promises",
+    "description": "One command (and a quiet UI banner) that checks the board's data against the rules AGENTS.md already states: stories pointing at epics that don't exist, deps naming missing ids, themes/milestones outside the config vocab, milestone deliverables linking dead epics, duplicate ids. Report and offer fixes; never silently repair.\n\nTechnical shape: a pure function over the five loaded resources returning {severity, message, ids} — reused two ways: './board doctor' printing to the terminal for CI-ish use, and a dim '⚕ N issues' chip beside the pending badge that opens the list. No new data, no new endpoint (the client already holds every resource).",
+    "notes": "",
+    "category": "feature",
+    "theme": "Trust the board",
+    "milestone": "",
+    "tags": [],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "AGENTS.md §2/§3 state real invariants — ids are permanent, vocab comes from config, deliverable epics must exist — but nothing enforces them, and agents edit these files directly by design. arc's board is now 6 epics / 20 stories / 63 ideas / 5 milestones maintained mostly by agents; a dangling deliverable link or a theme typo degrades the milestone roll-up quietly, and the roll-up is what the human trusts to answer 'where are we'.",
+    "compounding": "Turns the contract from prose into something checkable, which makes every future rule cheap to enforce (add a check, not a convention). Also the natural home for the 'is this board healthy' signals stale claims and drift both produce.",
+    "pros": [
+      "Pure function over data already in memory — no schema, no endpoint",
+      "Protects the milestone roll-up, the board's most trusted number",
+      "Same check serves terminal and UI"
+    ],
+    "cons": [
+      "Report-only by design; auto-fix is tempting and deliberately out of scope until the reports prove boring"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-08",
+        "note": "Captured from the session retrospective: the contract grew several new invariants (archived_at rules, decompose-before-build, real-time moves) with no way to check any of them."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-08",
+    "updated_at": "2026-08-08T22:00:00Z"
+  },
+  {
+    "id": "idea-project-switcher",
+    "title": "Project switcher in the header",
+    "description": "Switch between arc, chaim, and board from the header — one server serves every board registered in projects.json, no restart, no second port.\n\nTechnical shape: the server reads projects.json and scopes data routes by project (/api/<project>/board, /api/<project>/events), watching each active project's data dir; the client carries the project in the URL (e.g. #/board?p=arc or a path prefix) so links deep-link across boards, and the header dropdown re-fetches + re-renders via the existing applyBoard() path. Touches every data route plus the client fetch layer — honest medium effort.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Agent enablement",
+    "milestone": "",
+    "tags": [],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "Today ./board <name> binds the server to one data dir; comparing or hopping between project boards means a second port. With three projects registered and agents working several backlogs, switching is a daily motion, not an edge case — and the current workaround (PORT=4301) is exactly the kind of terminal detour the tool exists to remove.",
+    "compounding": "Multi-board serving is the substrate for every cross-project surface: one 'everything I could work on' queue across arc + chaim + board, cross-project search in the command palette, a portfolio-level briefing. Nothing cross-project can exist before this does.",
+    "pros": [
+      "projects.json already exists as the registry",
+      "Removes the PORT=4301 workaround"
+    ],
+    "cons": [
+      "Server becomes multi-tenant: routes need a project dimension, a real (if small) server.js change",
+      "BOARD_DATA_DIR env contract with the skill needs rethinking"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-02",
+        "note": "Captured from the capability brainstorm — promoted from edge case to daily motion by this board's existence."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Hardened: description restructured to plain + Technical shape (route scoping by project, per-project watch, deep-linkable project in URL, applyBoard reuse); effort honestly kept medium — it touches every data route."
+      },
+      {
+        "at": "2026-08-08",
+        "note": "Promoted Later → Next with direct evidence: today's session hit the port-4300 collision (a board already running blocked ./board arc) and needed a second port to compare boards — exactly the friction this removes. ./board stop made the workaround bearable, not unnecessary."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-02",
+    "updated_at": "2026-08-08T22:00:00Z"
+  },
+  {
+    "id": "idea-bulk-actions",
+    "title": "Bulk actions — stop clicking thirteen times",
+    "description": "Select several cards (shift-click or a checkbox mode) and act once: archive, move lane, set priority/milestone/theme, release claims. The board is agent-fast to write and human-slow to curate; this closes that gap.\n\nTechnical shape: a selection Set in memory, a `.selected` outline, and a small action bar that appears when the set is non-empty; each action loops the existing single-card mutation (archive/move/field-set) then persists once. Escape or empty-space click clears. Rows mode selects stories, epics mode selects epics — no cross-type selection.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Flow",
+    "milestone": "",
+    "tags": [],
+    "status": "idea",
+    "priority": "Later",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "Curation is inherently plural — 'archive everything shipped', 'move these four to Next', 'clear the dead claims' — but every affordance is singular. This session archived thirteen completed epics by writing a Python loop against the JSON, because doing it in the UI meant thirteen modal round-trips; a human without an agent has no such escape hatch.",
+    "compounding": "Bulk archive is what makes ship-and-archive (B13) survive contact with a year-old board; bulk claim-release pairs with claim hygiene. Selection itself is reusable — any future action gets multi-apply for free.",
+    "pros": [
+      "Makes curation practical for humans, not just agents with a shell",
+      "Reuses every existing mutation — the loop is the feature"
+    ],
+    "cons": [
+      "Selection UI is new interaction surface on a board whose interaction model is deliberately small (drag + click)",
+      "Only pays off on boards big enough to have plural work — arc-scale, not new-project scale"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-08",
+        "note": "Captured from the session retrospective: archiving 13 finished epics required a script, which is a fine agent path and a terrible human one."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-08",
+    "updated_at": "2026-08-08T22:00:00Z"
+  },
+  {
     "id": "idea-next-up",
     "title": "Next-up panel — the selection rule in the UI",
     "description": "A ranked 'pickable now' strip on the board implementing PROTOCOL §3, which today exists only agent-side. Shows each pick's why: priority tier, then unblock count.",
@@ -89,43 +274,6 @@
     "rejected_reason": null,
     "created_at": "2026-08-02",
     "updated_at": "2026-08-08T18:20:00Z"
-  },
-  {
-    "id": "idea-milestone-burnup",
-    "title": "Milestone progress viz",
-    "description": "One aggregate bar per milestone answering 'how far along is this, overall' at a glance — plus a mini-bar per deliverable so the lagging one stands out. The Milestones page already knows the numbers; it just never draws them.\n\nTechnical shape: pure client-side aggregation over epicsOfMilestone() — bucket each mapped epic by lane position (first / middle / last), render a stacked bar with the existing lane color tokens (laneVar), a done-fraction label, and the same stacked mini-bar per deliverable row. Renders only when the milestone maps epics; no new data, no server change, no new tokens.",
-    "notes": "",
-    "category": "feature",
-    "theme": "Decide fast",
-    "milestone": "",
-    "tags": [],
-    "status": "idea",
-    "priority": "Later",
-    "effort": "low",
-    "impact": "medium",
-    "context": "The Milestones page already rolls up done/total per deliverable; there's no at-a-glance answer to 'how far along is this milestone overall', and no way to spot the deliverable dragging it. One bar per milestone plus one per deliverable answers both without adding a single field.",
-    "compounding": "The lane-bucket aggregation is the reusable piece: the same computation gives a per-epic story burnup on board cards, and — once multi-board serving exists — a cross-project progress rollup. Draw-a-stacked-bar-from-lane-buckets becomes a small shared primitive.",
-    "pros": [
-      "All inputs already computed client-side",
-      "Makes the milestone tabs scannable"
-    ],
-    "cons": [
-      "Progress bars can imply precision the epic-count metric doesn't have"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm."
-      },
-      {
-        "at": "2026-08-08",
-        "note": "Hardened: description restructured to plain + Technical shape (lane-position bucketing, laneVar-colored stacked bars, per-deliverable mini-bars); empty compounding filled — the lane-bucket aggregation is a reusable primitive."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-02",
-    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
     "id": "idea-live-reload",
@@ -359,44 +507,6 @@
     "rejected_reason": null,
     "created_at": "2026-08-02",
     "updated_at": "2026-08-08T15:10:00Z"
-  },
-  {
-    "id": "idea-project-switcher",
-    "title": "Project switcher in the header",
-    "description": "Switch between arc, chaim, and board from the header — one server serves every board registered in projects.json, no restart, no second port.\n\nTechnical shape: the server reads projects.json and scopes data routes by project (/api/<project>/board, /api/<project>/events), watching each active project's data dir; the client carries the project in the URL (e.g. #/board?p=arc or a path prefix) so links deep-link across boards, and the header dropdown re-fetches + re-renders via the existing applyBoard() path. Touches every data route plus the client fetch layer — honest medium effort.",
-    "notes": "",
-    "category": "feature",
-    "theme": "Agent enablement",
-    "milestone": "",
-    "tags": [],
-    "status": "idea",
-    "priority": "Later",
-    "effort": "medium",
-    "impact": "medium",
-    "context": "Today ./board <name> binds the server to one data dir; comparing or hopping between project boards means a second port. With three projects registered and agents working several backlogs, switching is a daily motion, not an edge case — and the current workaround (PORT=4301) is exactly the kind of terminal detour the tool exists to remove.",
-    "compounding": "Multi-board serving is the substrate for every cross-project surface: one 'everything I could work on' queue across arc + chaim + board, cross-project search in the command palette, a portfolio-level briefing. Nothing cross-project can exist before this does.",
-    "pros": [
-      "projects.json already exists as the registry",
-      "Removes the PORT=4301 workaround"
-    ],
-    "cons": [
-      "Server becomes multi-tenant: routes need a project dimension, a real (if small) server.js change",
-      "BOARD_DATA_DIR env contract with the skill needs rethinking"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-02",
-        "note": "Captured from the capability brainstorm — promoted from edge case to daily motion by this board's existence."
-      },
-      {
-        "at": "2026-08-08",
-        "note": "Hardened: description restructured to plain + Technical shape (route scoping by project, per-project watch, deep-linkable project in URL, applyBoard reuse); effort honestly kept medium — it touches every data route."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-02",
-    "updated_at": "2026-08-08T13:30:00Z"
   },
   {
     "id": "idea-ux-spec-framework",
