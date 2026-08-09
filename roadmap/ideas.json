@@ -31,7 +31,8 @@
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-08T22:00:00Z"
+    "updated_at": "2026-08-08T22:00:00Z",
+    "deps": []
   },
   {
     "id": "idea-milestone-burnup",
@@ -106,7 +107,8 @@
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-08T22:00:00Z"
+    "updated_at": "2026-08-08T22:00:00Z",
+    "deps": []
   },
   {
     "id": "idea-project-switcher",

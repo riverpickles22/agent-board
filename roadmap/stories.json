@@ -452,5 +452,73 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-08T23:00:00Z"
+  },
+  {
+    "id": "B15-1",
+    "epic_id": "B15",
+    "name": "Per-dependency chips + unblocked card treatment",
+    "description": "Split the lumped dep badge into one chip per dependency, colored by state (✓ green when the dep is in the done lane, loud when not). Add .card.unblocked when a card has deps, all are satisfied, and nothing else blocks it (first lane, gate open, unclaimed): green left edge, faint wash, '▶ ready to start' marker. Rows mode's epic row header gets the same edge.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A card with mixed deps shows each dep id as its own chip: satisfied ones green with ✓, unsatisfied ones in the warn color",
+      "A card whose deps are all satisfied and which is in the first lane, ungated and unclaimed, renders the unblocked treatment with a '▶ ready to start' marker",
+      "A card with satisfied deps that is gated, claimed, or already past the first lane does NOT get the treatment (it isn't startable)",
+      "Cards with no deps are visually unchanged; rows-mode row headers show the same edge for unblocked epics"
+    ],
+    "context": "design/board.md Dep badge/Card components; index.html cardEl(), depsOf(), gateOpen(), doneLane(), swimEl(); .bsec left-edge idiom for the visual language",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T09:20:00Z"
+  },
+  {
+    "id": "B15-2",
+    "epic_id": "B15",
+    "name": "Resolved-dependency chips on idea cards",
+    "description": "Idea deps (informational sequencing, ids may name ideas or epics) get the same resolution chips — green ✓ once the named thing is done — but unresolved ones stay dim rather than loud, because no ordering rule is enforced on ideas.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An idea whose dep names a done idea or a done epic shows that id green with ✓",
+      "Unresolved idea deps render dim (not the warn color) — informational deps must not look like violations",
+      "An idea dep naming an unknown id renders dim without breaking the line"
+    ],
+    "context": "design/ideas.md Dependencies line; index.html ideaCard() .idep, ideaById(), byId(), doneLane()",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T09:30:00Z"
+  },
+  {
+    "id": "B15-3",
+    "epic_id": "B15",
+    "name": "Unblocked treatment on idea cards",
+    "description": "Ideas get the card-level signal too: when every dep an idea names has landed, the idea card takes the green edge, wash, and a '▶ clear to pursue' marker — the idea's sequencing precondition is met. Must beat the front-burner accent edge in the cascade without disturbing it.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An active idea whose deps are all resolved shows the green edge, wash, and '▶ clear to pursue'",
+      "An idea with any unresolved dep, or with no deps at all, is visually unchanged",
+      "The treatment wins over the front-burner accent left edge, and back-burner cards can show it too",
+      "Archived (done/rejected) ideas never show it — there is nothing left to pursue"
+    ],
+    "context": "design/ideas.md; index.html ideaCard(), depChips(), .bsec:not(.back) .idea left-edge specificity",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T09:45:00Z"
   }
 ]

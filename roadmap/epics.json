@@ -449,5 +449,33 @@
     "claimed_at": null,
     "updated_at": "2026-08-08T23:00:00Z",
     "archived_at": "2026-08-08"
+  },
+  {
+    "id": "B15",
+    "name": "Dependency status you can see at a glance",
+    "description": "Each dependency on a card becomes its own chip colored by whether it's satisfied — cleared deps go green with a ✓, outstanding ones stay loud. When the last one clears and nothing else blocks the card, the card itself turns: a green edge, a faint wash, and a '▶ ready to start' marker. The moment work becomes available is visible without reading anything.",
+    "notes": "Workflow impact: 'what unblocked while I was away' becomes ambient — a dep clearing repaints its chip, and the final one repaints the whole card, animated by the live-refresh FLIP. Direct user request (2026-08-09).",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board page spec",
+        "path": "design/board.md",
+        "note": "Dep badge + Card components"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T09:45:00Z",
+    "archived_at": "2026-08-09"
   }
 ]
