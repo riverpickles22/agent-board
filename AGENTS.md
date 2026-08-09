@@ -5,6 +5,78 @@ the contract: schemas, edit rules, and conventions. The human-facing tour
 is [`README.md`](README.md); the work-selection rule and claim loop are in
 [`PROTOCOL.md`](PROTOCOL.md) — read that before picking up work.
 
+## 0. Orientation — read this first
+
+The whole tool in one page. Everything below is depth you fetch on demand.
+
+**What this is.** A local kanban system over plain JSON. One codebase,
+many projects. **The JSON files _are_ the backlog** — the web UI is a
+human lens, never a dependency. You operate on the files directly, and
+git is the only persistence: **a commit is the human ratifying your
+work**, so you edit freely and never commit unasked.
+
+**The five files** (in a project's data dir — find it via
+`BOARD_DATA_DIR` → [`projects.json`](projects.json) → §1):
+
+| File | Holds | Grain |
+|---|---|---|
+| `epics.json` | the work | cards in lanes — the unit of "what's next" |
+| `stories.json` | buildable slices, keyed by `epic_id` | what you actually build, one at a time |
+| `ideas.json` | the inbox — anything worth considering | pre-work; graduates into epics |
+| `milestones.json` | the narrative + deliverables | why the work matters |
+| `config.json` | **all vocabulary** — lanes, priorities, themes, milestones, gates, WIP limits, saved view | nothing is hardcoded; read it before writing anything |
+
+**The lifecycle**, end to end — the spine of everything you do:
+
+```
+idea → ready for review → ready to implement → epic + stories → lanes → done → archived
+       ↑ you set this      ↑ human only         ↑ always decompose  ↑ move in real time
+```
+
+**The five inviolable rules.** Break these and you break the human's
+trust in the board:
+
+1. **Vocabulary comes from `config.json`** — themes, milestones,
+   priorities, lanes. Never invent one (§2).
+2. **`ready: true`, gates, and `ready to implement` are the human's** —
+   never yours. `ready for review` is the one status you set unprompted
+   (§2).
+3. **Decompose before you build** — a thumbs-upped idea becomes an epic
+   + stories on the board first, even for small requests (§6).
+4. **Move cards as you work, not after** — claim before you start, move
+   the moment criteria pass; the human is watching a live-reloading
+   board (§6).
+5. **Commit only on an explicit "save"/"ratify"**, and never mix board
+   data commits with code or UI commits (§4).
+
+**What you can do** (the workflows, all in the skill; depth in the
+sections here): **Operate** — what's next, move/claim (PROTOCOL §3) ·
+**Groom** — brainstorm into epic + stories (§5) · **Develop an idea** —
+fill the deep dive, hand off at `ready for review` (§2, §5) · **Build** —
+the claim→implement→verify→move loop (§6) · **Curate** — the five
+propose-then-approve passes (§7) · **Design** — change the UI itself,
+spec-first ([`design/DESIGN.md`](design/DESIGN.md)) · **Save** — commit
+on request (§4).
+
+**The surfaces** a human sees (you never need them, but they explain
+what your edits look like): **Ideas** (inbox + deep dives) ·
+**Milestones** (narrative + roll-ups) · **Board** (lanes, Next-up and
+Ready-queue strips, Shipped archive) · **History** (git log as a
+timeline) · **Docs** (renders `CAPABILITIES.md`). Full inventory:
+[`CAPABILITIES.md`](CAPABILITIES.md).
+
+**Running it.** `./board <name>` serves on :4300 (`PORT=4301` for a
+second board); `./board stop [port]` stops one; `./board` lists
+projects. A running board live-reloads your file edits into any open
+page — no reload warnings needed. Over HTTP it self-describes at
+`/llms.txt` (capabilities), `/AGENTS.md` and `/PROTOCOL.md` (this
+contract), and serves data at `/api/board`; full route list in
+[`CAPABILITIES.md`](CAPABILITIES.md).
+
+**Where depth lives.** Schemas §2 · edit rules §3 · git §4 · grooming §5
+· building §6 · curation §7 · selection §8 and
+[`PROTOCOL.md`](PROTOCOL.md) · UI specs [`design/`](design/DESIGN.md).
+
 ## 1. Where data lives
 
 Each project's backlog is a directory of JSON files, registered in

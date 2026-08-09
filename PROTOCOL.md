@@ -27,6 +27,12 @@ valid and is exactly what the app itself does under the hood.
 
 A card (`epics.json` entry) is **pickable** when all of these hold:
 
+0. it is not **archived** — an epic carrying `archived_at` has shipped and
+   been closed (AGENTS.md §2); it and its stories are out of the selection
+   set entirely, though they still count for milestone roll-ups and as
+   dependency targets. In practice archiving requires everything already
+   done, so this rarely bites — state it anyway, and never report an
+   archived card as available work;
 1. its `column` is the first configured lane (`config.json`'s `lanes[0]`,
    "Backlog" by default) — not already in progress, not done;
 2. every id in its `deps` is a card whose `column` is the **last**
@@ -76,6 +82,9 @@ by their own priority, then their epic's rank.
    lane (clearing `claimed_by`/`claimed_at`) if it can't be finished — leave
    a note explaining why in the card's `notes` field.
 6. **Update** `updated_at` on every write.
+7. **Release** your claim whenever you stop working a card — finished or
+   not. A claim outliving its session hides real work from step 2 for
+   everyone who comes after.
 
 ## 5. Concurrency
 

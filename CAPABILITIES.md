@@ -1,10 +1,15 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-08-07.
+*The medium-altitude view, for humans and agents. As of 2026-08-08.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
-[PROTOCOL.md](PROTOCOL.md) (agent contract) · [design/](design/DESIGN.md)
-(UI specs).*
+[PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
+and `/PROTOCOL.md`) · [design/](design/DESIGN.md) (UI specs).*
+
+**Agents: start at [AGENTS.md](AGENTS.md) §0** — a one-page orientation
+(the five data files, the lifecycle, the five inviolable rules, where
+depth lives). This document is the capability inventory; that one is the
+contract.
 
 ## What it is
 
@@ -15,7 +20,7 @@ AI agents operate on the JSON files directly — the web UI
 (`./board <name>` → localhost:4300) is a human lens, never a dependency.
 Binds to 127.0.0.1 only.
 
-## The three pages (in flow order: capture → intent → work)
+## The five surfaces (in flow order: capture → intent → work → record)
 
 **Ideas** — the inbox. Three active columns: `idea` →
 `ready for review` (the agent's hand-off: the deep dive holds enough to
@@ -64,7 +69,12 @@ visible where the human reviews the card, while editing stays
 file/skill-only. A **Ready queue** strip under Next up is the story
 grain of the same rule — every story a human could hand to an agent
 right now (`ready: true`, first lane, unclaimed, epic ungated with deps
-done), grouped by epic: the "begin X" menu, visible.
+done), grouped by epic: the "begin X" menu, visible. Story cards
+narrate their own state from one rule — `⚙ cooking` / `testing` /
+`tidying up` / `writing` / `wiring up` by kind while in flight,
+`⛔ gated: X` or `⏳ waiting on Y` when blocked, `needs prep` before the
+human's ready flag, and `✓ shipped` / `plated` / `in the books` when
+done (or `✓ done · waiting on <sibling>` while the epic lags).
 
 **History** — the record. The data dir's git log as a timeline page:
 every ratification with date, message, and files touched; expanding an
@@ -82,8 +92,9 @@ And everything is keyboard-reachable: **`/`** opens a fuzzy command
 palette over every epic, story, and idea (Enter jumps straight to the
 card), **`n`** captures a new idea from any page.
 
-A fourth **Docs** tab renders this document inside the UI, so a person
-browsing the board sees the capabilities without the repo or curl.
+**Docs** — the self-description. A tab renders this document inside the
+UI, so a person browsing the board sees the capabilities without the
+repo or curl; agents get the same text at `/llms.txt`.
 
 ## What an agent can do (the Claude skill)
 
@@ -121,7 +132,12 @@ browsing the board sees the capabilities without the repo or curl.
   drift is detectable by flag (`spec_state`), anchor grep, and curation.
 - **Zero-step setup and updates** — any `./board` run self-installs the
   Claude skill as a symlink; updates in this repo are live for new agent
-  sessions with no copy step.
+  sessions with no copy step. `./board` lists projects, `./board <name>`
+  serves one, `./board stop [port]` stops one (naming what it killed).
+- **Ship and close** — `archived_at` on an epic means shipped and closed:
+  it leaves the active board for the Shipped view but still counts for
+  milestone roll-ups and dependencies. Only settable once the epic and
+  every one of its stories are done; clearing it is the human's call.
 - **Multi-project** — `projects.json` registers name → data dir; one
   codebase serves arc, chaim, and agent-board's own dogfood backlog.
 - **Live reload** — the server watches the data dir and pushes change
@@ -145,9 +161,11 @@ statements — powers the ratify review panel) ·
 log, and one commit's card-level changes — powers the History page) ·
 `GET /api/since/<hash>` (changes between an earlier commit and HEAD —
 powers the briefing banner) ·
-`GET /docs` + `GET /llms.txt` (this document). The three git-backed
-routes read git only (`execFile`, no shell) and degrade gracefully when
-the data dir isn't a repo yet.
+`GET /docs` + `GET /llms.txt` (this document) ·
+`GET /AGENTS.md` + `GET /PROTOCOL.md` (the agent contract, so a client
+holding only the URL can read the rules it must follow). The three
+git-backed routes read git only (`execFile`, no shell) and degrade
+gracefully when the data dir isn't a repo yet.
 
 ---
 

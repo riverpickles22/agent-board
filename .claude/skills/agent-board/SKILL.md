@@ -12,13 +12,31 @@ human lens, not a dependency.
 
 ## 1. Read the contract first
 
-Read `<agent-board>/AGENTS.md` (schemas §2, edit rules §3, git conventions
-§4, grooming §5, build §6, curation §7) and `<agent-board>/PROTOCOL.md`
-(selection rule) before touching data. They are the source of truth; this
-skill only tells you when to apply which part. For the medium view of
-what the tool can do (or to answer "what does agent-board do?"), read
-`<agent-board>/CAPABILITIES.md` — also served by a running board at
-`/docs` and `/llms.txt`.
+**Start with `<agent-board>/AGENTS.md` §0 (Orientation)** — one page that
+maps the whole tool: the five data files, the lifecycle, the five
+inviolable rules, and where every detail lives. Read it before touching
+data; it tells you which of the deeper sections you actually need
+(schemas §2, edit rules §3, git §4, grooming §5, build §6, curation §7).
+`<agent-board>/PROTOCOL.md` holds the selection rule and claim loop —
+read it before picking up work. For the capability inventory (or to
+answer "what does agent-board do?"), read
+`<agent-board>/CAPABILITIES.md`. A running board serves all three:
+`/llms.txt` + `/docs` (capabilities), `/AGENTS.md`, `/PROTOCOL.md`.
+
+**What the board can do for you today** (so you can offer it, not
+rediscover it): the **Next-up strip** and **Ready queue** render the
+selection rule for epics and stories, so the human sees the same "what's
+next" you compute · **WIP limits and closed gates are visible** on lanes
+and cards (advisory — enforcement is still yours, PROTOCOL §3) ·
+**pending badge + ratify panel** show every uncommitted change as
+card-level statements before the human says "save" · the **History**
+page and **briefing banner** answer "what shipped" and "what changed
+since I last looked" from git · **Ship & archive** closes a finished
+epic off the active board into the Shipped view (`archived_at`) —
+propose it during curation when an epic is fully done · story cards
+narrate their own state (`cooking`, `testing`, `⛔ gated: X`,
+`⏳ waiting on Y`, `✓ shipped`) · the human has `/` (find any card) and
+`n` (capture an idea) anywhere.
 
 The project's **context directory** is the `*-system-design` repo holding
 the data dir — architecture/strategy/PRFAQ docs live there, and every
@@ -120,8 +138,15 @@ rules. Never mix them.
 If the user wants to see the board: `cd <agent-board> && ./board <name>` →
 http://localhost:4300 (`PORT=4301` for a second board). If the page is open
 while you edit JSON, a current server live-reloads it — your edits show
-up in the browser on their own. Only an older server (no `/api/events`)
-still needs the "please reload" warning (AGENTS.md §3).
+up in the browser on their own, animated so the human can watch cards
+move. Only an older server (no `/api/events`) still needs the "please
+reload" warning (AGENTS.md §3).
+
+**Port already in use** means a board is already running there — usually
+the one the user wants. Don't start a second copy by reflex: either use
+it as-is, stop it with `./board stop [port]` (reports what it killed),
+or run alongside on `PORT=4301`. `./board` with no arguments lists
+registered projects; `./board setup` (re)installs this skill's symlink.
 
 When reporting which board you're operating on, use its
 `config.view.title` (e.g. "Chaim Build Board"), not just the project key.

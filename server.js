@@ -217,6 +217,11 @@ const server = http.createServer(async (req, res) => {
       const type = url === "/docs" ? "text/markdown; charset=utf-8" : "text/plain; charset=utf-8";
       return sendFile(res, "CAPABILITIES.md", type);
     }
+    // The contract itself, so an agent holding only the URL can read the
+    // rules it must follow (CAPABILITIES.md points here by name).
+    if (req.method === "GET" && (url === "/AGENTS.md" || url === "/PROTOCOL.md")) {
+      return sendFile(res, url.slice(1), "text/markdown; charset=utf-8");
+    }
     if (req.method === "GET" && url === "/api/events") {
       res.writeHead(200, {
         "Content-Type": "text/event-stream",

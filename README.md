@@ -18,11 +18,22 @@ For the one-page medium view of everything the tool can do, see
 ./board            # list registered projects
 ./board arc        # serve arc's backlog
 ./board chaim      # serve chaim's backlog
+./board stop       # stop the board on :4300 (./board stop 4301 for another)
 ```
 
-Then open **http://localhost:4300**. Ctrl+C stops it. Run a second board at
-the same time with `PORT=4301 ./board chaim`. Needs only Node.js (v18+) —
-no install step, no dependencies, and it binds to `127.0.0.1` only.
+Then open **http://localhost:4300**. Ctrl+C stops it, or `./board stop`
+from anywhere — handy when a board you started earlier is holding the
+port. Run a second board at the same time with `PORT=4301 ./board chaim`.
+Needs only Node.js (v18+) — no install step, no dependencies, and it
+binds to `127.0.0.1` only.
+
+**The five tabs:** **Ideas** (the inbox, with deep dives and a decision
+lens) · **Milestones** (the narrative, with live roll-ups) · **Board**
+(kanban over epics, story swimlanes, and the strips that answer "what's
+next") · **History** (your ratification history — the data dir's git log
+as a timeline) · **Docs** ([`CAPABILITIES.md`](CAPABILITIES.md) rendered
+in the UI). Press **`/`** anywhere to jump to any card, **`n`** to
+capture an idea.
 
 `./board` reads [`projects.json`](projects.json), a simple name → data-directory
 map. The paths in it are machine-specific on purpose — this is a personal,
@@ -43,6 +54,15 @@ repo as plain JSON, versioned by that repo's normal git history:
 Saving your backlog **is** a git commit in the project's repo — there is no
 other persistence layer, no database, no sync service. Diffs of board
 changes show up in normal review like any other file.
+
+Because git is the whole story, the board reads it back to you: the
+header counts **pending** changes and opens a review panel listing what
+a "save" would ratify in plain language ("O1-2 moved Doing → Done"), the
+**History** tab shows every past ratification, and a **briefing banner**
+greets you after time away with what changed since your last visit.
+Finished epics don't pile up either — once an epic and all its stories
+are done, **Ship & archive** moves it into the Shipped view, still
+counted by milestones but out of your way.
 
 ## What's on a board — the context stack
 
