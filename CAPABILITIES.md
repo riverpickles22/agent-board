@@ -22,7 +22,7 @@ Binds to 127.0.0.1 only.
 
 ## The five surfaces (in flow order: capture → intent → work → record)
 
-**Ideas** — the inbox. Three active columns: `idea` →
+**Ideas** — the funnel that decides what enters execution (Ideas asks *what might this become*; the Board asks *what are we building*). Colour tracks maturity — gray dormant, blue being shaped, amber decision-required, green cleared — and each card grows as it matures, ending with **⇥ Promote to Board**, the one recorded moment an idea becomes committed work. Three active columns: `idea` →
 `ready for review` (the agent's hand-off: the deep dive holds enough to
 decide) → `ready to implement` (the human's thumbs-up — from there the
 idea is decomposed into an epic + stories on the Board page before

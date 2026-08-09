@@ -4,16 +4,27 @@ route: "#/ideas"
 spec_state: matches-ui
 ---
 
-# Ideas — the inbox, by conviction
+# Ideas — the funnel that decides what enters execution
 
-The active pipeline in three columns on one row — **Idea** (rough
-placeholder) → **Ready for review** (the human's thumbs-up/down moment)
-→ **Ready to implement** (approved, awaiting grooming or an ad hoc
-build) — with quick-win flagging from the decision lens. `done` and
-`rejected` ideas live behind an **archive toggle** so finished and
-declined work never crowds the active view. Clicking an idea leads to
-its deep-dive page (`idea-detail.md`); this page is for scanning and
-capturing.
+**Ideas answers "what might this become"; the Board answers "what are
+we building".** This page is not a second Kanban — it is a funnel, and
+every stage answers one of two questions: *how much do we believe in
+this?* and *is it defined enough to graduate?* The lifecycle runs
+**capture → back burner → front burner → review → ready → promote →
+execution**, and `Promote to Board` is the boundary where product
+discovery becomes committed work.
+
+| Stage | Means |
+|---|---|
+| **Back burner** | interesting and preserved, but not worth product-design time now |
+| **Front burner** | worth actively shaping; questions, dependencies and approach still open |
+| **Ready for review** | the concept is shaped — what remains is a deliberate decision: pursue, revise, defer, reject |
+| **Ready to implement** | intent is settled enough to become executable work; awaiting promotion |
+
+`done` and `rejected` live behind an **archive toggle**; a promoted
+idea moves to `done` carrying `promoted_to`. Clicking an idea leads to
+its deep-dive page (`idea-detail.md`); this page is for scanning,
+capturing, and deciding.
 
 ## Layout
 
@@ -56,13 +67,13 @@ back-burner cards carry a **gray** one (`--st-idle`), and the whole
 back-burner section sits in a recessed dashed box (`.bsec.back`) — the
 UI's "tentative" cue, replacing the bare divider line.
 
-**Colour means state, once.** Every card's left edge is set from
-`ideaCardState()` alone — gray back burner, blue front burner, purple
-awaiting a decision, green approved — per the legend in `system.md`.
-Nothing else may tint the edge: blocked is an amber pill, conviction is
-small italic text, and heavy card-wide washes are gone. This replaces
-the earlier arrangement where a green "clear to pursue" wash, a blue
-burner edge, and the column itself all competed to say what a card was.
+**Colour is the maturity scale.** Every card's left edge comes from
+`ideaCardState()` alone: **gray** dormant → **blue** being shaped →
+**amber** decision required → **green** cleared (`system.md` legend).
+The progression is the point, so nothing else on an idea card may carry
+colour — leverage counts and dependency ticks render neutral, because a
+green tick on a back-burner card makes it read "positive" and weakens
+the stage signal. Red means rejected, and nothing else.
 
 Archive view (toggled): same page, two columns — DONE and REJECTED —
 one row.
@@ -83,12 +94,17 @@ archive — so each view is always a single row; single column under
 | Copy backlog | `#copy-ideas` `ideasMarkdown()` | "⧉ copy" chip left of ↻ refresh | copies the **visible view** (active pipeline or archive) to the clipboard as markdown — headings per column/burner, one `###` per idea with its full description (both halves), a meta line (category · priority · effort · impact · milestone · theme · tags · deps · rejected reason), and the id for referencing back. Made for pasting into another LLM to brainstorm; toast confirms with the idea count |
 | Status column | `.ideas-col` | label + count per view's status list | active: `IDEA_STATUS` (idea → ready for review → ready to implement); archive: `IDEA_STATUS_ARCHIVE` (done, rejected). "Ready for review" is the agent's hand-off; "ready to implement" is the human's thumbs-up (AGENTS.md §2). Legacy statuses (considering/planned/building) render via `ideaStatus()` normalization |
 | Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next); back = the rest, inside the dashed recessed box; each section renders only when non-empty; header `title` names the priority tiers it covers. The burner drives each card's `data-state` (front/idle) and therefore its edge colour and status pill — the section is a grouping, the card carries the meaning. Back-burner titles dim to `--ink-2` |
-| Idea card | `ideaCard()` | **five questions in five seconds** — what is it (title) · why it matters (one-sentence outcome) · how hard (pills) · what it unlocks (leverage) · what's stopping us (deps / decision) | the collapsed card carries *structured facts*, never prose: the full description, context, pros/cons and sections all stay on the deep dive. Order is fixed: title → outcome → pill row → why-now → unlocks → depends-on → milestone/theme/tags → decision |
+| Idea card | `ideaCard()` | **the card grows as the idea matures** — the same object gets progressively more rigorous instead of being rewritten | content is a function of stage, so an early idea stays a one-line bet and a late one carries its boundary. Fields set early simply don't render until the stage earns them (a `why_now` on a back-burner card is stored, not shown). Prose always stays on the deep dive |
+| — back burner | | title · outcome · effort/impact | a preserved bet, nothing more — no why-now, Opens, dependencies, theme or conviction |
+| — front burner | | adds why-now · **Opens** · depends-on · theme · conviction · milestone/tags | the shaping stage: why it matters, what it unlocks, what it waits on |
+| — ready for review | | same, and leads to **Decision needed** set off below a hairline | the card exists to get one question answered; it is the last thing the eye meets |
+| — ready to implement | | outcome · **dependencies satisfied** · constraints · acceptance boundary · decision | the graduation packet — what promotion will carry onto the board |
 | Outcome line | `outcomeLine()` `.iout` | the **first sentence** of the plain description half, clamped to two lines | derived, not a field — existing ideas gain it for free, and a card never shows the essay. Absent when the description is empty |
 | Status pill | `ideaCardState()` `.spill` | one pill naming the workflow state in words: back burner / front burner / ready for review / ready to implement / done / rejected | the same state the left border encodes — words and colour always agree. This is the **only** thing the border may mean |
 | Blocked pill | `ideaBlocked()` `.spill.blocked` | amber `blocked` pill, titled with the unresolved ids | orthogonal to status by design: a card reads "front burner" **and** "blocked" at once. Never recolours the border. Absent on archived ideas |
 | Conviction | `.conv` (`CONVICTIONS`) | small italic `speculative` / `promising` / `clear to pursue` | product conviction, a different axis from workflow maturity (AGENTS.md §2) — so "ready for review · promising" is expressible. Deliberately the quietest thing in the pill row; absent when unset |
-| Leverage | `unlockedBy()` `.lev` | `Unlocks: A · B · C  ↑ unlocks N` — the **inverse** of other ideas' `deps`, active ideas only | derived at render, never stored. Makes foundational work look foundational: an idea three others wait on stops reading like an isolated feature. Absent when nothing depends on it — no "unlocks 0" noise |
+| Opens | `unlockedBy()` `.lev` | `Opens: A · B · C  ↑ opens N` — the **inverse** of other ideas' `deps`, active ideas only | derived at render, never stored; renders neutral so it can't compete with the stage colour. Makes architectural leverage visible: an idea three others wait on stops reading like an isolated feature. Absent when nothing depends on it — no "opens 0" noise. Front burner and beyond only |
+| Promote to Board | `promoteIdea()` `#i-promote` | "⇥ Promote to Board" on a **ready to implement** idea's deep dive | the boundary between discovery and delivery. Creates an epic in the first lane seeded from the idea (title, description, theme, milestone, priority, tags) with a `notes` line citing the source id and carrying why-now / constraints / acceptance; sets `promoted_to`, moves the idea to `done` with a dated log entry, and jumps to the new card. Stories stay a grooming job (AGENTS.md §5) — promotion creates the epic, never a guess at acceptance criteria. Idempotent: an already-promoted idea shows the link instead of the button |
 | Why now | `.ifact` | one line, `Why now: …` | expected on front-burner and review-ready ideas; the guard against prioritising whichever card sounds best. Absent when unset |
 | Decision needed | `.ifact.decide` | the reviewer's question, last on the card above a hairline | a `ready for review` card exists to get a question answered — this puts the question where the eye lands last and stays. Absent when unset |
 | Dependencies line | `.idep` `depChips(ids, soft)` | `⊸ depends on:` then one chip per id, resolved ones `✓id` in `--lane-5` | renders **only when `deps` is non-empty**; ids may name ideas (done) or epics (in the done lane), and unknown ids render dim-dotted rather than vanishing. Unresolved deps stay **dim, never loud** — idea deps are informational sequencing with no ordering rule, so they must not look like the board's dependency violations |

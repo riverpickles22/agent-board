@@ -212,6 +212,9 @@ keep the links current when scope changes.
   "why_now": "one line: what makes this timely, not merely good",
   "decision": "the specific question a reviewer must answer",
   "conviction": "speculative | promising | clear to pursue | (empty)",
+  "constraints": "what the build must stay within (shown from `ready to implement`)",
+  "acceptance": "the boundary that would make it done enough",
+  "promoted_to": "epic id once promoted to the board, else null",
   "pros": ["…"], "cons": ["…"],
   "sections": [ {"title": "UI sketch | Market analysis | …", "body": "…"} ],
   "log": [ {"at": "YYYY-MM-DD", "note": "a dated brainstorm entry"} ],
@@ -228,7 +231,26 @@ honest, not padded), the agent moves it to `ready for review` itself and
 records a dated `log` entry saying what made it decision-ready. It is
 the one status transition an agent makes on its own initiative;
 `ready to implement` (the human's thumbs-up) and `rejected` are the
-human's call. From `ready to implement`: **decompose before you build**
+human's call.
+
+**Ideas are a funnel, not a second board.** *Ideas* answers "what might
+this become"; the *Board* answers "what are we building". The stages
+mean: **back burner** — preserved, not worth design time now; **front
+burner** — worth actively shaping, questions still open; **ready for
+review** — shaped enough that only a deliberate decision remains
+(pursue / revise / defer / reject); **ready to implement** — intent
+settled enough to become executable work. The card surfaces more of
+itself at each stage, so fill fields when the stage earns them rather
+than all at once.
+
+**Promotion is the boundary.** `Promote to Board` turns a
+`ready to implement` idea into an epic, sets `promoted_to`, and closes
+the idea as `done` with a dated log entry. Promotion creates the
+**epic** only — grooming it into stories is still §5 work, because
+acceptance criteria are a thinking job, not a copy. Never promote an
+idea the human hasn't moved to `ready to implement`.
+
+From `ready to implement`: **decompose before you build**
 — groom the idea into an epic + stories on the board backlog (§5) so
 the work exists as cards the human can watch move; even a small ad hoc
 request gets a lightweight epic with a single story rather than being

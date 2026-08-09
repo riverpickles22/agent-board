@@ -34,33 +34,48 @@ the media-query equivalent) so accent-filled surfaces stay readable.
 
 ## The state colour legend
 
-**Colour communicates one thing: state.** Each hue has exactly one
-meaning across every screen, and no element may use a hue for a second
-purpose (decoration, selection, emphasis). The state tokens alias the
-existing palette, so the legend is semantics — not a new look.
+**Colour communicates one thing: state.** The two boards answer
+different questions, so each has its own scale — but the rules below
+hold on both, and no element may borrow a hue for decoration,
+selection, or emphasis. The state tokens alias the existing palette:
+this is semantics, not a new look.
 
-| Token | Alias | Means | Where |
+**Ideas — a maturity scale.** The ideas page is a funnel deciding what
+deserves to enter execution, so colour tracks *how far an idea has
+matured*, and the progression reads left to right:
+
+| Token | Alias | Stage | Means |
 |---|---|---|---|
-| `--st-idle` | `--ink-3` | back burner / unprioritised — parked on purpose | idea column, back burner |
-| `--st-active` | `--accent` | front burner / actively being explored | idea column, front burner |
-| `--st-review` | `--lane-1` | needs a human decision | ready-for-review |
-| `--st-ready` | `--lane-5` | sufficiently specified — approved to build | ready-to-implement; done work |
-| `--st-blocked` | `--lane-2` | blocked, or an unresolved dependency | amber pills, unmet dep chips, closed gates |
-| `--st-problem` | `--lane-4` | an **actual** problem: contradiction, refusal, failed validation, over-limit | refused drops, over-WIP counts, rejected ideas |
+| `--st-idle` | `--ink-3` | Back burner | dormant — preserved, not worth design time now |
+| `--st-active` | `--accent` | Front burner | actively being shaped; questions still open |
+| `--st-decide` | `--lane-2` | Ready for review | shaped enough — awaiting a deliberate product decision |
+| `--st-ready` | `--lane-5` | Ready to implement | intent settled; cleared to become executable work |
+| `--st-problem` | `--lane-4` | Rejected | the only red on this page |
 
-**Two rules keep it deterministic:**
+**Board — execution state.** Lanes keep their positional identity
+colours (`laneVar()`); on top of those, `--st-blocked` (amber) marks
+work waiting on something outside its own control (closed gate, unmet
+dependency) and `--st-ready` marks done or startable. `--st-problem`
+stays for genuine failures: refused moves, over-WIP counts.
 
-1. **One dimension per channel.** The 3px **left border** carries
-   *workflow state* and nothing else. Anything orthogonal — blocked,
-   conviction, quick-win — is a **pill**, never a border recolour. A
-   card may read "front burner" (blue edge) and "blocked" (amber pill)
-   at once without either meaning being ambiguous.
-2. **Tint stays subtle.** Colour appears as the left border and small
-   pills; backgrounds get at most a barely-perceptible wash. The prose
-   is dense enough — heavy card tints fight it.
+Amber reads the same way on both: **waiting on someone**. On ideas
+that's a decision from you; on the board it's a gate or a dependency.
+
+**Three rules keep it deterministic:**
+
+1. **One dimension per channel.** The 3px **left border** carries the
+   card's stage and nothing else; anything orthogonal (conviction,
+   quick-win, leverage) is a pill or plain text, never a border
+   recolour.
+2. **The stage must dominate.** On an idea card, the stage colour is
+   the *only* colour. Leverage counts, resolved-dependency ticks and
+   metadata render neutral — a green tick on a back-burner card makes
+   it read "positive" and weakens the stage signal.
+3. **Tint stays subtle.** Colour appears as the left border and small
+   pills; no heavy card washes. The prose is dense enough.
 
 Red is scarce on purpose: if everything can be red, nothing is. An
-unmet dependency is *blocked* (amber), not broken.
+unmet dependency is *waiting*, not broken.
 
 ## Layout frame
 

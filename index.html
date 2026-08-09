@@ -47,12 +47,14 @@
      any orthogonal fact (blocked, conviction) is a pill, never a
      border recolour. Red is reserved for actual problems. */
   :root{
-    --st-idle:var(--ink-3);      /* back burner — parked on purpose      */
-    --st-active:var(--accent);   /* front burner — being explored        */
-    --st-review:var(--lane-1);   /* needs a human decision               */
-    --st-ready:var(--lane-5);    /* specified enough to build            */
-    --st-blocked:var(--lane-2);  /* blocked / unresolved dependency      */
-    --st-problem:var(--lane-4);  /* contradiction, refusal, over-limit   */
+    /* ideas — a maturity scale: dormant → shaping → decide → cleared */
+    --st-idle:var(--ink-3);      /* back burner — preserved, not now     */
+    --st-active:var(--accent);   /* front burner — actively being shaped */
+    --st-decide:var(--lane-2);   /* ready for review — awaiting a call   */
+    --st-ready:var(--lane-5);    /* ready to implement — cleared         */
+    /* board — execution state (amber reads the same: waiting on someone) */
+    --st-blocked:var(--lane-2);  /* gate closed / unmet dependency       */
+    --st-problem:var(--lane-4);  /* rejected, refused, over-limit        */
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -291,15 +293,18 @@
   .spill{font-size:10.5px;font-weight:700;letter-spacing:.02em;border-radius:20px;padding:2px 9px;
     border:1px solid currentColor;background:color-mix(in srgb, currentColor 10%, transparent)}
   .spill.idle{color:var(--st-idle)} .spill.front{color:var(--st-active)}
-  .spill.review{color:var(--st-review)} .spill.ready{color:var(--st-ready)}
+  .spill.review{color:var(--st-decide)} .spill.ready{color:var(--st-ready)}
   .spill.done{color:var(--st-ready)} .spill.rejected{color:var(--st-problem)}
-  .spill.blocked{color:var(--st-blocked)}
   .conv{font-size:10.5px;color:var(--ink-3);font-style:italic}
   /* structured facts — label dim, value readable, one line each */
   .ifact{font-size:11.5px;color:var(--ink-2);margin-top:6px;line-height:1.4}
   .ifact b{color:var(--ink-3);font-weight:600}
   .ifact.decide{color:var(--ink);border-top:1px solid var(--line-2);margin-top:9px;padding-top:7px}
-  .lev{font-family:var(--mono);font-size:10.5px;color:var(--st-ready);font-weight:700}
+  /* leverage is a fact, not a state — neutral, so the stage keeps the stage's colour */
+  .lev{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);font-weight:700}
+  /* on ideas, dependency marks stay neutral for the same reason */
+  .idea .depid.met, .idea .depid.unmet, .idea .depid.unknown{color:var(--ink-3);font-weight:500}
+  .idea .depid.met{color:var(--ink-2)}
   .ideas-col h4.burner{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
     margin:2px 0 8px;font-weight:700;display:flex;gap:7px;align-items:center}
   .ideas-col h4.burner.back{color:var(--ink-3)}
@@ -309,7 +314,7 @@
      column and blocked-ness the way the old accent/green edges had. */
   .idea[data-state]{border-left:3px solid var(--st-idle)}
   .idea[data-state="front"]{border-left-color:var(--st-active)}
-  .idea[data-state="review"]{border-left-color:var(--st-review)}
+  .idea[data-state="review"]{border-left-color:var(--st-decide)}
   .idea[data-state="ready"]{border-left-color:var(--st-ready)}
   .idea[data-state="done"]{border-left-color:var(--st-ready)}
   .idea[data-state="rejected"]{border-left-color:var(--st-problem)}
@@ -665,10 +670,10 @@ function depChips(ids, soft){
 // no single channel carries two meanings (design/system.md legend).
 function ideaCardState(i){
   const st = ideaStatus(i);
-  if(st === "done")     return { key:"done",     label:"done",           title:"Shipped" };
+  if(st === "done")     return { key:"done",     label:"done",           title:"Shipped or promoted to the board" };
   if(st === "rejected") return { key:"rejected", label:"rejected",       title:"Declined — see the reason on the deep dive" };
-  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Approved and specified enough to build" };
-  if(st === "ready for review")   return { key:"review", label:"ready for review",  title:"Waiting on a human decision" };
+  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Intent settled — ready to promote to the execution board" };
+  if(st === "ready for review")   return { key:"review", label:"ready for review",  title:"Shaped enough — awaiting a deliberate product decision" };
   const ix = PRIOS.indexOf(i.priority), cut = Math.ceil(PRIOS.length/2);
   return (ix > -1 && ix < cut)
     ? { key:"front", label:"front burner", title:"Actively being explored ("+i.priority+")" }
@@ -678,13 +683,6 @@ function ideaCardState(i){
 function depResolved(id){
   const ep = byId()[id]; if(ep) return ep.column === doneLane();
   const other = ideaById(id); return other ? ideaStatus(other) === "done" : false;
-}
-// Blocked is amber and orthogonal: a card can be front burner AND blocked.
-function ideaBlocked(i){
-  if(IDEA_STATUS_ARCHIVE.includes(ideaStatus(i))) return null;
-  const open = (i.deps||[]).filter(id => !depResolved(id));
-  if(!open.length) return null;
-  return { label:"blocked", title:"Waiting on "+open.join(", ") };
 }
 // Leverage: the inverse of deps. Foundational work looks foundational.
 function unlockedBy(id){
@@ -2063,33 +2061,46 @@ function renderIdeas(param){
   // stays on the deep dive; the card carries structured facts only.
   const ideaCard = i => {
     const st = ideaCardState(i);
-    const blocked = ideaBlocked(i);
-    // Theme is a pill (it's a scanning dimension); milestone and a few
-    // tags trail quietly. The rest of the tag dump lives on the deep dive.
+    const stage = st.key;                    // idle | front | review | ready | done | rejected
+    const shaped = stage !== "idle";         // front burner and beyond
+    const opens = unlockedBy(i.id);
+    const f = k => (i[k] || "").trim();
+    const line = (label, val, cls) => val
+      ? '<div class="ifact'+(cls?" "+cls:"")+'"><b>'+label+':</b> '+esc(val)+'</div>' : '';
+    // Theme is a pill (a scanning dimension); milestone and a few tags
+    // trail quietly. The rest of the tag dump lives on the deep dive.
     const tags = i.tags || [];
     const rel = [i.milestone].filter(Boolean).map(short)
       .concat(tags.slice(0,3), tags.length > 3 ? ["+"+(tags.length-3)] : []);
-    const unlocks = unlockedBy(i.id);
-    const decision = (i.decision || "").trim();
-    const whyNow = (i.why_now || "").trim();
-    return '<div class="idea" data-state="'+st.key+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'>'+
+    let body = "";
+    if(shaped){
+      body += line("Why now", f("why_now"));
+      if(opens.length) body += '<div class="ifact"><b>Opens:</b> '+
+        esc(opens.map(u => short(u.title)).join(" · "))+
+        ' <span class="lev" title="'+opens.length+' active idea'+(opens.length===1?'':'s')+
+        ' depend'+(opens.length===1?'s':'')+' on this">↑ opens '+opens.length+'</span></div>';
+      if((i.deps||[]).length) body += '<div class="idep">⊸ '+
+        (stage==="ready" ? "dependencies satisfied:" : "depends on:")+depChips(i.deps, true)+'</div>';
+    }
+    if(stage === "ready"){
+      body += line("Constraints", f("constraints"));
+      body += line("Acceptance", f("acceptance"));
+    }
+    // The decision is the whole point of the review stage — last, set off.
+    const tail = (stage==="review" || stage==="ready") ? line("Decision needed", f("decision"), "decide") : "";
+    const promoted = f("promoted_to") ? '<div class="ifact"><b>Promoted:</b> → '+esc(i.promoted_to)+'</div>' : "";
+    return '<div class="idea" data-state="'+stage+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'>'+
       '<div class="it">'+esc(i.title)+'</div>'+
       (outcomeLine(i) ? '<div class="iout">'+esc(outcomeLine(i))+'</div>' : '')+
       '<div class="imeta">'+
-        '<span class="spill '+st.key+'" title="'+esc(st.title)+'">'+esc(st.label)+'</span>'+
-        (blocked ? '<span class="spill blocked" title="'+esc(blocked.title)+'">'+esc(blocked.label)+'</span>' : '')+
+        '<span class="spill '+stage+'" title="'+esc(st.title)+'">'+esc(st.label)+'</span>'+
         eiBadge(i)+
-        (i.theme?'<span class="tagpill" title="'+esc(i.theme)+'">'+esc(short(i.theme))+'</span>':"")+
-        (i.conviction ? '<span class="conv" title="Product conviction — separate from workflow state">'+esc(i.conviction)+'</span>' : '')+
+        (shaped && i.theme ? '<span class="tagpill" title="'+esc(i.theme)+'">'+esc(short(i.theme))+'</span>' : "")+
+        (shaped && i.conviction ? '<span class="conv" title="Product conviction — separate from stage">'+esc(i.conviction)+'</span>' : '')+
       '</div>'+
-      (whyNow ? '<div class="ifact"><b>Why now:</b> '+esc(whyNow)+'</div>' : '')+
-      (unlocks.length ? '<div class="ifact"><b>Unlocks:</b> '+
-        esc(unlocks.map(u => short(u.title)).join(" · "))+
-        ' <span class="lev" title="'+unlocks.length+' active idea'+(unlocks.length===1?'':'s')+
-        ' depend on this">↑ unlocks '+unlocks.length+'</span></div>' : '')+
-      ((i.deps||[]).length ? '<div class="idep">⊸ depends on:'+depChips(i.deps, true)+'</div>' : '')+
-      (rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+
-      (decision ? '<div class="ifact decide"><b>Decision needed:</b> '+esc(decision)+'</div>' : '')+
+      body+
+      (shaped && rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+
+      promoted+tail+
       '</div>';
   };
   // The Idea column splits by priority so attention goes to the top:
@@ -2268,6 +2279,38 @@ function dropIdea(id, st, burner, beforeId){
   renderIdeas(null); persistResource("ideas", state.ideas);
 }
 
+// ---- the graduation boundary: discovery → delivery ----
+// Ideas answer "what might this become"; the board answers "what are we
+// building". Promotion is the one recorded moment an idea crosses over:
+// it seeds the epic, links both ways, and closes the idea out of the
+// funnel. Stories stay a grooming job (AGENTS.md §5) — this creates the
+// epic, not a guess at its acceptance criteria.
+function promoteIdea(id){
+  const i = ideaById(id); if(!i) return;
+  if(i.promoted_to){ showToast(i.id+" already became "+i.promoted_to+"."); return; }
+  if(ideaStatus(i) !== "ready to implement"){
+    showToast("Only a 'ready to implement' idea can be promoted — it's the settled-intent boundary."); return; }
+  const eid = suggestId();
+  const bits = [i.why_now && ("Why now: "+i.why_now), i.constraints && ("Constraints: "+i.constraints),
+                i.acceptance && ("Acceptance boundary: "+i.acceptance)].filter(Boolean);
+  state.epics.push(Object.assign(blankEpic(COLUMNS[0]), {
+    id: eid, name: i.title, description: i.description || "",
+    notes: "Promoted from idea "+i.id+" ("+today()+"). "+bits.join(" · "),
+    theme: i.theme || "", milestone: i.milestone || "",
+    priority: i.priority || PRIOS[0], status: "shaped",
+    tags: (i.tags||[]).slice(), updated_at: new Date().toISOString() }));
+  i.promoted_to = eid;
+  i.status = "done";
+  i.updated_at = today();
+  (i.log = i.log || []).push({ at: today(),
+    note: "Promoted to the execution board as "+eid+" — intent settled, discovery complete. Stories still to be groomed." });
+  persistResource("epics", state.epics);
+  persistResource("ideas", state.ideas);
+  showToast(i.id+" promoted → "+eid+". Groom it into stories when you're ready.");
+  navigate("board");
+  setTimeout(() => goToEpic(eid), 60);
+}
+
 /* ---- idea deep dive ---- */
 function ideaById(id){ return (state.ideas||[]).find(x=>x.id===id); }
 // The description convention is a plain-language half, then a "Technical
@@ -2328,9 +2371,17 @@ function renderIdeaDetail(id){
   left += block("reasoning", "Why now · decision · conviction",
     (i.why_now ? '<p><b>Why now:</b> '+esc(i.why_now)+'</p>' : '<p class="empty">No "why now" yet — what makes this timely rather than merely good?</p>')+
     (i.decision ? '<p><b>Decision needed:</b> '+esc(i.decision)+'</p>' : '')+
-    (i.conviction ? '<p><b>Conviction:</b> '+esc(i.conviction)+' <span class="empty">(separate from workflow status)</span></p>' : '')+
-    (unlocks.length ? '<p><b>Unlocks '+unlocks.length+':</b> '+
-      esc(unlocks.map(u => u.title).join(" · "))+'</p>' : ''), false);
+    (i.conviction ? '<p><b>Conviction:</b> '+esc(i.conviction)+' <span class="empty">(separate from stage)</span></p>' : '')+
+    (i.constraints ? '<p><b>Constraints:</b> '+esc(i.constraints)+'</p>' : '')+
+    (i.acceptance ? '<p><b>Acceptance boundary:</b> '+esc(i.acceptance)+'</p>' : '')+
+    (unlocks.length ? '<p><b>Opens '+unlocks.length+':</b> '+
+      esc(unlocks.map(u => u.title).join(" · "))+'</p>' : '')+
+    (i.promoted_to
+      ? '<p><b>Promoted:</b> this became <a href="#/board" style="color:var(--accent)">'+esc(i.promoted_to)+'</a> on the execution board.</p>'
+      : (ideaStatus(i) === "ready to implement"
+        ? '<p><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Board</button> '+
+          '<span class="empty">intent is settled — turn it into committed work</span></p>'
+        : '')), false);
   left += block("context", "Context — what is this really about?",
     text(i.context, "No context yet. What problem does it solve, for whom, and why now?"));
   left += block("proscons", "Pros / Cons",
@@ -2393,6 +2444,8 @@ function renderIdeaDetail(id){
     saveIdeas(); renderIdeaDetail(id);
   }
   document.getElementById("sec-add").addEventListener("click", () => editSection(-1));
+  const pb = document.getElementById("i-promote");
+  if(pb) pb.addEventListener("click", () => promoteIdea(i.id));
   v.querySelectorAll("[data-editsec]").forEach(b => b.addEventListener("click", () => editSection(+b.dataset.editsec)));
   v.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => inlineEdit(b.dataset.edit)));
 
@@ -2455,7 +2508,7 @@ function renderIdeaDetail(id){
 const CONVICTIONS = ["speculative", "promising", "clear to pursue"];
 function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", category:"", theme:"", milestone:"", tags:[], deps:[],
   status:"idea", priority:PRIOS[0], effort:"", impact:"", context:"", compounding:"", pros:[], cons:[], sections:[], log:[],
-  why_now:"", decision:"", conviction:"",
+  why_now:"", decision:"", conviction:"", constraints:"", acceptance:"", promoted_to:null,
   rejected_reason:null, created_at:today(), updated_at:null }; }
 function openIdea(id){
   ideaMode = id ? "edit" : "create";
@@ -2480,7 +2533,11 @@ function openIdea(id){
     '<div class="field"><label for="i-why">Why now (one line — what makes this timely)</label><input id="i-why" value="'+esc(i.why_now||"")+'" placeholder="e.g. Required before story simulation can reason about character motivation"></div>'+
     '<div class="field row2">'+
       '<div><label for="i-decide">Decision needed (the question a reviewer must answer)</label><input id="i-decide" value="'+esc(i.decision||"")+'" placeholder="e.g. Should obligations be first-class records, or derived?"></div>'+
-      '<div><label for="i-conv">Conviction (separate from status)</label><select id="i-conv"><option value="">—</option>'+opts(CONVICTIONS, i.conviction||"")+'</select></div>'+
+      '<div><label for="i-conv">Conviction (separate from stage)</label><select id="i-conv"><option value="">—</option>'+opts(CONVICTIONS, i.conviction||"")+'</select></div>'+
+    '</div>'+
+    '<div class="field row2">'+
+      '<div><label for="i-constr">Constraints (shown once ready to implement)</label><input id="i-constr" value="'+esc(i.constraints||"")+'" placeholder="what this must not break or must stay within"></div>'+
+      '<div><label for="i-accept">Acceptance boundary (shown once ready to implement)</label><input id="i-accept" value="'+esc(i.acceptance||"")+'" placeholder="what would make this done enough"></div>'+
     '</div>'+
     '<div class="field"><label for="i-reject">Rejected reason (if rejecting)</label><textarea id="i-reject" style="min-height:50px">'+esc(i.rejected_reason||"")+'</textarea></div>'+
     '<div class="m-err" id="m-err"></div>'+
@@ -2499,6 +2556,7 @@ function saveIdea(){
     category:g("i-cat").value.trim(), milestone:g("i-ms").value, theme:g("i-theme").value,
     tags:g("i-tags").value.split(/\s+/).filter(Boolean), deps:g("i-deps").value.split(/[\s,]+/).filter(Boolean),
     why_now:g("i-why").value.trim(), decision:g("i-decide").value.trim(), conviction:g("i-conv").value,
+    constraints:g("i-constr").value.trim(), acceptance:g("i-accept").value.trim(),
     rejected_reason:g("i-reject").value.trim()||null, updated_at:today() };
   let landedId = editingIdea;
   if(ideaMode==="create"){ const ni = Object.assign(blankIdea(), vals); state.ideas.push(ni); landedId = ni.id; }

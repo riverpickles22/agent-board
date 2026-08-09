@@ -589,5 +589,74 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T11:15:00Z"
+  },
+  {
+    "id": "B17-1",
+    "epic_id": "B17",
+    "name": "Maturity palette — one colour per card, and it's the stage",
+    "description": "Ideas use a maturity scale: gray back burner, blue front burner, amber ready-for-review, green ready-to-implement. Everything else on an idea card goes neutral so nothing competes with the stage — the leverage marker and resolved-dep ticks stop rendering green, and the amber blocked pill is retired (amber now means 'decision required'). Red on ideas means rejected, nothing else.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Idea edges and status pills follow gray → blue → amber → green by stage; purple is gone from the ideas page",
+      "No green appears on a back-burner or front-burner card — leverage and dependency marks render neutral",
+      "Red appears on an idea only when it is rejected",
+      "The execution board keeps its own state colours (gates/blocked amber, problems red) and is unaffected"
+    ],
+    "context": "design/system.md legend; design/ideas.md; index.html ideaCardState(), .lev, .depid, .spill",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T13:00:00Z"
+  },
+  {
+    "id": "B17-2",
+    "epic_id": "B17",
+    "name": "Progressive card detail — the same object gets more rigorous",
+    "description": "Card content is a function of stage. Back burner: title, outcome, effort/impact. Front burner: adds why it matters, Opens, dependencies. Ready for review: leads with the decision. Ready to implement: outcome, constraints, dependencies-satisfied, acceptance boundary. 'Unlocks' is renamed 'Opens'; constraints and acceptance are new fields rendered only at the ready stage.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A back-burner card shows title, outcome and effort/impact only — no why-now, Opens or dependency lines even when those fields hold values",
+      "A front-burner card adds why-now, Opens and dependencies; a review card leads with Decision needed",
+      "A ready-to-implement card shows outcome, constraints, dependencies-satisfied and acceptance boundary",
+      "The reverse-dependency line reads 'Opens:' everywhere, and the deep dive still shows every field regardless of stage"
+    ],
+    "context": "index.html ideaCard(), unlockedBy(), renderIdeaDetail(); AGENTS.md §2 for constraints/acceptance",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T13:00:00Z"
+  },
+  {
+    "id": "B17-3",
+    "epic_id": "B17",
+    "name": "Promote to Board — the graduation boundary",
+    "description": "A ready-to-implement idea gets a 'Promote to Board' action that creates the execution epic seeded from the idea (title, description, theme, milestone, context docs, a notes line citing the idea), records promoted_to on the idea, marks it done with a dated log entry, and offers to jump to the new card. Discovery ends and delivery begins at one recorded moment.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Promote appears only on ready-to-implement ideas, and only in the idea deep dive and modal — never as a drag",
+      "Promoting creates an epic in the first lane with the idea's content and a notes line naming the source idea id",
+      "The idea gains promoted_to (the epic id), moves to done with a dated log entry, and its card shows the link",
+      "Promoting twice is impossible — an already-promoted idea shows the link, not the button"
+    ],
+    "context": "index.html renderIdeaDetail()/openIdea(), blankEpic(), suggestId(), persistResource; AGENTS.md §2 + §6 decompose-before-build",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T13:00:00Z"
   }
 ]
