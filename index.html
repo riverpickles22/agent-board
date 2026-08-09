@@ -40,6 +40,20 @@
     --lane-0:#9DA9B5; --lane-1:#C586C0; --lane-2:#E2C08D; --lane-3:#4FC1FF; --lane-4:#F48771; --lane-5:#89D185;
     --shadow:0 1px 2px rgba(0,0,0,.32), 0 12px 32px rgba(0,0,0,.34);
   }
+  /* Semantic state tokens — one meaning per hue (design/system.md → the
+     state colour legend). Aliases of the palette above, so they follow
+     the theme automatically and add no new colours. Colour communicates
+     state and nothing else: the left border carries workflow state, and
+     any orthogonal fact (blocked, conviction) is a pill, never a
+     border recolour. Red is reserved for actual problems. */
+  :root{
+    --st-idle:var(--ink-3);      /* back burner — parked on purpose      */
+    --st-active:var(--accent);   /* front burner — being explored        */
+    --st-review:var(--lane-1);   /* needs a human decision               */
+    --st-ready:var(--lane-5);    /* specified enough to build            */
+    --st-blocked:var(--lane-2);  /* blocked / unresolved dependency      */
+    --st-problem:var(--lane-4);  /* contradiction, refusal, over-limit   */
+  }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;
@@ -124,14 +138,15 @@
   .card .dep.warn{color:var(--lane-4);font-weight:600}
   /* one chip per dependency, coloured by that dep's own state */
   .depid{margin-left:4px}
-  .depid.met{color:var(--lane-5);font-weight:600}
-  .depid.unmet{color:var(--lane-4);font-weight:600}
-  .depid.unknown{color:var(--ink-3);text-decoration:underline dotted}
-  /* the last dep landed and nothing else blocks a start */
-  .card.unblocked{border-left:3px solid var(--lane-5);
-    background:color-mix(in srgb, var(--lane-5) 7%, var(--card))}
-  .rdytag{font-size:11px;font-weight:700;color:var(--lane-5)}
-  .swim.unblocked{border-left:3px solid var(--lane-5)}
+  .depid.met{color:var(--st-ready);font-weight:600}
+  /* unmet is *blocked*, not broken — amber, per the state legend */
+  .depid.unmet{color:var(--st-blocked);font-weight:600}
+  .depid.unknown{color:var(--st-idle);text-decoration:underline dotted}
+  /* the last dep landed and nothing else blocks a start — border only,
+     no card-wide tint (the legend keeps colour to edges and pills) */
+  .card.unblocked{border-left:3px solid var(--st-ready)}
+  .rdytag{font-size:11px;font-weight:700;color:var(--st-ready)}
+  .swim.unblocked{border-left:3px solid var(--st-ready)}
   .claim{font-size:11.5px;color:var(--accent);font-weight:600}
   .stbadge{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .stbadge .rdy{color:var(--lane-5);font-weight:600}
@@ -269,22 +284,38 @@
   .idea .ia{font-size:13.5px;color:var(--ink-2);margin-top:5px;line-height:1.45;white-space:pre-line}
   .idea .irel{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:9px}
   .idea .idep{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:8px}
+  /* one-sentence outcome, clamped: the essay lives on the deep dive */
+  .idea .iout{font-size:13.5px;color:var(--ink-2);margin-top:5px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* status pill (workflow) + conviction (orthogonal, deliberately quieter) */
+  .spill{font-size:10.5px;font-weight:700;letter-spacing:.02em;border-radius:20px;padding:2px 9px;
+    border:1px solid currentColor;background:color-mix(in srgb, currentColor 10%, transparent)}
+  .spill.idle{color:var(--st-idle)} .spill.front{color:var(--st-active)}
+  .spill.review{color:var(--st-review)} .spill.ready{color:var(--st-ready)}
+  .spill.done{color:var(--st-ready)} .spill.rejected{color:var(--st-problem)}
+  .spill.blocked{color:var(--st-blocked)}
+  .conv{font-size:10.5px;color:var(--ink-3);font-style:italic}
+  /* structured facts — label dim, value readable, one line each */
+  .ifact{font-size:11.5px;color:var(--ink-2);margin-top:6px;line-height:1.4}
+  .ifact b{color:var(--ink-3);font-weight:600}
+  .ifact.decide{color:var(--ink);border-top:1px solid var(--line-2);margin-top:9px;padding-top:7px}
+  .lev{font-family:var(--mono);font-size:10.5px;color:var(--st-ready);font-weight:700}
   .ideas-col h4.burner{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
     margin:2px 0 8px;font-weight:700;display:flex;gap:7px;align-items:center}
   .ideas-col h4.burner.back{color:var(--ink-3)}
   .ideas-col h4.burner .cnt{font-family:var(--mono);font-weight:500}
-  /* the burners must read differently mid-scroll without the headers:
-     front cards carry an accent edge; the whole back section sits in a
-     recessed dashed box (dashed = tentative) with quieter cards */
-  .bsec:not(.back) .idea{border-left:3px solid color-mix(in srgb, var(--accent) 45%, transparent)}
+  /* The left border carries workflow state and nothing else. One class
+     per state, set by the renderer — no cascade races between burner,
+     column and blocked-ness the way the old accent/green edges had. */
+  .idea[data-state]{border-left:3px solid var(--st-idle)}
+  .idea[data-state="front"]{border-left-color:var(--st-active)}
+  .idea[data-state="review"]{border-left-color:var(--st-review)}
+  .idea[data-state="ready"]{border-left-color:var(--st-ready)}
+  .idea[data-state="done"]{border-left-color:var(--st-ready)}
+  .idea[data-state="rejected"]{border-left-color:var(--st-problem)}
   .bsec.back{background:color-mix(in srgb, var(--ground) 65%, var(--panel));border:1px dashed var(--line);
     border-radius:12px;padding:12px 12px 3px;margin-top:18px}
-  .bsec.back .idea{background:color-mix(in srgb, var(--panel) 55%, var(--ground))}
   .bsec.back .idea .it{color:var(--ink-2)}
-  /* must outrank .bsec:not(.back) .idea's accent edge (0,3,0) — hence the
-     .bsec-qualified selector, and the plain one for the archive view */
-  .bsec .idea.unblocked, .idea.unblocked{border-left:3px solid var(--lane-5);
-    background:color-mix(in srgb, var(--lane-5) 7%, var(--panel))}
   .idea[draggable=true]{cursor:grab}
   .idea[draggable=true]:active{cursor:grabbing}
   .idea.dragging{opacity:.4}
@@ -628,15 +659,45 @@ function depChips(ids, soft){
 }
 // "Every dependency landed and nothing else stops a start" — deliberately
 // narrower than "no deps": this marks the transition, not an empty queue.
-// Ideas: deps are informational sequencing, so "unblocked" means the
-// precondition landed — free to pursue, not a queue position.
-function ideaUnblocked(i){
-  if(!(i.deps||[]).length) return false;
-  if(IDEA_STATUS_ARCHIVE.includes(ideaStatus(i))) return false;   // nothing left to pursue
-  return (i.deps||[]).every(id => {
-    const ep = byId()[id]; if(ep) return ep.column === doneLane();
-    const other = ideaById(id); return other ? ideaStatus(other) === "done" : false;
-  });
+// ---- idea state, the one source the visual language reads ----
+// Workflow state → the left border and status pill. Exactly one per card;
+// anything orthogonal (blocked, conviction) renders as a separate pill so
+// no single channel carries two meanings (design/system.md legend).
+function ideaCardState(i){
+  const st = ideaStatus(i);
+  if(st === "done")     return { key:"done",     label:"done",           title:"Shipped" };
+  if(st === "rejected") return { key:"rejected", label:"rejected",       title:"Declined — see the reason on the deep dive" };
+  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Approved and specified enough to build" };
+  if(st === "ready for review")   return { key:"review", label:"ready for review",  title:"Waiting on a human decision" };
+  const ix = PRIOS.indexOf(i.priority), cut = Math.ceil(PRIOS.length/2);
+  return (ix > -1 && ix < cut)
+    ? { key:"front", label:"front burner", title:"Actively being explored ("+i.priority+")" }
+    : { key:"idle",  label:"back burner",  title:"Parked on purpose"+(i.priority?" ("+i.priority+")":"") };
+}
+// A dep is resolved when the epic reached the done lane, or the idea is done.
+function depResolved(id){
+  const ep = byId()[id]; if(ep) return ep.column === doneLane();
+  const other = ideaById(id); return other ? ideaStatus(other) === "done" : false;
+}
+// Blocked is amber and orthogonal: a card can be front burner AND blocked.
+function ideaBlocked(i){
+  if(IDEA_STATUS_ARCHIVE.includes(ideaStatus(i))) return null;
+  const open = (i.deps||[]).filter(id => !depResolved(id));
+  if(!open.length) return null;
+  return { label:"blocked", title:"Waiting on "+open.join(", ") };
+}
+// Leverage: the inverse of deps. Foundational work looks foundational.
+function unlockedBy(id){
+  return (state.ideas||[]).filter(x =>
+    !IDEA_STATUS_ARCHIVE.includes(ideaStatus(x)) && (x.deps||[]).includes(id));
+}
+// One sentence of outcome — derived, so no new field and existing ideas
+// benefit immediately. Full prose stays on the deep dive.
+function outcomeLine(i){
+  const plain = descParts(i.description).plain.trim();
+  if(!plain) return "";
+  const m = plain.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (m ? m[0] : plain).trim();
 }
 function epicUnblocked(e){
   if(!(e.deps||[]).length) return false;
@@ -1997,14 +2058,38 @@ function renderIdeas(param){
       '<button class="chip" id="refresh-ideas" title="Fetch the latest board data now — handy while an agent works the ideas">↻ refresh</button>'+
       '<button class="btn primary" id="new-idea">+ New idea</button>'+
     '</div>';
+  // Five questions in five seconds: what is it · why does it matter ·
+  // what does it unlock · how hard is it · what's stopping us. The prose
+  // stays on the deep dive; the card carries structured facts only.
   const ideaCard = i => {
-    const rel = [i.milestone, i.theme].filter(Boolean).map(short).concat(i.tags||[]);
-    return '<div class="idea'+(ideaUnblocked(i)?' unblocked':'')+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'><div class="it">'+esc(i.title)+'</div>'+
-      (descParts(i.description).plain ? '<div class="ia">'+esc(descParts(i.description).plain)+'</div>' : '')+
-      '<div class="imeta">'+(i.category?'<span class="tagpill">'+esc(i.category)+'</span>':"")+eiBadge(i)+'</div>'+
-      ((i.deps||[]).length ? '<div class="idep">⊸ depends on:'+depChips(i.deps, true)+
-        (ideaUnblocked(i) ? ' <span class="rdytag" title="Everything this idea was waiting on has landed">▶ clear to pursue</span>' : '')+'</div>' : '')+
+    const st = ideaCardState(i);
+    const blocked = ideaBlocked(i);
+    // Theme is a pill (it's a scanning dimension); milestone and a few
+    // tags trail quietly. The rest of the tag dump lives on the deep dive.
+    const tags = i.tags || [];
+    const rel = [i.milestone].filter(Boolean).map(short)
+      .concat(tags.slice(0,3), tags.length > 3 ? ["+"+(tags.length-3)] : []);
+    const unlocks = unlockedBy(i.id);
+    const decision = (i.decision || "").trim();
+    const whyNow = (i.why_now || "").trim();
+    return '<div class="idea" data-state="'+st.key+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'>'+
+      '<div class="it">'+esc(i.title)+'</div>'+
+      (outcomeLine(i) ? '<div class="iout">'+esc(outcomeLine(i))+'</div>' : '')+
+      '<div class="imeta">'+
+        '<span class="spill '+st.key+'" title="'+esc(st.title)+'">'+esc(st.label)+'</span>'+
+        (blocked ? '<span class="spill blocked" title="'+esc(blocked.title)+'">'+esc(blocked.label)+'</span>' : '')+
+        eiBadge(i)+
+        (i.theme?'<span class="tagpill" title="'+esc(i.theme)+'">'+esc(short(i.theme))+'</span>':"")+
+        (i.conviction ? '<span class="conv" title="Product conviction — separate from workflow state">'+esc(i.conviction)+'</span>' : '')+
+      '</div>'+
+      (whyNow ? '<div class="ifact"><b>Why now:</b> '+esc(whyNow)+'</div>' : '')+
+      (unlocks.length ? '<div class="ifact"><b>Unlocks:</b> '+
+        esc(unlocks.map(u => short(u.title)).join(" · "))+
+        ' <span class="lev" title="'+unlocks.length+' active idea'+(unlocks.length===1?'':'s')+
+        ' depend on this">↑ unlocks '+unlocks.length+'</span></div>' : '')+
+      ((i.deps||[]).length ? '<div class="idep">⊸ depends on:'+depChips(i.deps, true)+'</div>' : '')+
       (rel.length ? '<div class="irel">'+esc(rel.join(" · "))+'</div>' : '')+
+      (decision ? '<div class="ifact decide"><b>Decision needed:</b> '+esc(decision)+'</div>' : '')+
       '</div>';
   };
   // The Idea column splits by priority so attention goes to the top:
@@ -2237,6 +2322,15 @@ function renderIdeaDetail(id){
   const text = (val, hint) => val ? '<p>'+esc(val)+'</p>' : '<p class="empty">'+hint+'</p>';
 
   let left = "", right = "";
+  // The reasoning, first: timeliness, the open question, and how sure we
+  // are — the three things a reviewer needs before any prose.
+  const unlocks = unlockedBy(i.id);
+  left += block("reasoning", "Why now · decision · conviction",
+    (i.why_now ? '<p><b>Why now:</b> '+esc(i.why_now)+'</p>' : '<p class="empty">No "why now" yet — what makes this timely rather than merely good?</p>')+
+    (i.decision ? '<p><b>Decision needed:</b> '+esc(i.decision)+'</p>' : '')+
+    (i.conviction ? '<p><b>Conviction:</b> '+esc(i.conviction)+' <span class="empty">(separate from workflow status)</span></p>' : '')+
+    (unlocks.length ? '<p><b>Unlocks '+unlocks.length+':</b> '+
+      esc(unlocks.map(u => u.title).join(" · "))+'</p>' : ''), false);
   left += block("context", "Context — what is this really about?",
     text(i.context, "No context yet. What problem does it solve, for whom, and why now?"));
   left += block("proscons", "Pros / Cons",
@@ -2355,8 +2449,13 @@ function renderIdeaDetail(id){
   }
 }
 
+// Product conviction — how sure we are it's worth doing. Deliberately
+// orthogonal to workflow status: "ready for review" + "promising" is a
+// real and useful combination, so neither may be inferred from the other.
+const CONVICTIONS = ["speculative", "promising", "clear to pursue"];
 function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", category:"", theme:"", milestone:"", tags:[], deps:[],
   status:"idea", priority:PRIOS[0], effort:"", impact:"", context:"", compounding:"", pros:[], cons:[], sections:[], log:[],
+  why_now:"", decision:"", conviction:"",
   rejected_reason:null, created_at:today(), updated_at:null }; }
 function openIdea(id){
   ideaMode = id ? "edit" : "create";
@@ -2378,6 +2477,11 @@ function openIdea(id){
     '</div>'+
     '<div class="field mono"><label for="i-tags">Tags (space-separated)</label><input id="i-tags" value="'+esc((i.tags||[]).join(" "))+'"></div>'+
     '<div class="field mono"><label for="i-deps">Depends on (space-separated idea/epic ids — optional)</label><input id="i-deps" value="'+esc((i.deps||[]).join(" "))+'"></div>'+
+    '<div class="field"><label for="i-why">Why now (one line — what makes this timely)</label><input id="i-why" value="'+esc(i.why_now||"")+'" placeholder="e.g. Required before story simulation can reason about character motivation"></div>'+
+    '<div class="field row2">'+
+      '<div><label for="i-decide">Decision needed (the question a reviewer must answer)</label><input id="i-decide" value="'+esc(i.decision||"")+'" placeholder="e.g. Should obligations be first-class records, or derived?"></div>'+
+      '<div><label for="i-conv">Conviction (separate from status)</label><select id="i-conv"><option value="">—</option>'+opts(CONVICTIONS, i.conviction||"")+'</select></div>'+
+    '</div>'+
     '<div class="field"><label for="i-reject">Rejected reason (if rejecting)</label><textarea id="i-reject" style="min-height:50px">'+esc(i.rejected_reason||"")+'</textarea></div>'+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions"><button class="btn primary" id="i-save">'+(id?"Save":"Create")+'</button><button class="btn" id="i-cancel">Cancel</button>'+(id?'<button class="btn danger" id="i-del">Delete</button>':'')+'</div>';
@@ -2394,6 +2498,7 @@ function saveIdea(){
   const vals = { title, description:g("i-desc").value, status:g("i-status").value, priority:g("i-prio").value,
     category:g("i-cat").value.trim(), milestone:g("i-ms").value, theme:g("i-theme").value,
     tags:g("i-tags").value.split(/\s+/).filter(Boolean), deps:g("i-deps").value.split(/[\s,]+/).filter(Boolean),
+    why_now:g("i-why").value.trim(), decision:g("i-decide").value.trim(), conviction:g("i-conv").value,
     rejected_reason:g("i-reject").value.trim()||null, updated_at:today() };
   let landedId = editingIdea;
   if(ideaMode==="create"){ const ni = Object.assign(blankIdea(), vals); state.ideas.push(ni); landedId = ni.id; }

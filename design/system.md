@@ -32,6 +32,36 @@ Dark theme note: `.prio.p0`, active `.chip`, `.btn.primary`, and hovered
 `.chip-epic` flip their text to `#1F1F1F` under `data-theme="dark"` (and
 the media-query equivalent) so accent-filled surfaces stay readable.
 
+## The state colour legend
+
+**Colour communicates one thing: state.** Each hue has exactly one
+meaning across every screen, and no element may use a hue for a second
+purpose (decoration, selection, emphasis). The state tokens alias the
+existing palette, so the legend is semantics — not a new look.
+
+| Token | Alias | Means | Where |
+|---|---|---|---|
+| `--st-idle` | `--ink-3` | back burner / unprioritised — parked on purpose | idea column, back burner |
+| `--st-active` | `--accent` | front burner / actively being explored | idea column, front burner |
+| `--st-review` | `--lane-1` | needs a human decision | ready-for-review |
+| `--st-ready` | `--lane-5` | sufficiently specified — approved to build | ready-to-implement; done work |
+| `--st-blocked` | `--lane-2` | blocked, or an unresolved dependency | amber pills, unmet dep chips, closed gates |
+| `--st-problem` | `--lane-4` | an **actual** problem: contradiction, refusal, failed validation, over-limit | refused drops, over-WIP counts, rejected ideas |
+
+**Two rules keep it deterministic:**
+
+1. **One dimension per channel.** The 3px **left border** carries
+   *workflow state* and nothing else. Anything orthogonal — blocked,
+   conviction, quick-win — is a **pill**, never a border recolour. A
+   card may read "front burner" (blue edge) and "blocked" (amber pill)
+   at once without either meaning being ambiguous.
+2. **Tint stays subtle.** Colour appears as the left border and small
+   pills; backgrounds get at most a barely-perceptible wash. The prose
+   is dense enough — heavy card tints fight it.
+
+Red is scarce on purpose: if everything can be red, nothing is. An
+unmet dependency is *blocked* (amber), not broken.
+
 ## Layout frame
 
 ```

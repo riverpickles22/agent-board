@@ -520,5 +520,74 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T09:45:00Z"
+  },
+  {
+    "id": "B16-1",
+    "epic_id": "B16",
+    "name": "One meaning per colour: semantic state tokens",
+    "description": "Named state tokens mapped onto the existing palette (aesthetic unchanged): gray back burner, blue front burner, purple ready-for-review, green ready-to-implement, amber blocked, red reserved for real problems. Applied as a 3px left border plus a matching status pill; heavy card tints removed, including B15's green 'clear to pursue' wash. Border carries workflow state only — never two dimensions at once.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Every idea card's left border encodes exactly one thing — its workflow state — with gray/blue/purple/green per the legend, and a status pill in the same colour names it in words",
+      "Blocked shows as an amber pill and amber dep chips, never by recolouring the border (a card can be 'front burner' and 'blocked' at once without ambiguity)",
+      "Red appears nowhere except genuine problems (rejected ideas, over-WIP, refused moves) — unmet board deps become amber",
+      "No card carries a heavy background tint; any tint is barely-there, and the dark restrained aesthetic is unchanged"
+    ],
+    "context": "design/system.md tokens; design/ideas.md; index.html :root palette, .idea/.bsec CSS, .depid colours, B15's .unblocked wash",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T11:15:00Z"
+  },
+  {
+    "id": "B16-2",
+    "epic_id": "B16",
+    "name": "Five-second card: outcome, leverage, decision",
+    "description": "Collapsed cards answer what/why/unlocks/how-hard/what's-stopping-us. Title, then a one-sentence outcome (first sentence of the description, clamped — no new field), then the pill row, then Unlocks (reverse dependencies, with an ↑ unlocks N leverage marker), Depends on, and a single decision-or-blocker line. Full prose moves to the deep dive.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A card shows one sentence of outcome, not the full description; the deep dive still shows everything",
+      "Ideas that other ideas depend on show 'Unlocks: …' with a leverage count; ideas nothing depends on show no such line",
+      "The card ends with at most one decision-or-blocker line, and cards with neither stay compact",
+      "Card height for a typical arc idea is materially shorter than before while carrying more structured facts"
+    ],
+    "context": "index.html ideaCard(), descParts(); reverse-dep computation like unblockCount() for epics; design/ideas.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T11:15:00Z"
+  },
+  {
+    "id": "B16-3",
+    "epic_id": "B16",
+    "name": "why_now, decision, conviction — reasoning as data",
+    "description": "Three idea fields: why_now (one line, expected on front-burner and review items), decision (the specific question a reviewer must answer), and conviction (speculative | promising | clear to pursue) as a dimension explicitly separate from workflow status. Schema in AGENTS.md §2, editable in the idea modal, rendered on the card and deep dive.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "AGENTS.md §2 documents all three fields, including that conviction is orthogonal to status and that agents may propose but not finalise conviction",
+      "The idea modal edits all three; the deep-dive page renders them; absent fields render nothing anywhere",
+      "A 'ready for review' card shows its decision line prominently — the reviewer sees the question, not just the essay",
+      "Conviction renders as small text/pill distinct from the status pill, so 'Ready for review' + 'Clear to pursue' can coexist"
+    ],
+    "context": "AGENTS.md §2 idea schema; index.html openIdea()/saveIdea()/blankIdea()/renderIdeaDetail(); design/ideas.md + design/idea-detail.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T11:15:00Z"
   }
 ]

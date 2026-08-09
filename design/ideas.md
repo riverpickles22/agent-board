@@ -50,11 +50,18 @@ decides *which* burner a card sits in, not its order inside it. Moving
 an idea between burners is just changing its priority (Edit core); no
 new field.
 The two burners are visibly distinct without reading the headers:
-front-burner cards carry a left edge in `--accent` (echoing the accent
-section header), while the whole back-burner section sits in a recessed
-dashed box (`.bsec.back`) — surface mixed toward `--ground` — with its
-cards quieter (dimmer surface, title in `--ink-2`). The dashed box is
-the UI's "tentative" cue and replaces the bare divider line.
+front-burner cards carry a **blue** left edge (`--st-active`) while
+back-burner cards carry a **gray** one (`--st-idle`), and the whole
+back-burner section sits in a recessed dashed box (`.bsec.back`) — the
+UI's "tentative" cue, replacing the bare divider line.
+
+**Colour means state, once.** Every card's left edge is set from
+`ideaCardState()` alone — gray back burner, blue front burner, purple
+awaiting a decision, green approved — per the legend in `system.md`.
+Nothing else may tint the edge: blocked is an amber pill, conviction is
+small italic text, and heavy card-wide washes are gone. This replaces
+the earlier arrangement where a green "clear to pursue" wash, a blue
+burner edge, and the column itself all competed to say what a card was.
 
 Archive view (toggled): same page, two columns — DONE and REJECTED —
 one row.
@@ -75,9 +82,15 @@ archive — so each view is always a single row; single column under
 | Copy backlog | `#copy-ideas` `ideasMarkdown()` | "⧉ copy" chip left of ↻ refresh | copies the **visible view** (active pipeline or archive) to the clipboard as markdown — headings per column/burner, one `###` per idea with its full description (both halves), a meta line (category · priority · effort · impact · milestone · theme · tags · deps · rejected reason), and the id for referencing back. Made for pasting into another LLM to brainstorm; toast confirms with the idea count |
 | Status column | `.ideas-col` | label + count per view's status list | active: `IDEA_STATUS` (idea → ready for review → ready to implement); archive: `IDEA_STATUS_ARCHIVE` (done, rejected). "Ready for review" is the agent's hand-off; "ready to implement" is the human's thumbs-up (AGENTS.md §2). Legacy statuses (considering/planned/building) render via `ideaStatus()` normalization |
 | Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next), accent-colored; back = the rest, dim, above a dashed divider; each section renders only when non-empty; header `title` names the priority tiers it covers; cards sorted by priority index (unknown priority sinks to back). `.bsec.back .idea` carries the quieter card treatment |
-| Idea card | `ideaCard()` | title, plain description half, category pill, effort/impact / quick-win badge, `.irel` line, dependencies line | shared by every column/section; shows only `descParts().plain` — the "Technical shape:" paragraph stays on the detail page, keeping cards condensed |
+| Idea card | `ideaCard()` | **five questions in five seconds** — what is it (title) · why it matters (one-sentence outcome) · how hard (pills) · what it unlocks (leverage) · what's stopping us (deps / decision) | the collapsed card carries *structured facts*, never prose: the full description, context, pros/cons and sections all stay on the deep dive. Order is fixed: title → outcome → pill row → why-now → unlocks → depends-on → milestone/theme/tags → decision |
+| Outcome line | `outcomeLine()` `.iout` | the **first sentence** of the plain description half, clamped to two lines | derived, not a field — existing ideas gain it for free, and a card never shows the essay. Absent when the description is empty |
+| Status pill | `ideaCardState()` `.spill` | one pill naming the workflow state in words: back burner / front burner / ready for review / ready to implement / done / rejected | the same state the left border encodes — words and colour always agree. This is the **only** thing the border may mean |
+| Blocked pill | `ideaBlocked()` `.spill.blocked` | amber `blocked` pill, titled with the unresolved ids | orthogonal to status by design: a card reads "front burner" **and** "blocked" at once. Never recolours the border. Absent on archived ideas |
+| Conviction | `.conv` (`CONVICTIONS`) | small italic `speculative` / `promising` / `clear to pursue` | product conviction, a different axis from workflow maturity (AGENTS.md §2) — so "ready for review · promising" is expressible. Deliberately the quietest thing in the pill row; absent when unset |
+| Leverage | `unlockedBy()` `.lev` | `Unlocks: A · B · C  ↑ unlocks N` — the **inverse** of other ideas' `deps`, active ideas only | derived at render, never stored. Makes foundational work look foundational: an idea three others wait on stops reading like an isolated feature. Absent when nothing depends on it — no "unlocks 0" noise |
+| Why now | `.ifact` | one line, `Why now: …` | expected on front-burner and review-ready ideas; the guard against prioritising whichever card sounds best. Absent when unset |
+| Decision needed | `.ifact.decide` | the reviewer's question, last on the card above a hairline | a `ready for review` card exists to get a question answered — this puts the question where the eye lands last and stays. Absent when unset |
 | Dependencies line | `.idep` `depChips(ids, soft)` | `⊸ depends on:` then one chip per id, resolved ones `✓id` in `--lane-5` | renders **only when `deps` is non-empty**; ids may name ideas (done) or epics (in the done lane), and unknown ids render dim-dotted rather than vanishing. Unresolved deps stay **dim, never loud** — idea deps are informational sequencing with no ordering rule, so they must not look like the board's dependency violations |
-| Unblocked idea | `.idea.unblocked` `ideaUnblocked()` | green left edge + faint wash + `▶ clear to pursue` | when an **active** idea names deps and every one has landed: the sequencing precondition is met, so the idea is free to develop. Never on archived (done/rejected) ideas, and never on dep-free ideas — like the board's `.card.unblocked`, it marks the transition, not the absence of blockers. Outranks the front-burner accent edge in the cascade; back-burner ideas can show it too |
 | Idea card | `.idea` | title, plain description half, category pill, effort/impact or quick-win badge, milestone·theme·tags line (`.irel`) | whole card clickable |
 | Quick win | `quickWin()` `.qwin` | "★ quick win" when effort low + impact high | else `eiBadge()` shows "low effort · high impact" style summary (`.ei`) |
 | Idea drag | `wireIdeaDrop()` `dropIdea()` | active view only: cards draggable between the three status columns; the Idea column's `.bsec` sections are finer drop targets | drop on a column → set `status` (legacy raw statuses normalize on the way); drop on a burner section → also nudge `priority` into that tier (front → lowest front tier, back → highest back tier); drop on the Idea column outside a section keeps priority. Archive view: no drag — `rejected` requires a reason, so it can't be a drop target |

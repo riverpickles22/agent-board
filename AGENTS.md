@@ -209,6 +209,9 @@ keep the links current when scope changes.
   "effort": "low|medium|high|",  "impact": "low|medium|high|",
   "context": "what this is really about — problem, for whom, why now",
   "compounding": "what doors building this opens; what gets cheaper later",
+  "why_now": "one line: what makes this timely, not merely good",
+  "decision": "the specific question a reviewer must answer",
+  "conviction": "speculative | promising | clear to pursue | (empty)",
   "pros": ["…"], "cons": ["…"],
   "sections": [ {"title": "UI sketch | Market analysis | …", "body": "…"} ],
   "log": [ {"at": "YYYY-MM-DD", "note": "a dated brainstorm entry"} ],
@@ -241,6 +244,30 @@ The deep-dive fields exist to answer one question: **does this idea
 deserve development?** The UI's idea page renders them; `log` is
 append-only (never rewrite old entries — it's the record of how thinking
 evolved).
+
+**Reasoning fields (`why_now`, `decision`, `conviction`).** The board is
+a product-reasoning surface, not just a task list, so three fields carry
+the reasoning that otherwise hides inside prose:
+
+- **`why_now`** — one line on what makes this timely rather than merely
+  good ("required before story simulation can reason about motivation").
+  Expected on front-burner and review-ready ideas; it's the guard
+  against prioritising whichever card sounds most exciting.
+- **`decision`** — the specific question a human must answer, written as
+  a question. An idea you move to `ready for review` **should** carry
+  one: the reviewer is there to resolve something, not to admire an
+  essay. Prefer "Should obligations be first-class records or stay
+  derived?" over "needs review".
+- **`conviction`** — `speculative` → `promising` → `clear to pursue`.
+  **Orthogonal to `status`**: workflow maturity and how sure we are are
+  different axes, and a `ready for review` idea can honestly be merely
+  `promising`. Never infer one from the other. You may propose a
+  conviction and say why; raising it to `clear to pursue` is the
+  human's call, like `ready to implement`.
+
+Leverage is **derived, never stored**: an idea's "unlocks" count is the
+inverse of other ideas' `deps`, computed at render time. Don't add a
+field for it, and don't hand-maintain reverse links.
 
 Idea `deps` are **informational sequencing** — "this makes sense after
 that" — shown on the card only when filled in; unlike epic `deps`, no

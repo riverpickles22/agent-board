@@ -1,5 +1,79 @@
 [
   {
+    "id": "idea-dependency-view",
+    "title": "Dependency view — group the board by leverage",
+    "description": "A third lens beside Active/Archive: stop sorting by priority and group by what enables what. Foundations at the top (ideas nothing waits on but several things need), then the capabilities they unlock beneath — answering the roadmap question a priority list can't: what should I build next that makes several future things possible.\n\nTechnical shape: no graph library. Build the reverse-dependency index already used for the card leverage marker, then bucket: tier 0 = ideas with no unresolved deps that other ideas name; tier 1 = ideas depending only on tier 0; and so on (a simple topological layering, cycles broken by file order and flagged). Render as stacked labelled groups with an ↓ between tiers, reusing the existing idea cards. Read-only view; no new data.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Decide fast",
+    "milestone": "",
+    "tags": [],
+    "deps": [
+      "idea-board-lenses"
+    ],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "high",
+    "context": "arc's board is 23 active ideas where the most strategically valuable ones (temporal character state, prose-canon binding) look like ordinary features because their leverage is invisible. Priority ranking answers 'what is most urgent'; this answers 'what unlocks the most', which for a product still assembling its foundations is the more useful question. Proposed in the user's design critique (2026-08-09) as the highest-value board-level addition.",
+    "compounding": "The tiering computation is the same one a 'critical path to milestone X' view would need, and the reverse index already ships in the card leverage marker — this is presentation over data the board already holds.",
+    "pros": [
+      "Makes foundational work visibly foundational, which priority tiers cannot",
+      "Reuses the reverse-dependency index — no new data, no library",
+      "Answers the roadmap question the user actually asks"
+    ],
+    "cons": [
+      "Only earns its place on a board with real dependency density; a flat backlog shows one tier and learns nothing",
+      "Cycles need a defined, visible fallback rather than silent reordering"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-09",
+        "note": "Captured from the user's design critique: 'That is more valuable for Arc than a conventional priority ranking.' Depends on the lens switcher landing first."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-09",
+    "updated_at": "2026-08-09T10:35:00Z"
+  },
+  {
+    "id": "idea-board-lenses",
+    "title": "Board lenses — By status | By theme | By dependency",
+    "description": "One switcher at the top of the ideas page that re-groups the same cards without changing any data: by status (today's columns), by theme, or by dependency tier. The board stops being one opinionated layout and becomes several readings of the same backlog.\n\nTechnical shape: a lens chip row beside Active/Archive; grouping is a pure function from lens → array of {label, ideas}, with the existing column renderer drawing whatever it's handed. Status lens keeps the burner split; theme lens groups by config vocab (untagged last); dependency lens defers to the tiering idea. Lens choice remembered per browser like the board's Epics/Rows toggle.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Flow",
+    "milestone": "",
+    "tags": [],
+    "deps": [],
+    "status": "idea",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "The current columns mix two taxonomies — front/back burner is priority, ready-for-review/ready-to-implement is maturity — which the user flagged as manageable at ~20 ideas but incoherent as a single axis. Lenses resolve that without forcing a column restructure: keep the status columns as the default reading, and let priority or dependency become the grouping when that's the question being asked.",
+    "compounding": "The grouping abstraction is what makes the dependency view cheap, and any future lens (by milestone, by conviction, by owner) becomes a function rather than a feature.",
+    "pros": [
+      "Sidesteps the column-taxonomy problem instead of forcing a migration",
+      "Each new lens is a small pure function once the switcher exists",
+      "Keeps today's default view exactly as it is"
+    ],
+    "cons": [
+      "Three ways to look at one board can itself be a decision cost",
+      "The status columns' drag-to-change-status behaviour only makes sense in the status lens — other lenses must be read-only or define their own drop semantics"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-09",
+        "note": "Captured from the user's design critique, which proposed the lens row and explicitly deferred the column-taxonomy change ('I would not force this change yet'). This is the non-destructive path to the same benefit."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-09",
+    "updated_at": "2026-08-09T10:35:00Z"
+  },
+  {
     "id": "idea-claim-hygiene",
     "title": "Claim hygiene — sessions end, claims don't",
     "description": "A claimed card whose agent walked away looks like work in flight forever. Surface stale claims where they live (a dim 'claimed 3d ago' on the card itself), give the human a one-click release, and let an agent clear its own claims when it stops.\n\nTechnical shape: the briefing already computes staleness (claimed_at > 48h, not done) — lift that into a shared staleClaims() and render an age hint on cards/story chips past the threshold, with a 'release claim' action in the modal that nulls claimed_by/claimed_at. Contract side: AGENTS.md §6 gains 'clear your claim when you stop working a card, even mid-story'. No new fields, no server change.",

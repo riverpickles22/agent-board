@@ -477,5 +477,41 @@
     "claimed_at": null,
     "updated_at": "2026-08-09T09:45:00Z",
     "archived_at": "2026-08-09"
+  },
+  {
+    "id": "B16",
+    "name": "Deterministic visual language for the ideas board",
+    "description": "Color stops competing with itself: one meaning per hue, carried by a left border and a matching status pill instead of heavy card tints. Cards answer five questions in five seconds — what is it, why does it matter, what does it unlock, how hard is it, what's stopping us — with the prose moved to the deep dive. New fields make the reasoning explicit: why now, the decision a reviewer must make, and conviction as a dimension separate from workflow state.",
+    "notes": "Workflow impact: the ideas board becomes a product-reasoning surface rather than a wall of prose — you sit down with it to resolve named decisions, and dependency leverage (what an idea unlocks) is visible so foundational work stops looking like an isolated feature. From the user's design critique (2026-08-09); the green 'clear to pursue' shipped in B15 is one of the ambiguities being corrected.",
+    "theme": "Decide fast",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Ideas spec",
+        "path": "design/ideas.md"
+      },
+      {
+        "label": "Tokens + chrome",
+        "path": "design/system.md"
+      },
+      {
+        "label": "Idea schema",
+        "path": "AGENTS.md",
+        "note": "§2 — new fields"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T11:15:00Z",
+    "archived_at": "2026-08-09"
   }
 ]
