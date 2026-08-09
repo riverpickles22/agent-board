@@ -57,8 +57,9 @@ new/changed/existing. ←/→ keys step through milestones.
 
 **Board** — committed execution, and it answers four questions: *what
 can an agent start now, what is running, what needs a human, what is
-blocked.* A **Ready to pick up** block is the agent work queue, naming
-why each story qualified; a **`needs`** record on any card raises an
+blocked.* One **work queue** answers "what now" — `Ready to pick up · N`, or
+`Agent working` with the owner and how long ago they claimed it, or why
+nothing is available; a **`needs`** record on any card raises an
 amber "⚠ needs decision" with the question on the card — the one state
 waiting on a person rather than on other work; completed work collapses
 (`✓ 4 done · view`, and a finished epic folds to one line offering

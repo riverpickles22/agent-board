@@ -105,6 +105,9 @@
   .rq-h{font-size:12px;font-weight:700;color:var(--ink-2);display:flex;align-items:baseline;gap:8px}
   .rq-n{font-family:var(--mono);color:var(--st-ready);font-size:13px}
   .rq-sub{font-weight:400;font-size:11px;color:var(--ink-3);margin-left:auto}
+  .rq-flight{font-weight:400;font-size:11px;color:var(--accent);margin-left:2px}
+  .rq-item.flight{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+  .rq-item .rq-who{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--accent);white-space:nowrap}
   .rq-list{display:flex;flex-direction:column;gap:2px;margin-top:6px}
   .rq-item{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border:0;border-radius:7px;
     background:none;cursor:pointer;text-align:left;width:100%}
@@ -129,7 +132,7 @@
   .col-h .sw{width:10px;height:10px;border-radius:3px;background:var(--lc);flex:0 0 auto}
   .col-h .nm{font-size:14px;font-weight:600;color:var(--lc);letter-spacing:-.01em}
   .col-h .ct{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;font-weight:500}
-  .col-h .ct.wlim.over{color:var(--lane-4);font-weight:700}
+  .col-h .ct.wlim.over, .rows-head .ct.wlim.over{color:var(--st-problem);font-weight:700}
   .col-body{flex:1 1 auto;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px;min-height:60px}
   .col.drop-hover{border-color:var(--accent)}
   .col.drop-hover .col-body{background:var(--accent-soft)}
@@ -624,8 +627,7 @@
 
   <section class="view" id="view-board" hidden>
     <div class="filters" id="filters"></div>
-    <div class="nextup" id="nextup"></div>
-    <div class="nextup readyq" id="readyq"></div>
+    <div class="readyq" id="workq"></div>
     <main class="board" id="board" aria-label="Kanban board"></main>
   </section>
   <section class="view scroll" id="view-milestones" hidden></section>
@@ -893,60 +895,79 @@ function readyQueue(){
   picks.sort((a,b) => a.p - b.p || a.er - b.er || a.ix - b.ix);
   return { picks, readyButStuck };
 }
-function renderReadyQueue(){
-  const el = document.getElementById("readyq");
+// ---- the work queue: one strip, one answer ----
+// Next up (epic-grain) and Ready (story-grain) used to answer "what now"
+// separately, so the board could say "nothing pickable" directly above
+// three ready stories. This reports the single most actionable state,
+// and names who owns whatever is already moving.
+function inFlight(){
+  return (state.stories||[]).filter(s =>
+    s.claimed_by && s.column !== doneLane() && s.column !== COLUMNS[0]);
+}
+function sinceLabel(iso){
+  const t = Date.parse(iso||""); if(isNaN(t)) return "";
+  const m = Math.max(0, Math.round((Date.now()-t)/60000));
+  if(m < 60) return m+"m ago";
+  const h = Math.round(m/60); return h < 24 ? h+"h ago" : Math.round(h/24)+"d ago";
+}
+function renderWorkQueue(){
+  const el = document.getElementById("workq");
   if(!el) return;
-  if(boardArchive || !state.stories.length){ el.style.display = "none"; el.innerHTML = ""; return; }
+  if(boardArchive){ el.style.display = "none"; el.innerHTML = ""; return; }
   el.style.display = "";
   const { picks, readyButStuck } = readyQueue();
-  // This strip is the agent work queue — the board's most operational
-  // element — so it reads as a block with a count, not an inline aside,
-  // and each item says why it qualified.
-  if(!picks.length){
+  const working = inFlight();
+
+  // No stories anywhere: fall back to epic grain so a fresh board still
+  // gets guidance from PROTOCOL §3.
+  if(!state.stories.length){
+    const { picks: ep, notes, wip } = nextUp();
+    if(!state.epics.length){ el.style.display = "none"; el.innerHTML = ""; return; }
     el.className = "readyq empty";
-    el.innerHTML = '<span class="flabel">Ready to pick up · 0</span>'+
-      '<span class="none">'+
-      (readyButStuck ? readyButStuck+" ready "+(readyButStuck===1?"story is":"stories are")+" claimed, in flight, or behind a gate/dep"
+    el.innerHTML = ep.length
+      ? '<span class="flabel">Next up · '+ep.length+'</span>'+ep.slice(0,5).map(({e,u}) =>
+          '<button class="pick" data-id="'+esc(e.id)+'" title="'+esc(e.name)+'"><span class="pid">'+esc(e.id)+
+          '</span><span class="pnm">'+esc(e.name)+'</span><span class="pwhy">'+esc(e.priority)+
+          (u?' · unblocks '+u:'')+'</span></button>').join("")
+      : '<span class="flabel">Nothing ready</span><span class="none">'+
+        (wip ? "the "+esc(COLUMNS[1])+" lane is at its WIP limit"
+             : [notes.deps?notes.deps+" blocked by deps":"", notes.gate?notes.gate+" gated closed":"",
+                notes.claim?notes.claim+" claimed":""].filter(Boolean).join(" · ")
+               || "no epic sits in "+esc(COLUMNS[0]))+'</span>';
+    el.querySelectorAll(".pick").forEach(b => b.addEventListener("click", () => goToEpic(b.dataset.id)));
+    return;
+  }
+
+  if(!picks.length && !working.length){
+    el.className = "readyq empty";
+    el.innerHTML = '<span class="flabel">Nothing ready</span><span class="none">'+
+      (readyButStuck ? readyButStuck+" ready "+(readyButStuck===1?"story is":"stories are")+
+                       " claimed, in flight, or behind a gate/dep"
                      : "no story has ready: true (the human's flag)")+'</span>';
     return;
   }
+
   el.className = "readyq";
-  el.innerHTML = '<div class="rq-h">Ready to pick up <span class="rq-n">'+picks.length+'</span>'+
-      '<span class="rq-sub">dependencies satisfied · criteria defined · unclaimed</span></div>'+
-    '<div class="rq-list">'+picks.map(({s, ep}) =>
-      '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
-        '<span class="rid">'+esc(s.id)+'</span>'+
-        '<span class="rnm">'+esc(s.name)+'</span>'+
+  const head = picks.length
+    ? 'Ready to pick up <span class="rq-n">'+picks.length+'</span>'+
+      (working.length ? '<span class="rq-flight">· '+working.length+' in flight</span>' : '')
+    : 'Agent working <span class="rq-n">'+working.length+'</span>';
+  el.innerHTML = '<div class="rq-h">'+head+
+      '<span class="rq-sub">'+(picks.length ? 'dependencies satisfied · criteria defined · unclaimed'
+                                            : 'nothing else is ready to claim')+'</span></div>'+
+    '<div class="rq-list">'+
+      working.map(s => '<button class="rq-item flight" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
+        '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
+        '<span class="rq-who">'+esc(s.claimed_by)+(sinceLabel(s.claimed_at)?' · '+esc(sinceLabel(s.claimed_at)):'')+
+        '</span></button>').join("")+
+      picks.map(({s, ep}) => '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
+        '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
         '<span class="rq-why">'+esc(ep.id+" · "+(s.kind||"feature"))+
           ((s.acceptance_criteria||[]).length ? ' · '+(s.acceptance_criteria||[]).length+' criteria' : '')+
-        '</span>'+
-      '</button>').join("")+'</div>';
+        '</span></button>').join("")+
+    '</div>';
   el.querySelectorAll(".rq-item").forEach(b =>
     b.addEventListener("click", () => renderStoryModal(b.dataset.eid, b.dataset.sid)));
-}
-function renderNextUp(){
-  const el = document.getElementById("nextup");
-  if(!el) return;
-  if(boardArchive || !state.epics.length){ el.style.display = "none"; el.innerHTML = ""; return; }
-  el.style.display = "";
-  const { picks, notes, wip } = nextUp();
-  let html = '<span class="flabel">Next up</span>';
-  if(!picks.length){
-    const why = wip ? "the "+esc(COLUMNS[1])+" lane is at its WIP limit"
-      : [ notes.deps ? notes.deps+" blocked by deps" : "",
-          notes.gate ? notes.gate+" gated closed" : "",
-          notes.claim ? notes.claim+" claimed" : "" ].filter(Boolean).join(" · ")
-        || "the "+esc(COLUMNS[0])+" lane is empty";
-    html += '<span class="none">nothing pickable — '+why+'</span>';
-  } else {
-    html += picks.slice(0,5).map(({e, u}) =>
-      '<button class="pick" data-id="'+esc(e.id)+'" title="'+esc(e.name)+'">'+
-        '<span class="pid">'+esc(e.id)+'</span><span class="pnm">'+esc(e.name)+'</span>'+
-        '<span class="pwhy">'+esc(e.priority)+(u ? " · unblocks "+u : "")+'</span></button>').join("");
-    if(picks.length > 5) html += '<span class="none">+'+(picks.length-5)+' more</span>';
-  }
-  el.innerHTML = html;
-  el.querySelectorAll(".pick").forEach(b => b.addEventListener("click", () => goToEpic(b.dataset.id)));
 }
 
 // Fill state + vocab + title from a /api/board payload — shared by the
@@ -1165,8 +1186,7 @@ function render(){
   document.getElementById("stories-note").innerHTML = state.stories.length
     ? "<b>"+state.stories.length+"</b> stories" : "";
   updateFooter(currentRoute().page);
-  renderNextUp();
-  renderReadyQueue();
+  renderWorkQueue();
 }
 
 function cardEl(e){
@@ -1247,9 +1267,17 @@ function renderSwimlanes(board, shown){
   const head = document.createElement("div");
   head.className = "rows-head";
   head.innerHTML = COLUMNS.map(col => {
+    // Rows mode counts stories — the unit agents actually claim — against
+    // the same lane limit; the title names the grain so the two modes
+    // can't be misread as disagreeing.
     const n = withStories.reduce((a,e) => a + storiesOf(e.id).filter(s => s.column===col).length, 0);
+    const limit = (state.config.wip_limits||{})[col];
+    const ct = limit != null
+      ? '<span class="ct wlim'+(n>limit?' over':'')+'" title="WIP limit '+limit+' · '+n+
+        ' stories in this lane'+(n>limit?' — over by '+(n-limit):'')+'">'+n+'/'+limit+'</span>'
+      : '<span class="ct">'+n+'</span>';
     return '<div class="rh" style="--lc:'+laneVar(col)+'"><span class="sw"></span>'+
-      '<span class="nm">'+esc(col)+'</span><span class="ct">'+n+'</span></div>';
+      '<span class="nm">'+esc(col)+'</span>'+ct+'</div>';
   }).join("");
   board.appendChild(head);
   withStories.forEach(e => board.appendChild(swimEl(e)));

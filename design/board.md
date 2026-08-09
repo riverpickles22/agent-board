@@ -22,10 +22,10 @@ Epics mode (the default):
 ```
 ├──────────────────────────────────────────────────────────────────────┤
 │ View(Epics)(Rows) (Current)(Shipped 6) Milestone▾ Theme▾ (More…)    │  filters
-│ Next up  [F2 Epic name…  Now · unblocks 3] [F5 …  Now] +2 more      │  next-up
 │ ┌──────────────────────────────────────────────────────────────────┐│
-│ │ Ready to pick up  3        dependencies satisfied · criteria · … ││  ready-q
-│ │ F1-2  Story name…                          F1 · feature · 4 crit ││
+│ │ Ready to pick up  3 · 1 in flight    deps satisfied · criteria …  ││  work
+│ │ F1-1  Story name…                    Claude Code · 3m ago         ││  queue
+│ │ F1-2  Story name…                    F1 · feature · 4 criteria    ││
 │ └──────────────────────────────────────────────────────────────────┘│
 ├──────────────────┬──────────────────┬────────────────────────────────┤
 │ ▍{lane 1}     5  │ ▍{lane …}  3/2  │ ▍{last lane}                 4  │
@@ -91,8 +91,8 @@ Modal (over everything, via the shared shell in `system.md`):
 | View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Shipped toggle | `.chip[data-arch]` | (Current)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
 | Filter header | `renderFilters()` `#filters` | **one row**: view toggle · Current/Shipped · `Milestone ▾` · `Theme ▾` · `More filters` | the board prioritises execution over taxonomy, so vocabulary collapses to selects (`.fsel`) and the rest hides behind the disclosure (`moreFilters`, `.frow2`): tag chips and ★ set-as-default. A dot on the button marks an active tag filter. Chip rows returned one row per vocab entry — three rows before you reached the work |
-| Next up strip | `renderNextUp()` `#nextup` | top 5 pickable epics as `.pick` chips: id, name, why (priority · unblocks N); "+N more" overflow; or a nothing-pickable reason line (`.none`) | `nextUp()` implements PROTOCOL §3 exactly: first lane + deps done + gate in `open_gates` (`gateOpen()`) + unclaimed + successor lane under `wip_limits` (`wipBlocked()`); ranked priority index → unblock count (`unblockCount()`) → file order. Board-wide — ignores the filter chips |
-| Ready queue block | `readyQueue()` `renderReadyQueue()` `#readyq` | **the agent work queue**, rendered as a titled block: "Ready to pick up · N" with one row per story (id, name) and why it qualified (`epic · kind · N criteria`); the header names the rule in words — dependencies satisfied · criteria defined · unclaimed. Empty state stays a single dim line | story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
+| Work queue | `renderWorkQueue()` `#workq` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. Body lists in-flight stories first — each with **who claimed it and how long ago** (`inFlight()`, `sinceLabel()`) — then pickable ones with why they qualified | replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
+ story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
 | Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
 | Needs-you state | `needsBit()` `needsLine()` `.needs-you` | amber `⚠ needs decision` (or the record's own `kind`) with the **reason on the card**, plus an amber left edge — on stories and epics alike | the one state asking for a *person*, so it outranks every other in `storyState()`. Deliberately distinct from a dependency: a dependency clears when other work lands, this clears only when you answer. Set from the `needs` field (AGENTS.md §2), accepts `{kind, reason}` or a bare string; never shown on done cards |
 | Needs grooming | `needsGrooming()` | amber `⚠ needs grooming` on a first-lane epic with **no stories** | the promotion gap made visible: an idea promoted from the funnel arrives committed but not broken down, and would otherwise sit in the first lane looking ready |
@@ -165,7 +165,7 @@ Modal (over everything, via the shared shell in `system.md`):
 
 - Empty board: lanes render with count 0 and "+ add card" only; the
   Next-up strip hides entirely (no epics = nothing to say).
-- Epics exist but none pickable: strip shows "nothing pickable — …" with
+- Epics exist but none pickable (and no stories yet): the queue shows "Nothing ready" with
   the reason breakdown (N blocked by deps · N gated closed · N claimed),
   the WIP-limit case, or "the {first lane} lane is empty" — an empty
   selection is an answer (PROTOCOL §3).

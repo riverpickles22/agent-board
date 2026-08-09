@@ -584,5 +584,32 @@
     "claimed_at": null,
     "updated_at": "2026-08-09T15:55:00Z",
     "archived_at": "2026-08-09"
+  },
+  {
+    "id": "B19",
+    "name": "One work queue, one source of truth",
+    "description": "Next up (epic-grain) and Ready to pick up (story-grain) answered the same question differently, so the board could say 'nothing pickable' directly above three ready stories. Merge them into a single work queue that reports the most actionable state: what an agent can start, what is in flight and who owns it, or why nothing is available.",
+    "notes": "Workflow impact: the board has one answer to 'what now', and claimed work shows its owner — the first step toward the board being an orchestration surface rather than a report. From the user's execution critique (2026-08-09).",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Board spec",
+        "path": "design/board.md"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T16:45:00Z",
+    "archived_at": "2026-08-09"
   }
 ]

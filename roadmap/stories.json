@@ -817,5 +817,28 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T15:40:00Z"
+  },
+  {
+    "id": "B19-1",
+    "epic_id": "B19",
+    "name": "Merge Next up and Ready into one work queue with ownership",
+    "description": "A single #workq block replaces both strips. Header reports one state: 'Ready to pick up · N', 'Agent working · X' when everything ready is claimed, or 'Nothing ready — reason'. In-flight work lists its owner and how long it has been claimed. Epic-grain pickability remains as a fallback only when no stories exist at all.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The board never shows a 'nothing pickable' line above available ready stories — one strip, one answer",
+      "Claimed in-flight stories show who owns them and how long ago they were claimed",
+      "A board with epics but no stories still gets epic-grain guidance, and clicking an epic jumps to it",
+      "The empty state names why nothing is available (claimed, blocked, gated, or no ready flag)"
+    ],
+    "context": "design/board.md; index.html renderNextUp(), renderReadyQueue(), nextUp(), readyQueue()",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-09T16:45:00Z"
   }
 ]
