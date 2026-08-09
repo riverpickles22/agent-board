@@ -23,19 +23,20 @@ capturing.
 │ Anything worth considering — features, technologies… (full width)    │
 │ (Active)(Done & rejected 3)      (⧉ copy) (↻ refresh)  [+ New idea]  │
 │                                                                      │
-│ IDEA 10          READY FOR REVIEW 1      READY TO IMPLEMENT 0        │
-│ FRONT BURNER 4   ┌────────────┐          none                        │
-│ ┌────────────┐   │ Title      │                                      │
-│ │ Title      │   │ descrip…   │                                      │
-│ │ descrip…   │   └────────────┘                                      │
-│ │ (cat) ★ quick win           │                                      │
-│ │ M0 · T1 · tag               │                                      │
-│ └────────────┘                                                       │
-│ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄                                                       │
-│ BACK BURNER 6                                                        │
-│ ┌────────────┐                                                       │
-│ │ Title      │                                                       │
-│ └────────────┘                                                       │
+│ IDEA 10             READY FOR REVIEW 1       READY TO IMPLEMENT 0    │
+│ FRONT BURNER 4      ┏━━━━━━━━━━━━━━━━━━━┓    none                    │
+│ ┃━━━━━━━━━━━━━━━━┓  ┃ Title             ┃  ← purple edge = decide    │
+│ ┃ Title          ┃  ┃ one-sentence out… ┃                            │
+│ ┃ one-sentence…  ┃  ┃ (review)(eff·imp) ┃                            │
+│ ┃ (front)(blocked)  ┃ Why now: …        ┃                            │
+│ ┃ (eff·imp)(theme)  ┃ Unlocks: A · B ↑2 ┃                            │
+│ ┃ Why now: …     ┃  ┃ ─────────────────  ┃                           │
+│ ┃ ⊸ ✓dep  dep    ┃  ┃ Decision needed:… ┃                            │
+│ ┗━━━━━━━━━━━━━━━━┛  ┗━━━━━━━━━━━━━━━━━━━┛                            │
+│  ↑ blue edge = exploring                                             │
+│ ┌─ BACK BURNER 6 (dashed, recessed) ─────────┐                       │
+│ │ ┃ Title          ← gray edge = parked      │                       │
+│ └────────────────────────────────────────────┘                       │
 ├──────────────────────────────────────────────────────────────────────┤
 ```
 
@@ -81,7 +82,7 @@ archive — so each view is always a single row; single column under
 | Refresh | `#refresh-ideas` | "↻ refresh" chip left of + New idea | manual trigger of the shared `refresh()` (system.md live refresh); toast reports "refreshed" vs "already up to date" — reassurance when an agent is working the ideas files |
 | Copy backlog | `#copy-ideas` `ideasMarkdown()` | "⧉ copy" chip left of ↻ refresh | copies the **visible view** (active pipeline or archive) to the clipboard as markdown — headings per column/burner, one `###` per idea with its full description (both halves), a meta line (category · priority · effort · impact · milestone · theme · tags · deps · rejected reason), and the id for referencing back. Made for pasting into another LLM to brainstorm; toast confirms with the idea count |
 | Status column | `.ideas-col` | label + count per view's status list | active: `IDEA_STATUS` (idea → ready for review → ready to implement); archive: `IDEA_STATUS_ARCHIVE` (done, rejected). "Ready for review" is the agent's hand-off; "ready to implement" is the human's thumbs-up (AGENTS.md §2). Legacy statuses (considering/planned/building) render via `ideaStatus()` normalization |
-| Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next), accent-colored; back = the rest, dim, above a dashed divider; each section renders only when non-empty; header `title` names the priority tiers it covers; cards sorted by priority index (unknown priority sinks to back). `.bsec.back .idea` carries the quieter card treatment |
+| Burner sections | `.bsec` `.burner` | "Front burner N" / "Back burner N" sub-headers inside the Idea column only, each wrapping its cards in a `.bsec` (back: `.bsec.back`) | front = priority index < ⌈`PRIOS.length`/2⌉ (default Now/Next); back = the rest, inside the dashed recessed box; each section renders only when non-empty; header `title` names the priority tiers it covers. The burner drives each card's `data-state` (front/idle) and therefore its edge colour and status pill — the section is a grouping, the card carries the meaning. Back-burner titles dim to `--ink-2` |
 | Idea card | `ideaCard()` | **five questions in five seconds** — what is it (title) · why it matters (one-sentence outcome) · how hard (pills) · what it unlocks (leverage) · what's stopping us (deps / decision) | the collapsed card carries *structured facts*, never prose: the full description, context, pros/cons and sections all stay on the deep dive. Order is fixed: title → outcome → pill row → why-now → unlocks → depends-on → milestone/theme/tags → decision |
 | Outcome line | `outcomeLine()` `.iout` | the **first sentence** of the plain description half, clamped to two lines | derived, not a field — existing ideas gain it for free, and a card never shows the essay. Absent when the description is empty |
 | Status pill | `ideaCardState()` `.spill` | one pill naming the workflow state in words: back burner / front burner / ready for review / ready to implement / done / rejected | the same state the left border encodes — words and colour always agree. This is the **only** thing the border may mean |
