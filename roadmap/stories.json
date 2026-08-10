@@ -885,5 +885,51 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-09T17:40:00Z"
+  },
+  {
+    "id": "B21-1",
+    "epic_id": "B21",
+    "name": "Every claim shows its age; old ones look suspect",
+    "description": "Claimed epics and stories display who holds them and for how long, reusing sinceLabel(). Past the staleness threshold (48h, not in the done lane) the claim renders amber with an explanatory title — suspect, never auto-cleared, because a long-running job and an abandoned one are indistinguishable from outside.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A claimed epic card and a claimed story both show the holder and how long ago it was claimed",
+      "A claim older than 48h on a card not in the done lane renders amber and says why on hover; a fresh claim renders normally",
+      "Claims on done cards are never marked stale — finished work is not waiting on anyone",
+      "No claim is ever cleared automatically"
+    ],
+    "context": "index.html cardEl() claimBit, storyState() claimed branch, sinceLabel(), staleClaims() in wireBriefing(); design/board.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-10T10:10:00Z"
+  },
+  {
+    "id": "B21-2",
+    "epic_id": "B21",
+    "name": "Release a claim in one action",
+    "description": "A 'Release claim' action clears claimed_by/claimed_at from the epic modal, the story modal, and the work queue's in-flight rows. The work queue's empty state names how many of the blocking claims are stale, so a queue that looks empty explains what to release.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A claimed epic and a claimed story can each be released from their modal in one action, and the card returns to its normal state",
+      "The work queue's in-flight rows offer release without opening a modal",
+      "When nothing is pickable because of claims, the queue's reason says how many of those claims are stale",
+      "Releasing writes claimed_by and claimed_at as null and persists once"
+    ],
+    "context": "index.html renderModal(), renderStoryModal(), renderWorkQueue(); persistResource; design/board.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-10T10:10:00Z"
   }
 ]

@@ -31,11 +31,20 @@
       {
         "at": "2026-08-09",
         "note": "Captured from the user's design critique: 'That is more valuable for Arc than a conventional priority ranking.' Depends on the lens switcher landing first."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-09",
-    "updated_at": "2026-08-09T10:35:00Z"
+    "updated_at": "2026-08-10T09:00:00Z",
+    "why_now": "Every idea now shows what it Opens, but nothing ranks by it — so the foundational cards that several others wait on still read like ordinary features when you scan the column.",
+    "decision": "How are dependency cycles surfaced — flagged in place as a warning, or broken silently by file order?",
+    "conviction": "promising",
+    "constraints": "No graph library and no new data: reuse the reverse index behind unlockedBy(). Read-only view — tiers are a reading of the backlog, never an edit to it.",
+    "acceptance": "Foundational ideas appear in a top tier with the capabilities they unlock beneath them, and any cycle is reported rather than hidden."
   },
   {
     "id": "idea-board-lenses",
@@ -67,11 +76,20 @@
       {
         "at": "2026-08-09",
         "note": "Captured from the user's design critique, which proposed the lens row and explicitly deferred the column-taxonomy change ('I would not force this change yet'). This is the non-destructive path to the same benefit."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-09",
-    "updated_at": "2026-08-09T10:35:00Z"
+    "updated_at": "2026-08-10T09:00:00Z",
+    "why_now": "The idea columns mix two taxonomies — front/back burner is priority, ready-for-review/ready-to-implement is maturity — judged manageable at ~20 ideas; arc is now past 60.",
+    "decision": "In a non-status lens, is drag disabled entirely, or does each lens define its own drop semantics?",
+    "conviction": "promising",
+    "constraints": "Grouping must be a pure function from lens to [{label, ideas}] with the existing column renderer drawing whatever it is handed; the status lens must render exactly as it does today.",
+    "acceptance": "Switching lenses regroups the same cards with no data written, and the default view is indistinguishable from the current page."
   },
   {
     "id": "idea-claim-hygiene",
@@ -82,7 +100,7 @@
     "theme": "Trust the board",
     "milestone": "",
     "tags": [],
-    "status": "idea",
+    "status": "done",
     "priority": "Next",
     "effort": "low",
     "impact": "high",
@@ -101,12 +119,26 @@
       {
         "at": "2026-08-08",
         "note": "Captured from the session retrospective: after two days of agent-driven card movement, every touched card carries a claim from a dead session. The board's own dogfooding surfaced it."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "User directed 'execute on the next card' in conversation — the thumbs-up. Ranked next by the decision lens: the only quick win on the board (low effort, high impact) and the one blocking the selection rule's trustworthiness. Promoted to B21."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-08T22:00:00Z",
-    "deps": []
+    "updated_at": "2026-08-10",
+    "deps": [],
+    "why_now": "Sessions now end with claims stranded across two boards; PROTOCOL §4.7 tells agents to release theirs, but nothing surfaces the ones already stuck — and a stale claim silently removes work from the ready queue.",
+    "decision": "Is 48h the right staleness threshold, and should releasing a claim be one click or require confirmation?",
+    "conviction": "clear to pursue",
+    "constraints": "No new fields — reuse claimed_at and the briefing's existing staleness computation. Advisory only: never auto-clear a claim, because a long-running job is indistinguishable from an abandoned one.",
+    "acceptance": "A card claimed by a session that has ended shows how long it has been held, and can be released in one action from the board; the ready queue stops hiding pickable work behind dead claims.",
+    "promoted_to": "B21"
   },
   {
     "id": "idea-milestone-burnup",
@@ -143,11 +175,21 @@
       {
         "at": "2026-08-08",
         "note": "Promoted Later → Next: arc just finished every epic in its Foundations milestone with 5 milestones defined and 21 active ideas — 'how far along is each milestone' is now a live question on a real board, not a hypothetical. Low effort, and the answer is already computed per-deliverable."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": "2026-08-08T22:00:00Z"
+    "updated_at": "2026-08-10T09:00:00Z",
+    "why_now": "arc now runs five named milestones with one already complete, so 'how far along is this overall' is a live question on a real board rather than a hypothetical.",
+    "decision": "Does the bar count epics or stories — and do archived (shipped) epics still count toward the total?",
+    "conviction": "promising",
+    "constraints": "Pure client-side aggregation over epicsOfMilestone(); no new fields and no server change. Reuse the positional lane colours so the bar reads the same as the board it summarises.",
+    "acceptance": "Each milestone shows one bar answering how far along it is, and each deliverable a mini-bar, so the lagging deliverable is obvious without arithmetic.",
+    "deps": []
   },
   {
     "id": "idea-board-doctor",
@@ -177,12 +219,21 @@
       {
         "at": "2026-08-08",
         "note": "Captured from the session retrospective: the contract grew several new invariants (archived_at rules, decompose-before-build, real-time moves) with no way to check any of them."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-08T22:00:00Z",
-    "deps": []
+    "updated_at": "2026-08-10T09:00:00Z",
+    "deps": [],
+    "why_now": "The contract gained several invariants in quick succession — archived_at rules, needs, promoted_to, decompose-before-build — and nothing checks any of them, while arc's board (10 epics, 39 stories, 60+ ideas) is maintained mostly by agents editing JSON directly.",
+    "decision": "Report-only, or offer fixes? And should it exit non-zero so it can gate CI, or stay an on-demand human tool?",
+    "conviction": "promising",
+    "constraints": "A pure function over the five loaded resources — no new endpoint, no schema. Never auto-repair: report and let a human or agent decide, the same stance gates take.",
+    "acceptance": "./board doctor names every violation with the ids involved, and the UI shows a quiet issue count that opens the same list; a clean board says so in one line."
   },
   {
     "id": "idea-project-switcher",
@@ -220,11 +271,21 @@
       {
         "at": "2026-08-08",
         "note": "Promoted Later → Next with direct evidence: today's session hit the port-4300 collision (a board already running blocked ./board arc) and needed a second port to compare boards — exactly the friction this removes. ./board stop made the workaround bearable, not unnecessary."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": "2026-08-08T22:00:00Z"
+    "updated_at": "2026-08-10T09:00:00Z",
+    "why_now": "Three projects are registered and this session repeatedly ran two servers on two ports to compare boards — the collision that prompted ./board stop was this friction surfacing.",
+    "decision": "Does one server serve every project with routes scoped by project, or does the switcher relaunch and redirect to per-project ports?",
+    "conviction": "promising",
+    "constraints": "Single-project mode via BOARD_DATA_DIR must keep working untouched, and existing deep links must survive — the project belongs in the URL, not in hidden state.",
+    "acceptance": "Switching projects from the header shows the other board without a restart, and a copied URL reopens the same project's page.",
+    "deps": []
   },
   {
     "id": "idea-bulk-actions",
@@ -254,11 +315,21 @@
       {
         "at": "2026-08-08",
         "note": "Captured from the session retrospective: archiving 13 finished epics required a script, which is a fine agent path and a terrible human one."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-08T22:00:00Z"
+    "updated_at": "2026-08-10T09:00:00Z",
+    "why_now": "Archiving thirteen finished epics took a Python loop — an acceptable agent path and an impossible human one; the ship-and-archive lifecycle makes that plural work routine.",
+    "decision": "Is selection a distinct mode you enter, or ambient shift-click on the existing cards?",
+    "conviction": "speculative",
+    "constraints": "Every bulk action loops an existing single-card mutation and persists once — no new write paths that could diverge from the single-card rules.",
+    "acceptance": "Several cards can be archived, moved or re-prioritised in one gesture, and the result is identical to doing them one at a time.",
+    "deps": []
   },
   {
     "id": "idea-next-up",

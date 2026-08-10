@@ -638,5 +638,43 @@
     "claimed_at": null,
     "updated_at": "2026-08-09T17:40:00Z",
     "archived_at": "2026-08-09"
+  },
+  {
+    "id": "B21",
+    "name": "Claim hygiene — sessions end, claims don't",
+    "description": "A claimed card whose agent walked away looks like work in flight forever, and PROTOCOL §3 treats 'already claimed' as a reason a card is unpickable — so a dead claim silently removes real work from the queue. Show how long every claim has been held, mark the ones old enough to be suspect, and let a human release one in a single action.",
+    "notes": "Workflow impact: the selection rule stops quietly shrinking as sessions end. Promoted from idea-claim-hygiene (2026-08-10) on the user's go-ahead.\n\nWhy now: this session alone stranded claims on two boards. Constraints: no new fields — reuse claimed_at and the briefing's staleness computation; never auto-clear a claim, since a long job and an abandoned one look identical from outside. Open decision the human still owns: whether 48h is the right threshold.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Selection rule",
+        "path": "PROTOCOL.md",
+        "note": "§3 pickability, §4.7 release your claim"
+      },
+      {
+        "label": "Board spec",
+        "path": "design/board.md",
+        "note": "Card, story state, work queue"
+      },
+      {
+        "label": "Source idea",
+        "path": "roadmap/ideas.json",
+        "note": "idea-claim-hygiene"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-10T10:10:00Z",
+    "archived_at": "2026-08-10"
   }
 ]

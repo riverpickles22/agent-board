@@ -107,6 +107,10 @@
   .rq-sub{font-weight:400;font-size:11px;color:var(--ink-3);margin-left:auto}
   .rq-flight{font-weight:400;font-size:11px;color:var(--accent);margin-left:2px}
   .rq-item.flight{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+  .rq-item.stale .rq-who{color:var(--st-blocked)}
+  .rq-rel{border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:13px;padding:0 4px;flex:0 0 auto}
+  .rq-rel:hover{color:var(--st-blocked)}
+  .rq-item.flight{cursor:pointer}
   .rq-item .rq-who{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--accent);white-space:nowrap}
   .rq-list{display:flex;flex-direction:column;gap:2px;margin-top:6px}
   .rq-item{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border:0;border-radius:7px;
@@ -173,6 +177,7 @@
   .rdytag{font-size:11px;font-weight:700;color:var(--st-ready)}
   .swim.unblocked{border-left:3px solid var(--st-ready)}
   .claim{font-size:11.5px;color:var(--accent);font-weight:600}
+  .claim.stale{color:var(--st-blocked)}   /* suspect, not wrong — a human decides */
   .stbadge{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .stbadge .rdy{color:var(--lane-5);font-weight:600}
 
@@ -850,6 +855,10 @@ function storyState(s){
   const done = doneLane();
   const needs = needsBit(s);
   if(needs) return needs;
+  // Before the lane's own story: a claim old enough to be suspect is the
+  // more useful fact — "cooking" for three days is not cooking.
+  if(claimIsStale(s))
+    return { cls:"warn", label:"⚠ stale claim · "+sinceLabel(s.claimed_at), title:claimTitle(s) };
   if(s.column === done){
     const waiting = storiesOf(s.epic_id).filter(x => x.id !== s.id && x.column !== done).map(x => x.id);
     if(waiting.length)
@@ -871,7 +880,7 @@ function storyState(s){
       return { cls:"warn", label:"⏳ waiting on "+unmet.join(" "), title:"epic blocked until "+unmet.join(", ")+" is done" };
   }
   if(s.claimed_by)
-    return { cls:"act", label:"claimed", title:"claimed by "+s.claimed_by+(s.claimed_at?" since "+s.claimed_at.slice(0,10):"") };
+    return { cls:"act", label:"claimed"+(sinceLabel(s.claimed_at)?" · "+sinceLabel(s.claimed_at):""), title:claimTitle(s) };
   return { cls:"ok", label:"✓ ready", title:"Definition of ready: enough context for an agent to build this" };
 }
 function stateChip(s){
@@ -897,7 +906,7 @@ function readyQueue(){
     if(!s.ready || s.column === doneLane()) return;   // finished ≠ stuck
     if(s.column !== first || s.claimed_by){ readyButStuck++; return; }
     const ep = byId()[s.epic_id];
-    if(!ep) return;
+    if(!ep || ep.archived_at) return;            // shipped and closed — not pickable
     if(!gateOpen(ep) || depsOf(ep).some(d => d.column !== doneLane())){ readyButStuck++; return; }
     picks.push({ s, ep, ix, p: Math.max(0, PRIOS.indexOf(s.priority)), er: epicIx.get(ep.id) });
   });
@@ -910,8 +919,11 @@ function readyQueue(){
 // three ready stories. This reports the single most actionable state,
 // and names who owns whatever is already moving.
 function inFlight(){
-  return (state.stories||[]).filter(s =>
-    s.claimed_by && s.column !== doneLane() && s.column !== COLUMNS[0]);
+  return (state.stories||[]).filter(s => {
+    const ep = byId()[s.epic_id];
+    if(!ep || ep.archived_at) return false;      // shipped and closed — not work
+    return s.claimed_by && s.column !== doneLane() && s.column !== COLUMNS[0];
+  });
 }
 function sinceLabel(iso){
   const t = Date.parse(iso||""); if(isNaN(t)) return "";
@@ -919,6 +931,38 @@ function sinceLabel(iso){
   if(m < 60) return m+"m ago";
   const h = Math.round(m/60); return h < 24 ? h+"h ago" : Math.round(h/24)+"d ago";
 }
+// A claim older than this is *suspect*, never wrong: a long-running job and
+// an abandoned one look identical from outside, so the board flags it and a
+// human decides. Nothing here ever clears a claim by itself.
+const CLAIM_STALE_MS = 48*3600*1000;
+function claimIsStale(x){
+  if(!x || !x.claimed_by || x.column === doneLane()) return false;
+  const at = Date.parse(x.claimed_at || "");
+  return !isNaN(at) && at < Date.now() - CLAIM_STALE_MS;
+}
+function claimLabel(x){
+  const age = sinceLabel(x.claimed_at);
+  return "claimed: "+x.claimed_by+(age ? " · "+age : "");
+}
+function claimTitle(x){
+  return claimIsStale(x)
+    ? "Claimed "+sinceLabel(x.claimed_at)+" and still not done — the session may have ended. Release it if that work isn't running."
+    : "claimed by "+x.claimed_by+(x.claimed_at ? " · "+sinceLabel(x.claimed_at) : "");
+}
+
+// Releasing is always a human/agent decision, never automatic — one write,
+// no side effects on lane or readiness.
+function releaseClaim(kind, id){
+  const arr = kind === "story" ? state.stories : state.epics;
+  const x = (arr||[]).find(y => y.id === id);
+  if(!x || !x.claimed_by) return;
+  const who = x.claimed_by;
+  x.claimed_by = null; x.claimed_at = null; x.updated_at = new Date().toISOString();
+  persistResource(kind === "story" ? "stories" : "epics", arr);
+  closeModal(); renderFilters(); render();
+  showToast(id+" released — was held by "+who+".");
+}
+
 function renderWorkQueue(){
   const el = document.getElementById("workq");
   if(!el) return;
@@ -926,6 +970,7 @@ function renderWorkQueue(){
   el.style.display = "";
   const { picks, readyButStuck } = readyQueue();
   const working = inFlight();
+  const staleN = (state.stories||[]).filter(claimIsStale).length;
 
   // No stories anywhere: fall back to epic grain so a fresh board still
   // gets guidance from PROTOCOL §3.
@@ -951,7 +996,8 @@ function renderWorkQueue(){
     el.className = "readyq empty";
     el.innerHTML = '<span class="flabel">Nothing ready</span><span class="none">'+
       (readyButStuck ? readyButStuck+" ready "+(readyButStuck===1?"story is":"stories are")+
-                       " claimed, in flight, or behind a gate/dep"
+                       " claimed, in flight, or behind a gate/dep"+
+                       (staleN ? " — "+staleN+" of those claims "+(staleN===1?"is":"are")+" stale, and releasing frees the work" : "")
                      : "no story has ready: true (the human's flag)")+'</span>';
     return;
   }
@@ -965,18 +1011,25 @@ function renderWorkQueue(){
       '<span class="rq-sub">'+(picks.length ? 'dependencies satisfied · criteria defined · unclaimed'
                                             : 'nothing else is ready to claim')+'</span></div>'+
     '<div class="rq-list">'+
-      working.map(s => '<button class="rq-item flight" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
+      working.map(s => '<div class="rq-item flight'+(claimIsStale(s)?' stale':'')+'" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
         '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
-        '<span class="rq-who">'+esc(s.claimed_by)+(sinceLabel(s.claimed_at)?' · '+esc(sinceLabel(s.claimed_at)):'')+
-        '</span></button>').join("")+
+        '<span class="rq-who" title="'+esc(claimTitle(s))+'">'+(claimIsStale(s)?'⚠ ':'')+esc(s.claimed_by)+
+          (sinceLabel(s.claimed_at)?' · '+esc(sinceLabel(s.claimed_at)):'')+'</span>'+
+        '<button class="rq-rel" data-rel="'+esc(s.id)+'" title="Release this claim">↩</button>'+
+        '</div>').join("")+
       picks.map(({s, ep}) => '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
         '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
         '<span class="rq-why">'+esc(ep.id+" · "+(s.kind||"feature"))+
           ((s.acceptance_criteria||[]).length ? ' · '+(s.acceptance_criteria||[]).length+' criteria' : '')+
         '</span></button>').join("")+
     '</div>';
-  el.querySelectorAll(".rq-item").forEach(b =>
-    b.addEventListener("click", () => renderStoryModal(b.dataset.eid, b.dataset.sid)));
+  el.querySelectorAll(".rq-item").forEach(b => b.addEventListener("click", ev => {
+    if(ev.target.closest("[data-rel]")) return;      // the release button owns its click
+    renderStoryModal(b.dataset.eid, b.dataset.sid);
+  }));
+  el.querySelectorAll("[data-rel]").forEach(b => b.addEventListener("click", ev => {
+    ev.stopPropagation(); releaseClaim("story", b.dataset.rel);
+  }));
 }
 
 // Fill state + vocab + title from a /api/board payload — shared by the
@@ -1209,7 +1262,9 @@ function cardEl(e){
   const readyTag = epicUnblocked(e)
     ? '<span class="rdytag" title="Every dependency is done and nothing else blocks this — it can be started now">▶ ready to start</span>'
     : "";
-  const claimBit = e.claimed_by ? '<span class="claim">claimed: '+esc(e.claimed_by)+'</span>' : "";
+  const claimBit = e.claimed_by
+    ? '<span class="claim'+(claimIsStale(e)?' stale':'')+'" title="'+esc(claimTitle(e))+'">'+
+      esc(claimLabel(e))+(claimIsStale(e)?' ⚠':'')+'</span>' : "";
   // Same badge as the rows-mode row header — one gate vocabulary across
   // modes. Advises only; checkMove never reads gates.
   const gateBit = !gateOpen(e)
@@ -1462,12 +1517,15 @@ function renderModal(e){
         : (e.column === doneLane() && storiesOf(e.id).every(s => s.column === doneLane())
           ? '<button class="btn" id="m-arch" title="Close the epic — every story is done. Moves it off the active board into Shipped; milestones and deps still count it">⌂ Ship &amp; archive</button>'
           : "")))+
+      (!create && e.claimed_by ? '<button class="btn" id="m-release" title="Clear the claim so this card can be picked up again">↩ Release claim</button>' : '')+
       (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
     '</div>';
   document.getElementById("scrim").classList.add("on");
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
+  const rb = document.getElementById("m-release");
+  if(rb) rb.addEventListener("click", () => releaseClaim("epic", e.id));
   const ab = document.getElementById("m-arch");
   if(ab) ab.addEventListener("click", () => toggleArchiveEpic(e.id));
   if(!create) wireStoriesSection(e.id);
@@ -1549,8 +1607,11 @@ function renderStoryModal(epicId, sid){
     '<div class="actions">'+
       '<button class="btn primary" id="s-save">'+(create?"Create":"Save")+'</button>'+
       '<button class="btn" id="s-back">Back to epic</button>'+
+      (!create && s.claimed_by ? '<button class="btn" id="s-release" title="Clear the claim so this story can be picked up again">↩ Release claim</button>' : '')+
       (create?'':'<button class="btn danger" id="s-del">Delete</button>')+
     '</div>';
+  const srb = document.getElementById("s-release");
+  if(srb) srb.addEventListener("click", () => releaseClaim("story", s.id));
   document.getElementById("s-save").addEventListener("click", () => {
     const g = id => document.getElementById(id);
     const name = g("s-name").value.trim();
@@ -1646,14 +1707,8 @@ document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.
 function seenKey(){ return "agent-board:seen:" + (((state.config||{}).view||{}).title || "board"); }
 function storeSeen(hash){ try{ localStorage.setItem(seenKey(), hash); }catch(e){} }
 function staleClaims(){
-  const cutoff = Date.now() - 48*3600*1000;
-  const stale = [];
-  for(const x of [...(state.epics||[]), ...(state.stories||[])]){
-    if(!x.claimed_by || x.column === doneLane()) continue;
-    const at = Date.parse(x.claimed_at || "");
-    if(!isNaN(at) && at < cutoff) stale.push(x.id+" — claimed by "+x.claimed_by+" since "+x.claimed_at.slice(0,10));
-  }
-  return stale;
+  return [...(state.epics||[]), ...(state.stories||[])].filter(claimIsStale)
+    .map(x => x.id+" — claimed by "+x.claimed_by+" since "+String(x.claimed_at).slice(0,10));
 }
 async function wireBriefing(){
   let lastSeen = null;
