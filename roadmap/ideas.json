@@ -731,7 +731,7 @@
     "theme": "Decide fast",
     "milestone": "",
     "tags": [],
-    "status": "ready to implement",
+    "status": "done",
     "priority": "Next",
     "effort": "low",
     "impact": "medium",
@@ -761,17 +761,22 @@
       {
         "at": "2026-08-10",
         "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Promoted to B22. Answered its own open decision from existing precedent rather than blocking: the bar counts EPICS (the unit deliverables already link and the page already rolls up), and archived epics DO count — 'archiving hides, never deletes; milestones still count it', so excluding them would make a finished milestone read empty."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": "2026-08-10T09:32:16.717Z",
+    "updated_at": "2026-08-10",
     "why_now": "arc now runs five named milestones with one already complete, so 'how far along is this overall' is a live question on a real board rather than a hypothetical.",
     "decision": "Does the bar count epics or stories — and do archived (shipped) epics still count toward the total?",
     "conviction": "promising",
     "constraints": "Pure client-side aggregation over epicsOfMilestone(); no new fields and no server change. Reuse the positional lane colours so the bar reads the same as the board it summarises.",
     "acceptance": "Each milestone shows one bar answering how far along it is, and each deliverable a mini-bar, so the lagging deliverable is obvious without arithmetic.",
-    "deps": []
+    "deps": [],
+    "promoted_to": "B22"
   },
   {
     "id": "idea-project-switcher",

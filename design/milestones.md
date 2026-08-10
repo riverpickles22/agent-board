@@ -51,6 +51,8 @@ rolled up to epic chips (and optional architecture state) on the right.
 | Architecture | `.arch-sub` `.state` | subsystem rows with `new` / `changed` / `existing` badge | state colors: `--lane-5` / `--lane-2` / `--ink-3` |
 | Jump to board | `goToEpic()` | — | sets board filters to the epic's milestone, navigates, scrolls + flashes the card |
 
+| Progress bar | `progressBar()` `laneBuckets()` `.mbar` | a stacked bar under the milestone header — done / in flight / not started — with an "N of M epics done" label; the same bar in miniature on each deliverable row (`.mbar.mini`) | buckets by lane **position**, so it speaks the board's own colours on any lane vocabulary (green done, accent active, gray queued). Counts **epics** — the unit deliverables already link — and **archived epics still count**, since archiving hides but never deletes and a finished milestone must not read empty. Absent entirely when a milestone maps no epics: no zero bars |
+
 ## Interactions
 
 - Milestone tab click → `navigate("milestones", id)`; writes nothing.

@@ -931,5 +931,28 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-10T10:10:00Z"
+  },
+  {
+    "id": "B22-1",
+    "epic_id": "B22",
+    "name": "Aggregate bar per milestone and per deliverable",
+    "description": "A stacked progress bar under each milestone header showing its mapped epics bucketed by lane position (queued / in flight / done), with a done-fraction label; the same bar in miniature on each deliverable row. Pure client-side aggregation over epicsOfMilestone(); reuses the positional lane colours so the bar reads like the board it summarises.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Each milestone with mapped epics shows one bar and an 'N of M epics done' label, and each deliverable row shows a mini-bar",
+      "Bar segments use the positional lane colours, so a milestone's bar matches the board's own vocabulary",
+      "Archived (shipped) epics still count toward both the numerator and the denominator",
+      "A milestone with no mapped epics shows no bar rather than an empty or zero one"
+    ],
+    "context": "design/milestones.md; index.html renderMilestones() deliverables block, epicsOfMilestone(), laneVar(), COLUMNS/doneLane positional semantics",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-10T11:30:00Z"
   }
 ]

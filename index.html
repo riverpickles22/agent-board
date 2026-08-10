@@ -306,6 +306,13 @@
   .deliv{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:9px;background:var(--panel)}
   .deliv .dn{font-size:15px;font-weight:600;color:var(--ink)}
   .deliv .dd{font-size:14px;color:var(--ink-2);margin:4px 0 7px;line-height:1.45}
+  .mbar{display:block;height:7px;border-radius:4px;background:var(--line);overflow:hidden;display:flex}
+  .mbar.mini{height:4px;width:120px;display:inline-flex;margin-left:9px;vertical-align:middle}
+  .mbar i{display:block;height:100%}
+  .mbar i.d{background:var(--st-ready)}
+  .mbar i.f{background:var(--accent)}
+  .mbar i.q{background:var(--st-idle)}
+  .mbar-lab{font-size:12.5px;color:var(--ink-3);margin-top:7px;font-variant-numeric:tabular-nums}
   .chip-epic{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--accent);
     border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:5px;padding:1px 7px;margin:3px 4px 0 0;cursor:pointer;background:var(--accent-soft)}
   .chip-epic:hover{background:var(--accent);color:#fff}
@@ -2198,6 +2205,30 @@ function epicsOfMilestone(m){
   const ids = new Set((m.deliverables||[]).flatMap(d => d.epics||[]));
   return state.epics.filter(e => ids.has(e.id));
 }
+// Bucket a set of epics by lane *position* — queued / in flight / done —
+// so the bar speaks the board's own vocabulary on any lane vocabulary.
+// Archived epics still count: archiving hides, it never deletes, and a
+// finished milestone whose epics were tidied away must not read empty.
+function laneBuckets(epics){
+  const done = doneLane(), first = COLUMNS[0];
+  const b = { queued:0, flight:0, done:0 };
+  epics.forEach(e => {
+    if(e.column === done) b.done++;
+    else if(e.column === first) b.queued++;
+    else b.flight++;
+  });
+  return b;
+}
+function progressBar(epics, mini){
+  const n = epics.length; if(!n) return "";
+  const b = laneBuckets(epics), pc = k => (b[k]/n*100).toFixed(2)+"%";
+  const title = b.done+" done · "+b.flight+" in flight · "+b.queued+" not started";
+  return '<span class="mbar'+(mini?" mini":"")+'" title="'+esc(title)+'">'+
+    (b.done   ? '<i class="d" style="width:'+pc("done")+'"></i>' : '')+
+    (b.flight ? '<i class="f" style="width:'+pc("flight")+'"></i>' : '')+
+    (b.queued ? '<i class="q" style="width:'+pc("queued")+'"></i>' : '')+'</span>';
+}
+
 // The milestone we're "on": earliest (in file order) with mapped epics not all done,
 // else the first one at all.
 function currentMilestone(){
@@ -2241,11 +2272,20 @@ function renderMilestones(param){
   }
   if((m.context_docs||[]).length) left += '<div class="ms-section"><h3>Context docs</h3>'+ctxDocs(m.context_docs)+'</div>';
   const dels = m.deliverables||[];
-  right += '<div class="ms-section" style="margin-top:0"><h3>Deliverables → board</h3>'+
+  const msEpics = epicsOfMilestone(m);
+  const msDone = msEpics.filter(e => e.column === doneLane()).length;
+  right += (msEpics.length
+    ? '<div class="ms-section" style="margin-top:0"><h3>Progress</h3>'+
+      progressBar(msEpics)+
+      '<div class="mbar-lab">'+msDone+' of '+msEpics.length+' epic'+(msEpics.length===1?'':'s')+' done</div></div>'
+    : '')+
+    '<div class="ms-section"'+(msEpics.length?'':' style="margin-top:0"')+'><h3>Deliverables → board</h3>'+
     (dels.length ? dels.map(d => {
       const eps = (d.epics||[]);
       const total = eps.length, done = eps.filter(id => (byId()[id]||{}).column === doneLane()).length;
-      return '<div class="deliv"><div class="dn">'+esc(d.name)+(total?' <span style="font-weight:400;color:var(--ink-3);font-size:12.5px">'+done+'/'+total+' done</span>':"")+'</div>'+
+      const dEpics = eps.map(id => byId()[id]).filter(Boolean);
+      return '<div class="deliv"><div class="dn">'+esc(d.name)+(total?' <span style="font-weight:400;color:var(--ink-3);font-size:12.5px">'+done+'/'+total+' done</span>':"")+
+        progressBar(dEpics, true)+'</div>'+
         (d.description?'<div class="dd">'+esc(d.description)+'</div>':"")+
         eps.map(id => {
           const e = byId()[id];

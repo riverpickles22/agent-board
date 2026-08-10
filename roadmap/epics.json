@@ -676,5 +676,37 @@
     "claimed_at": null,
     "updated_at": "2026-08-10T10:10:00Z",
     "archived_at": "2026-08-10"
+  },
+  {
+    "id": "B22",
+    "name": "Milestone progress you can see",
+    "description": "One aggregate bar per milestone answering 'how far along is this overall', plus a mini-bar per deliverable so the laggard is obvious. The page already computes done/total per deliverable; it just never draws it.",
+    "notes": "Workflow impact: 'where are we on M1' is answered by looking rather than by arithmetic across deliverable chips.\n\nDecision resolved from precedent (see the idea's log): counts EPICS, and archived epics still count — archiving hides, never deletes. Promoted from idea-milestone-burnup (2026-08-10).",
+    "theme": "Decide fast",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [
+      {
+        "label": "Milestones spec",
+        "path": "design/milestones.md"
+      },
+      {
+        "label": "Source idea",
+        "path": "roadmap/ideas.json",
+        "note": "idea-milestone-burnup"
+      }
+    ],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-10T11:30:00Z",
+    "archived_at": "2026-08-10"
   }
 ]
