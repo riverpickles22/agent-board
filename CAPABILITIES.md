@@ -59,9 +59,9 @@ new/changed/existing. ←/→ keys step through milestones.
 can an agent start now, what is running, what needs a human, what is
 blocked.* One **work queue** answers "what now" — `Ready to pick up · N`, or
 `Agent working` with the owner and how long ago they claimed it, or why
-nothing is available; claims show how long they have been held and turn amber past 48h, with
-a one-click release wherever they appear — a dead claim otherwise
-removes real work from the queue silently; a **`needs`** record on any
+nothing is available; claims show how long they have been held and
+turn amber past 48h, with a one-click release wherever they appear —
+a dead claim otherwise removes real work from the queue silently; a **`needs`** record on any
 card raises an
 amber "⚠ needs decision" with the question on the card — the one state
 waiting on a person rather than on other work; completed work collapses
