@@ -57,33 +57,31 @@ new/changed/existing. ←/→ keys step through milestones.
 
 **Board** — committed execution, and it answers four questions: *what
 can an agent start now, what is running, what needs a human, what is
-blocked.* One **work queue** answers "what now" — `Ready to pick up · N`, or
-`Agent working` with the owner and how long ago they claimed it, or why
-nothing is available; claims show how long they have been held and
-turn amber past 48h, with a one-click release wherever they appear —
-a dead claim otherwise removes real work from the queue silently; a **`needs`** record on any
-card raises an
-amber "⚠ needs decision" with the question on the card — the one state
-waiting on a person rather than on other work; completed work collapses
-(`✓ 4 done · view`, and a finished epic folds to one line offering
-Ship & archive); and lane colour is positional — gray queued, accent
-active, amber review, green done — so any lane vocabulary works. Under
-that: kanban over epics with drag-and-drop, a
+blocked.* One **work queue** answers "what now": `Ready to pick up · N`,
+or `Agent working` naming the owner and how long ago they claimed it,
+or why nothing is available. Claims show their age and turn amber past
+48 hours, with a one-click release wherever they appear — a dead claim
+otherwise removes real work from the queue silently. A **`needs`**
+record on any card raises an amber "⚠ needs decision" with the question
+on the card — the one state waiting on a person rather than on other
+work. Completed work collapses (`✓ 4 done · view`, and a finished epic
+folds to one line offering Ship & archive), and lane colour is
+positional — gray queued, accent active, amber review, green done — so
+any lane vocabulary works.
+
+Under that: kanban over epics with drag-and-drop, a
 **dependency guard** (a card can't enter the done lane before its deps;
-deps can't leave while dependents are done), and a **Next up strip** that
-renders the agent selection rule with each pick's why (priority ·
-unblocks N) — human and agent see the same answer to "what's next".
-Filters by milestone/theme/tag with a savable per-project default view.
+deps can't leave while dependents are done) — human and agent see the
+same answer to "what's next", because the queue renders the selection
+rule the agent protocol uses. Filters by milestone/theme/tag with a savable per-project default view.
 A **Rows mode** toggle (Epics | Rows) switches the board to story
 swimlanes: one row per epic, its stories as draggable cards across the
 same lanes — stories move within their row, gated epics refuse drops,
 and the preferred mode saves with the default view. Stories (buildable
 slices with acceptance criteria and a human-set `ready` flag) also live
-inside each epic's modal. Completed work leaves the stage: once an
-epic and every story sit in Done, "⌂ Ship & archive" closes it off the
-active board into a **Shipped** view (Current/Shipped toggle) — hidden,
-never deleted; milestones and dependencies still count it. The board's
-rules are visible, not just
+inside each epic's modal. Archiving hides, never deletes: a shipped
+epic leaves the active board for the **Shipped** view while milestones
+and dependencies still count it. The board's rules are visible, not just
 enforced: WIP-limited lanes show board-wide `total/limit` counts that
 go red when over, and closed-gate cards wear a `⛔` chip naming their
 gate in both modes — advisory (drops are never blocked; the agent
