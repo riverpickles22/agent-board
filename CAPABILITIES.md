@@ -73,7 +73,8 @@ Under that: kanban over epics with drag-and-drop, a
 **dependency guard** (a card can't enter the done lane before its deps;
 deps can't leave while dependents are done) — human and agent see the
 same answer to "what's next", because the queue renders the selection
-rule the agent protocol uses. Filters by milestone/theme/tag with a savable per-project default view.
+rule the agent protocol uses. Filters by milestone/theme/tag with a
+savable per-project default view.
 A **Rows mode** toggle (Epics | Rows) switches the board to story
 swimlanes: one row per epic, its stories as draggable cards across the
 same lanes — stories move within their row, gated epics refuse drops,
