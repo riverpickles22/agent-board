@@ -1387,7 +1387,11 @@ function swimEl(e){
   const el = document.createElement("section");
   const st = storiesOf(e.id);
   const done = st.filter(s => s.column === doneLane()).length;
-  const finished = st.length > 0 && done === st.length && e.column === doneLane() && !e.archived_at;
+  // The stories are the truth: an epic whose every story is done is
+  // finished, wherever its own card happens to sit. Requiring the card to
+  // reach the done lane too made the human maintain bookkeeping the row
+  // already knew — rows stayed open at 3/3 because nobody dragged the epic.
+  const finished = st.length > 0 && !e.archived_at && canRemove(e);
   const folded = finished && !expandedRows.has(e.id);
   el.className = "swim" + (epicUnblocked(e) ? " unblocked" : "") + (folded ? " done-fold" : "");
   el.dataset.id = e.id;
@@ -1400,7 +1404,7 @@ function swimEl(e){
   h.innerHTML = folded
     ? '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
       '<span class="edone">✓ '+done+'/'+st.length+'</span>'+
-      '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="Close this epic off the active board — milestones and dependencies still count it">⌂ Ship &amp; archive</button>'
+      '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="'+esc(removeTitle(e))+'">⌂ Remove from board</button>'
     : '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
       (gated ? '<span class="egate" title="Closed until a human adds this gate to open_gates in config.json">⛔ '+esc(e.gate)+'</span>' : "")+
       epicRollup(e, st);
@@ -1540,8 +1544,8 @@ function renderModal(e){
       '<button class="btn" id="m-cancel">Cancel</button>'+
       (create ? '' : (e.archived_at
         ? '<button class="btn" id="m-arch" title="Return this epic to the active board">Unarchive</button>'
-        : (e.column === doneLane() && storiesOf(e.id).every(s => s.column === doneLane())
-          ? '<button class="btn" id="m-arch" title="Close the epic — every story is done. Moves it off the active board into Shipped; milestones and deps still count it">⌂ Ship &amp; archive</button>'
+        : (canRemove(e)
+          ? '<button class="btn" id="m-arch" title="'+esc(removeTitle(e))+'">⌂ Remove from board</button>'
           : "")))+
       (!create && e.claimed_by ? '<button class="btn" id="m-release" title="Clear the claim so this card can be picked up again">↩ Release claim</button>' : '')+
       (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
@@ -1696,19 +1700,65 @@ function saveModal(){
   closeModal(); render(); persist();
 }
 
-// Ship-and-close (or reopen). Archiving hides, never deletes: milestones
-// and dependency checks keep reading archived epics from state.epics.
+// An epic can leave the board once its work is finished — every story in
+// the done lane. A story-less epic has no stories to speak for it, so it
+// falls back to its own card's lane. One rule, read by the row fold and
+// the modal button alike.
+function canRemove(e){
+  const st = storiesOf(e.id);
+  return st.length ? st.every(s => s.column === doneLane()) : e.column === doneLane();
+}
+// The idea this epic was promoted from, if any — the funnel's other end.
+function ideaBehind(epicId){ return (state.ideas||[]).find(i => i.promoted_to === epicId) || null; }
+// Say the whole consequence up front: removing can also finish the card's
+// lane and close an idea, and neither should be a surprise after the click.
+function removeTitle(e){
+  const bits = ["Moves "+e.id+" off the active board into Shipped — milestones and dependencies still count it, and your next save records it in History"];
+  if(e.column !== doneLane()) bits.push("Also moves the epic card to "+doneLane()+", since every story is done");
+  const i = ideaBehind(e.id);
+  if(i && ideaStatus(i) !== "done") bits.push("Also closes its idea "+i.id+" out of the funnel");
+  return bits.join(". ");
+}
+
+// Remove-from-board (or put it back). Archiving hides, never deletes:
+// milestones and dependency checks keep reading archived epics from
+// state.epics, and the Shipped toggle brings them back into view.
 function toggleArchiveEpic(id){
   const e = byId()[id]; if(!e) return;
   if(e.archived_at){
     e.archived_at = null;
+    e.updated_at = new Date().toISOString();
     showToast(e.id+" back on the active board.");
-  } else {
-    e.archived_at = new Date().toISOString().slice(0,10);
-    showToast(e.id+" shipped — find it under the Shipped toggle.");
+    closeModal(); renderFilters(); render(); persist();
+    return;
   }
+  // Finishing the lane is part of removing it — every story is done, so the
+  // card belongs in the done lane whatever it currently says. The dependency
+  // guard still rules: this is the same refusal the drag would have given.
+  if(e.column !== doneLane()){
+    const chk = checkMove(e, doneLane());
+    if(!chk.ok){ showToast(chk.reason); return; }
+    e.column = doneLane();
+  }
+  e.archived_at = today();
   e.updated_at = new Date().toISOString();
-  closeModal(); renderFilters(); render(); persist();
+  // Close the funnel's other end. A promoted idea that never reached `done`
+  // sits in Ideas forever looking like open discovery, long after the work
+  // it became has shipped — agents promoting via JSON skip the UI's
+  // promoteIdea(), so this is the common case, not the rare one.
+  const idea = ideaBehind(e.id);
+  const closed = idea && ideaStatus(idea) !== "done" ? idea : null;
+  if(closed){
+    closed.status = "done";
+    closed.updated_at = today();
+    (closed.log = closed.log || []).push({ at: today(),
+      note: "Closed out of the funnel — "+e.id+" finished and left the board." });
+  }
+  closeModal(); renderFilters(); render();
+  persist();
+  if(closed) persistResource("ideas", state.ideas);
+  showToast(e.id+" removed from the board — find it under Shipped."+
+            (closed ? " "+closed.id+" closed out of the funnel too." : ""));
 }
 
 function deleteEpic(id){

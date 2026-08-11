@@ -31,7 +31,7 @@ and cards (advisory — enforcement is still yours, PROTOCOL §3) ·
 **pending badge + ratify panel** show every uncommitted change as
 card-level statements before the human says "save" · the **History**
 page and **briefing banner** answer "what shipped" and "what changed
-since I last looked" from git · **Ship & archive** closes a finished
+since I last looked" from git · **Remove from board** closes a finished
 epic off the active board into the Shipped view (`archived_at`) —
 propose it during curation when an epic is fully done · story cards
 narrate their own state (`cooking`, `testing` in flight, `⚑ ready to

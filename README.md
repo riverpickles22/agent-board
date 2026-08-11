@@ -60,9 +60,11 @@ header counts **pending** changes and opens a review panel listing what
 a "save" would ratify in plain language ("O1-2 moved Doing → Done"), the
 **History** tab shows every past ratification, and a **briefing banner**
 greets you after time away with what changed since your last visit.
-Finished epics don't pile up either — once an epic and all its stories
-are done, **Ship & archive** moves it into the Shipped view, still
-counted by milestones but out of your way.
+Finished epics don't pile up either — once every story is done the row
+folds to a single line, and **⌂ Remove from board** moves the epic into
+the Shipped view, still counted by milestones but out of your way. It
+closes the whole thread in one click: the epic card finishes its lane,
+and the idea it was promoted from leaves the funnel.
 
 ## What's on a board — the context stack
 

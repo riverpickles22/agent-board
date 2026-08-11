@@ -65,7 +65,10 @@ otherwise removes real work from the queue silently. A **`needs`**
 record on any card raises an amber "⚠ needs decision" with the question
 on the card — the one state waiting on a person rather than on other
 work. Completed work collapses (`✓ 4 done · view`, and a finished epic
-folds to one line offering Ship & archive), and lane colour is
+folds to one line — every story done is enough, whatever lane the epic
+card is parked in — offering **⌂ Remove from board**, which ships the
+epic into the Shipped view, finishes its lane, and closes the idea it
+grew from in one click), and lane colour is
 positional — gray queued, accent active, amber review, green done — so
 any lane vocabulary works.
 
