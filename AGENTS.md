@@ -144,6 +144,7 @@ default view") — never as a side effect of other edits; the UI's
   "priority": "Now", "status": "free-text maturity tag", "tags": ["extras"],
   "systems": ["chaim-server", "chaim-ui"],
   "context_docs": [ {"label": "…", "path": "architecture/….md", "note": "§5"} ],
+  "test_plan": "how this change gets validated — what to run, what to look at",
   "gate": "none", "deps": ["other-epic-ids"], "column": "Backlog",
   "claimed_by": null, "claimed_at": null,
   "needs": null,
@@ -233,6 +234,7 @@ keep the links current when scope changes.
   "conviction": "speculative | promising | clear to pursue | (empty)",
   "constraints": "what the build must stay within (shown from `ready to implement`)",
   "acceptance": "the boundary that would make it done enough",
+  "validation": "how we would know it works — required before promotion",
   "promoted_to": "epic id once promoted to the board, else null",
   "pros": ["…"], "cons": ["…"],
   "sections": [ {"title": "UI sketch | Market analysis | …", "body": "…"} ],
@@ -268,6 +270,24 @@ the idea as `done` with a dated log entry. Promotion creates the
 **epic** only — grooming it into stories is still §5 work, because
 acceptance criteria are a thinking job, not a copy. Never promote an
 idea the human hasn't moved to `ready to implement`.
+
+**A promotion needs a validation plan.** An idea cannot cross into
+execution until its `validation` says how the change would be checked —
+what you would run, what you would look at, what evidence counts. It
+carries into the epic's `test_plan` and stays editable there. The UI
+refuses the promotion outright and puts you in the field; **you must
+refuse the same way when promoting by editing JSON** — write the plan
+with the human first, then promote. Committing work without saying how
+it gets checked is how a board fills with things nobody can call done,
+and the plan is cheap while intent is still being shaped and expensive
+to reconstruct afterwards.
+
+The three are different questions, and none replaces another:
+`acceptance` (idea) is *what "done enough" means*, `test_plan` (epic) is
+*how we prove it*, `acceptance_criteria` (story) is *what must be true
+for this slice*. A test plan is not a list of criteria restated — it
+names the checks: commands, fixtures, the surface to open, the thing to
+observe.
 
 From `ready to implement`: **decompose before you build**
 — groom the idea into an epic + stories on the board backlog (§5) so
@@ -388,7 +408,11 @@ When the user wants to develop an idea into work items:
    statements, not vibes), `context` naming the repos/paths/docs a builder
    must read, and an honest `kind`. Integration-level testing that
    outgrows a feature story becomes its own story of kind `integration`.
-3. Land everything `ready: false`, summarize what you wrote, and stop. The
+3. Check the epic's `test_plan`. A promoted epic arrives with one; an
+   epic you drafted from a conversation may not. If it is empty, ask what
+   would prove the change works and write it — the stories' criteria say
+   what must be true, the plan says how anyone checks.
+4. Land everything `ready: false`, summarize what you wrote, and stop. The
    user reviews, edits, flips `ready`, and says when to commit.
 
 ## 6. Building (the "begin" workflow)
@@ -404,7 +428,9 @@ When the user says to build a story (e.g. "begin O1-2"):
    story tells you *what*; the code repo's conventions tell you *how*.
 4. Implement in the target code repo. Write the tests the story's `kind`
    and acceptance criteria call for; run the project's checks.
-5. Verify each acceptance criterion. Report which pass and how you know.
+5. Verify each acceptance criterion, and run the epic's `test_plan`.
+   Report which pass and how you know — the plan is the shared answer to
+   "how do you know", so a claim it doesn't cover needs its own evidence.
 6. Move the card (done lane if everything passed; back to todo with a
    `notes` explanation and cleared claim if blocked), stamp `updated_at`.
 7. Committing: code repo per its rules (ask), board repo on "save".

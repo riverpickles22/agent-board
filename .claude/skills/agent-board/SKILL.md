@@ -88,7 +88,10 @@ capture them into the idea's deep-dive fields (`context`, `pros`/`cons`,
 `effort`/`impact`, `compounding`, `sections`, a dated `log` entry) so the
 board page reflects the brainstorm. Judge by the decision lens (AGENTS.md
 §2): least work × greatest impact; compounding infrastructure counts
-double; simplest design wins ties. **When the deep dive is full enough
+double; simplest design wins ties. Before promoting, an idea needs a
+`validation` plan — how the change would be checked. The UI refuses
+without one and so should you, even when editing the JSON directly.
+**When the deep dive is full enough
 for the human to decide, move the idea to `ready for review` yourself**
 with a dated `log` entry saying what made it decision-ready — that
 status is your hand-off; it's the one transition you make unprompted

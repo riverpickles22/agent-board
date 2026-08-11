@@ -1570,7 +1570,7 @@ function wireStoryDrop(cell){
 function blankEpic(col){
   return { id: suggestId(), name:"", description:"", notes:"",
     theme:(filterTheme!=="all"?filterTheme:""), milestone:(filterMS!=="all"?filterMS:""),
-    priority:PRIOS[0], status:"", gate:"none",
+    priority:PRIOS[0], status:"", gate:"none", test_plan:"",
     systems:[], context_docs:[],
     tags:[], deps:[], column:col||COLUMNS[0], claimed_by:null, claimed_at:null, updated_at:null };
 }
@@ -1601,6 +1601,9 @@ function renderModal(e){
       '<div class="mcol">'+
         '<div class="field"><label for="f-desc">Description</label><textarea id="f-desc" placeholder="What is this, and what does it change?">'+esc(e.description)+'</textarea></div>'+
         '<div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" placeholder="Provenance, workflow impact, decisions taken">'+esc(e.notes||"")+'</textarea></div>'+
+        '<div class="field"><label for="f-testplan">Test plan '+
+            '<span class="ct">· how this change gets validated</span></label>'+
+          '<textarea id="f-testplan" placeholder="What would you run or look at to prove this works? Carried from the idea\u2019s validation plan on promotion.">'+esc(e.test_plan||"")+'</textarea></div>'+
         (create ? "" : storiesSection(e.id))+
         (!create && (e.context_docs||[]).length
           ? '<div class="field" id="m-ctxdocs"><label>Context docs <span class="ct">· read-only, click to copy the path</span></label>'+ctxDocs(e.context_docs)+'</div>'
@@ -1884,7 +1887,8 @@ function saveModal(){
   const prevClaim = modalMode==="edit" ? (byId()[editingId]||{}).claimed_by : null;
   const vals = {
     id: g("f-id").value.trim(), name: g("f-name").value.trim(), description: g("f-desc").value,
-    notes: g("f-notes").value, milestone: g("f-ms").value, theme: g("f-theme").value,
+    notes: g("f-notes").value, test_plan: g("f-testplan").value,
+    milestone: g("f-ms").value, theme: g("f-theme").value,
     priority: g("f-prio").value, status: g("f-status").value.trim(),
     tags: g("f-tags").value.split(/\s+/).filter(Boolean),
     systems: g("f-systems").value.split(/\s+/).filter(Boolean),
@@ -2676,6 +2680,7 @@ function renderIdeas(param){
     if(stage === "ready"){
       body += line("Constraints", f("constraints"));
       body += line("Acceptance", f("acceptance"));
+      body += line("Validation plan", f("validation"));
     }
     // The decision is the whole point of the review stage — last, set off.
     const tail = (stage==="review" || stage==="ready") ? line("Decision needed", f("decision"), "decide") : "";
@@ -2890,6 +2895,16 @@ function promoteIdea(id){
   if(i.promoted_to){ showToast(i.id+" already became "+i.promoted_to+"."); return; }
   if(ideaStatus(i) !== "ready to implement"){
     showToast("Only a 'ready to implement' idea can be promoted — it's the settled-intent boundary."); return; }
+  // Committing work without saying how it gets checked is how a board fills
+  // with things nobody can call done. The plan is cheap while the intent is
+  // still being shaped and expensive to reconstruct afterwards, so the
+  // boundary that makes an idea real is where it is required.
+  if(!(i.validation||"").trim()){
+    showToast(i.id+" needs a validation plan — how would we know this works? Add one, then promote.");
+    openIdea(i.id);
+    setTimeout(() => { const f = document.getElementById("i-valid"); if(f){ f.focus(); f.scrollIntoView({block:"center"}); } }, 60);
+    return;
+  }
   const eid = suggestId();
   const bits = [i.why_now && ("Why now: "+i.why_now), i.constraints && ("Constraints: "+i.constraints),
                 i.acceptance && ("Acceptance boundary: "+i.acceptance)].filter(Boolean);
@@ -2897,6 +2912,7 @@ function promoteIdea(id){
     id: eid, name: i.title, description: i.description || "",
     notes: "Promoted from idea "+i.id+" ("+today()+"). "+bits.join(" · "),
     theme: i.theme || "", milestone: i.milestone || "",
+    test_plan: i.validation,
     priority: i.priority || PRIOS[0], status: "shaped",
     tags: (i.tags||[]).slice(), updated_at: new Date().toISOString() }));
   i.promoted_to = eid;
@@ -2974,6 +2990,10 @@ function renderIdeaDetail(id){
     (i.conviction ? '<p><b>Conviction:</b> '+esc(i.conviction)+' <span class="empty">(separate from stage)</span></p>' : '')+
     (i.constraints ? '<p><b>Constraints:</b> '+esc(i.constraints)+'</p>' : '')+
     (i.acceptance ? '<p><b>Acceptance boundary:</b> '+esc(i.acceptance)+'</p>' : '')+
+    (i.validation
+      ? '<p><b>Validation plan:</b> '+esc(i.validation)+'</p>'
+      : (ideaStatus(i)==="ready to implement"
+        ? '<p class="empty" id="idd-valid-gap">No validation plan yet — how would we know this works? Promotion needs one.</p>' : ''))+
     (unlocks.length ? '<p><b>Opens '+unlocks.length+':</b> '+
       esc(unlocks.map(u => u.title).join(" · "))+'</p>' : '')+
     (i.promoted_to
@@ -2990,8 +3010,14 @@ function renderIdeaDetail(id){
             ' · <a href="#/history" style="color:var(--accent)">implementation history</a></p>';
         })()
       : (ideaStatus(i) === "ready to implement"
-        ? '<div class="promote-row"><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Execution</button>'+
-          '<span class="empty">intent is settled — turn it into committed work</span></div>'
+        ? '<div class="promote-row"><button class="btn primary" id="i-promote" title="'+
+            ((i.validation||"").trim()
+              ? "Create the execution epic from this idea and close it out of the funnel"
+              : "Needs a validation plan first — how would we know this works?")+
+            '">⇥ Promote to Execution</button>'+
+          '<span class="empty">'+((i.validation||"").trim()
+            ? "intent is settled — turn it into committed work"
+            : '<b style="color:var(--lane-2);font-weight:600">needs a validation plan</b> — how would we know this works?')+'</span></div>'
         : '')));
   left += block("context", "Context — what is this really about?",
     text(i.context, "No context yet. What problem does it solve, for whom, and why now?"));
@@ -3167,7 +3193,7 @@ function renderIdeaDetail(id){
 const CONVICTIONS = ["speculative", "promising", "clear to pursue"];
 function blankIdea(){ return { id:"idea-"+Date.now(), title:"", description:"", notes:"", category:"", theme:"", milestone:"", tags:[], deps:[],
   status:"idea", priority:PRIOS[0], effort:"", impact:"", context:"", compounding:"", pros:[], cons:[], sections:[], log:[],
-  why_now:"", decision:"", conviction:"", constraints:"", acceptance:"", promoted_to:null,
+  why_now:"", decision:"", conviction:"", constraints:"", acceptance:"", validation:"", promoted_to:null,
   rejected_reason:null, created_at:today(), updated_at:null }; }
 function openIdea(id){
   ideaMode = id ? "edit" : "create";
@@ -3198,6 +3224,7 @@ function openIdea(id){
     '<div class="field row2">'+
       '<div><label for="i-constr">Constraints (shown once ready to implement)</label><input id="i-constr" value="'+esc(i.constraints||"")+'" placeholder="what this must not break or must stay within"></div>'+
       '<div><label for="i-accept">Acceptance boundary (shown once ready to implement)</label><input id="i-accept" value="'+esc(i.acceptance||"")+'" placeholder="what would make this done enough"></div>'+
+      '<div><label for="i-valid">Validation plan — required to promote</label><input id="i-valid" value="'+esc(i.validation||"")+'" placeholder="how would we know this works? what would you run or look at?"></div>'+
     '</div>'+
     '<div class="field"><label for="i-reject">Rejected reason (if rejecting)</label><textarea id="i-reject" style="min-height:50px">'+esc(i.rejected_reason||"")+'</textarea></div>'+
     '<div class="m-err" id="m-err"></div>'+
@@ -3217,6 +3244,7 @@ function saveIdea(){
     tags:g("i-tags").value.split(/\s+/).filter(Boolean), deps:g("i-deps").value.split(/[\s,]+/).filter(Boolean),
     why_now:g("i-why").value.trim(), decision:g("i-decide").value.trim(), conviction:g("i-conv").value,
     constraints:g("i-constr").value.trim(), acceptance:g("i-accept").value.trim(),
+    validation:g("i-valid").value.trim(),
     rejected_reason:g("i-reject").value.trim()||null, updated_at:today() };
   let landedId = editingIdea;
   if(ideaMode==="create"){ const ni = Object.assign(blankIdea(), vals); state.ideas.push(ni); landedId = ni.id; }

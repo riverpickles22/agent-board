@@ -1,7 +1,7 @@
 [
   {
     "id": "idea-example",
-    "title": "Example idea \u2014 click me to see the deep dive",
+    "title": "Example idea — click me to see the deep dive",
     "description": "Ideas start here before they're worth a card. Open one to brainstorm it properly.",
     "notes": "",
     "category": "feature",
@@ -15,7 +15,8 @@
     "effort": "low",
     "impact": "high",
     "context": "The deep-dive page holds everything needed to decide whether an idea deserves development: what it's really about, the arguments each way, and the decision lens.",
-    "compounding": "If building this also makes three later features cheaper, say so here \u2014 infrastructure that compounds beats features that don't.",
+    "validation": "How we would know it works — the checks you would run, the surface you would open. Required before this idea can be promoted.",
+    "compounding": "If building this also makes three later features cheaper, say so here — infrastructure that compounds beats features that don't.",
     "pros": [
       "Cheap to try",
       "Teaches us something either way"

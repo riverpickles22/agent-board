@@ -40,7 +40,11 @@ one-sentence outcome and a bet; front burner adds why-now, **Opens**
 and what it waits on; a review card leads with **Decision needed**; a
 ready card states constraints and its acceptance boundary. Then
 **⇥ Promote to Execution** creates the execution epic — the one recorded
-moment an idea becomes committed work.
+moment an idea becomes committed work — and it **requires a validation
+plan**: an idea cannot cross into execution until it says how the change
+would be checked. That plan carries into the epic as its `test_plan` and
+stays editable there, so every committed card answers "how would we know
+this works" before anyone starts building.
 
 Cards drag between the active columns (and between burners, nudging
 priority); the archive is not a drop target since rejecting requires a

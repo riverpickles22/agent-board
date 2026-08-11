@@ -57,6 +57,7 @@ log is a borderless journal, everything else is the standard panel.)
 | Meta row | `metaRowEl()` `.imeta-row` | labeled micro-pills: priority, category, milestone (`short()`, full in title), theme, tags; `⊸ depends on` links; dim created/updated dates right | dep ids that are ideas render as `.dep-l` buttons (`data-goidea`) navigating to that idea; non-idea ids (epics) render inert (`.dep-x`) |
 | Description split | `descParts()` `.dplain` `.dtech` | plain-language description tops the left column, "Technical shape" box tops the right | splits on the `Technical shape:` paragraph convention; the halves live *inside* the `.idd-grid` columns so each side flows with no cross-column gap; descriptions without the marker render as one plain paragraph atop the left column |
 | Edit core | `#idd-edit` | button → `openIdea(id)` | same modal as the Ideas page |
+| Validation plan | the reasoning block's `Validation plan:` line | `validation` — how we would know this works | shown beside constraints and the acceptance boundary; from `ready to implement` an empty one renders as an explicit gap (`#idd-valid-gap`), because that is the stage where it blocks promotion. Edited in the core modal with the other reasoning fields |
 | Context block | `.idd-block` | `context` or empty-state prompt | inline edit via `inlineEdit("context")` |
 | Pros / cons | `.procon` | two lists, markers in `--lane-5`/`--lane-4` | edited as one-per-line textareas |
 | Rejected block | — (`data-k="reject"`) | `rejected_reason` | only when rejected or a reason exists |
