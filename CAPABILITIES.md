@@ -23,7 +23,7 @@ Binds to 127.0.0.1 only.
 ## The five surfaces (in flow order: capture → intent → work → record)
 
 **Ideas** — the funnel that decides what enters execution. *Ideas* asks
-"what might this become"; the *Board* asks "what are we building". The
+"what might this become"; *Execution* asks "what are we building". The
 lifecycle runs **capture → back burner → front burner → review → ready
 → promote**, and each stage answers one of two questions: how much do
 we believe in this, and is it defined enough to graduate? **Back
@@ -39,7 +39,7 @@ one-sentence outcome and a bet; front burner adds why-now, **Opens**
 (the inverse of dependencies, making architectural leverage visible)
 and what it waits on; a review card leads with **Decision needed**; a
 ready card states constraints and its acceptance boundary. Then
-**⇥ Promote to Board** creates the execution epic — the one recorded
+**⇥ Promote to Execution** creates the execution epic — the one recorded
 moment an idea becomes committed work.
 
 Cards drag between the active columns (and between burners, nudging
@@ -51,11 +51,11 @@ append-only dated brainstorm log.
 
 **Milestones** — the narrative. Per milestone: summary, user outcome,
 gate/exit criteria, ROI, context docs, and **deliverables that roll up to
-epic chips with live done-counts** (click a chip to jump to the card on
-the board). Optional architecture block showing subsystems as
+epic chips with live done-counts** (click a chip to jump to the card in
+Execution). Optional architecture block showing subsystems as
 new/changed/existing. ←/→ keys step through milestones.
 
-**Board** — committed execution, and it answers four questions: *what
+**Execution** — committed work, and it answers four questions: *what
 can an agent start now, what is running, what needs a human, what is
 blocked.* One **work queue** answers "what now": `Ready to pick up · N`,
 or `Agent working` naming the owner and how long ago they claimed it,
@@ -75,7 +75,7 @@ deps can't leave while dependents are done) — human and agent see the
 same answer to "what's next", because the queue renders the selection
 rule the agent protocol uses. Filters by milestone/theme/tag with a
 savable per-project default view.
-A **Rows mode** toggle (Epics | Rows) switches the board to story
+A **Rows mode** toggle (Epics | Rows) switches the execution area to story
 swimlanes: one row per epic, its stories as draggable cards across the
 same lanes — stories move within their row, gated epics refuse drops,
 and the preferred mode saves with the default view. Stories (buildable
@@ -95,9 +95,11 @@ right now (`ready: true`, first lane, unclaimed, epic ungated with deps
 done), grouped by epic: the "begin X" menu, visible. Story cards
 narrate their own state from one rule — `⚙ cooking` / `testing` /
 `tidying up` / `writing` / `wiring up` by kind while in flight,
-`⛔ gated: X` or `⏳ waiting on Y` when blocked, `needs prep` before the
-human's ready flag, and `✓ shipped` / `plated` / `in the books` when
-done (or `✓ done · waiting on <sibling>` while the epic lags).
+`⚑ ready to check` / `results in` / `ready to read` / `wired — verify`
+once the work reaches a review lane (`⚑ in review · who` when someone
+holds it), `⛔ gated: X` or `⏳ waiting on Y` when blocked, `needs prep`
+before the human's ready flag, and `✓ shipped` / `plated` / `in the
+books` when done (or `✓ done · waiting on <sibling>` while the epic lags).
 
 **History** — the record. The data dir's git log as a timeline page:
 every ratification with date, message, and files touched; expanding an

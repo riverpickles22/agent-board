@@ -52,7 +52,7 @@ matured*, and the progression reads left to right:
 | `--st-ready` | `--lane-5` | Ready to implement | intent settled; cleared to become executable work |
 | `--st-problem` | `--lane-4` | Rejected | the only red on this page |
 
-**Board — execution state.** Lane colour is **positional**, so it
+**Execution — execution state.** Lane colour is **positional**, so it
 carries meaning without hardcoding any project's lane names
 (`laneVar()`): first lane gray (queued), last green (done), the one
 before it amber on boards of four or more lanes (the review position),
@@ -86,7 +86,7 @@ unmet dependency is *waiting*, not broken.
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ LOCAL · AGENT-BOARD                                                  │
-│ {view.title}  [Ideas][Milestones][Board]  {counts} ● saved (7 pending)│ header
+│ {view.title} [Ideas][Milestones][Execution] {counts} ● saved (7 pending)│ header
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │                        active view (#view-*)                         │
@@ -102,13 +102,13 @@ unmet dependency is *waiting*, not broken.
 |---|---|---|---|
 | Eyebrow | `.eyebrow` | "Local · agent-board" | mono, uppercase, accent |
 | Title | `#board-title` | `config.view.title` (fallback "Board") | also sets `document.title` in `load()` |
-| View tabs | `#tabs` `renderTabs()` | Ideas / Milestones / Board / History / Docs — the flow trio (capture → intent → work) plus the record and the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback stays `board` so per-project `view.default_page` semantics are untouched |
+| View tabs | `#tabs` `renderTabs()` | Ideas / Milestones / Execution / History / Docs — the flow trio (capture → intent → work) plus the record and the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback is `HOME_PAGE` (the execution page). `PAGE_ALIASES`/`resolvePage()` keep the old `#/board` hash and `view.default_page: "board"` working, so no project's `config.json` needed editing when the page was renamed |
 | Counts | `#counts` | "N cards · M done", or "X of N shown" when filtered | board page only — hidden elsewhere by `route()` |
 | Save indicator | `#save` `persistResource()` | dot + saved / saving… / save failed | dot color: `--lane-5` / `--lane-2` pulsing / `--lane-4` |
 | Pending badge | `#pending-badge` `updatePending()` | "N pending" chip beside the save dot when uncommitted board changes exist (`GET /api/pending`); absent when the tree is clean or the data dir isn't git-tracked | click → the review panel. Refetched on load, after every live `refresh()`, when the tab regains visibility (covers terminal-side commits), and on panel open |
 | Briefing banner | `#briefing` `wireBriefing()` | "Since you last looked: N changes · M stale claims" bar under the header, with **view** (expands to the card-level statements + the stale-claim list) and **dismiss** | shows only when the per-browser last-seen HEAD (`localStorage`, keyed by board title like the mode memory) is older than the current HEAD with actual statements between (`GET /api/since/<hash>`); first visit stores silently; a rewritten-history marker resets silently. Dismiss stores the new HEAD. Stale claim = `claimed_by` set, `claimed_at` older than 48h, card not in the done lane — computed client-side over epics + stories. Briefing covers **ratified** history (commits); the pending badge covers the unratified working state — the two never overlap |
 | Review panel | `#pending-panel` `renderPending()` | slide-over from the right: "Pending ratification" header, card-level change statements grouped by resource (epics / stories / ideas / config / milestones), files list, footer naming the ritual (say "save" in conversation, or commit the data dir) | read-only — zero write affordances; the panel reviews, the human ratifies. Empty state: "Everything ratified — board matches HEAD." Close: ✕, Escape, or click outside. Statements come from the server's semantic differ (`/api/pending`): moves as `old → new`, edits name their fields, a queue reorder is one statement |
-| View sections | `#view-board` `#view-milestones` `#view-ideas` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
+| View sections | `#view-execution` `#view-milestones` `#view-ideas` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
 | Footer hints | `#footer-note` `updateFooter()` | per-page interaction hints | board / milestones / ideas variants |
 | Stories note | `#stories-note` | "N stories" when any exist | |
 | Data path | `#data-path` | the data dir the server reports | static "./data" today (see Open questions) |

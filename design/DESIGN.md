@@ -14,7 +14,7 @@ machine, delete it.
 design/
 ├── DESIGN.md        # this contract: format, workflow, drift rules
 ├── system.md        # token names/roles + shared chrome (header, modal, toast…)
-├── board.md         # #/board — kanban over epics
+├── execution.md     # #/execution — kanban over epics (was #/board)
 ├── milestones.md    # #/milestones(/<id>) — narrative + deliverables roll-up
 ├── ideas.md         # #/ideas — status columns + capture
 ├── idea-detail.md   # #/ideas/<id> — the deep dive
@@ -28,8 +28,8 @@ Every screen spec has this shape:
 
 ```markdown
 ---
-screen: board
-route: "#/board"
+screen: execution
+route: "#/execution"
 spec_state: matches-ui
 ---
 

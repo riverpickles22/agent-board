@@ -60,7 +60,7 @@ on request (§4).
 
 **The surfaces** a human sees (you never need them, but they explain
 what your edits look like): **Ideas** (inbox + deep dives) ·
-**Milestones** (narrative + roll-ups) · **Board** (lanes, Next-up and
+**Milestones** (narrative + roll-ups) · **Execution** (lanes, Next-up and
 Ready-queue strips, Shipped archive) · **History** (git log as a
 timeline) · **Docs** (renders `CAPABILITIES.md`). Full inventory:
 [`CAPABILITIES.md`](CAPABILITIES.md).
@@ -117,12 +117,15 @@ real — they are what makes "read the context before building" possible.
   "priorities": ["Now","Next","Later","Someday"],
   "themes": ["T1 …"], "milestones": ["M0 …"],
   "open_gates": [], "wip_limits": {},
-  "view": { "title": "Chaim Build Board", "default_page": "board",
+  "view": { "title": "Chaim Build Board", "default_page": "execution",
             "default_milestone": "M0 Reliable foundation", "default_theme": "all",
             "default_board_mode": "epics" } }
 ```
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
+`default_page` names a tab (`ideas` / `milestones` / `execution` /
+`history` / `docs`); the old value `board` still resolves to `execution`,
+so existing configs need no edit.
 
 `view` is the project's saved view: `title` names the board in the UI
 header and browser tab (when you report which board you're operating on,
@@ -250,7 +253,7 @@ the one status transition an agent makes on its own initiative;
 human's call.
 
 **Ideas are a funnel, not a second board.** *Ideas* answers "what might
-this become"; the *Board* answers "what are we building". The stages
+this become"; *Execution* answers "what are we building". The stages
 mean: **back burner** — preserved, not worth design time now; **front
 burner** — worth actively shaping, questions still open; **ready for
 review** — shaped enough that only a deliberate decision remains
@@ -259,7 +262,7 @@ settled enough to become executable work. The card surfaces more of
 itself at each stage, so fill fields when the stage earns them rather
 than all at once.
 
-**Promotion is the boundary.** `Promote to Board` turns a
+**Promotion is the boundary.** `Promote to Execution` turns a
 `ready to implement` idea into an epic, sets `promoted_to`, and closes
 the idea as `done` with a dated log entry. Promotion creates the
 **epic** only — grooming it into stories is still §5 work, because

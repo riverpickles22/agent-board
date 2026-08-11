@@ -28,7 +28,7 @@ Needs only Node.js (v18+) — no install step, no dependencies, and it
 binds to `127.0.0.1` only.
 
 **The five tabs:** **Ideas** (the inbox, with deep dives and a decision
-lens) · **Milestones** (the narrative, with live roll-ups) · **Board**
+lens) · **Milestones** (the narrative, with live roll-ups) · **Execution**
 (kanban over epics, story swimlanes, and the strips that answer "what's
 next") · **History** (your ratification history — the data dir's git log
 as a timeline) · **Docs** ([`CAPABILITIES.md`](CAPABILITIES.md) rendered

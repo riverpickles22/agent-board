@@ -1,19 +1,32 @@
 ---
-screen: board
-route: "#/board"
+screen: execution
+route: "#/execution"
+aliases: ["#/board"]
 spec_state: matches-ui
 ---
 
-# Board — kanban over epics, with a story-rows mode
+# Execution — kanban over epics, with a story-rows mode
 
 Drag-and-drop kanban of epics across the configured lanes, filterable by
 milestone / theme / tag, with a dependency guard on every move and a
 **Next up** strip that renders the selection rule (PROTOCOL §3) the
 agent uses — human and agent see the same answer to "what's next".
 Cards open an edit modal that also holds the epic's stories.
-A **View toggle (Epics | Rows)** switches the same board area to story
+A **View toggle (Epics | Rows)** switches the same execution area to story
 swimlanes: one row per epic, the epic's stories as compact cards in the
 lane columns.
+
+**Named "Execution", not "Board".** The tab read `Board` until it
+collided with the ideas funnel — with two card surfaces in one app,
+"the board" stopped identifying either. The page is now `#/execution`
+(`PAGES`/`PAGE_LABELS`), its container is `#exec`/`.exec`, and Ideas'
+promote button reads `⇥ Promote to Execution`. `#/board` and
+`view.default_page: "board"` still resolve, via `PAGE_ALIASES` in
+`resolvePage()` — a permanent alias, not a migration window, since
+bookmarks and `config.json` files live in other people's repos; `route()`
+rewrites an aliased hash to the canonical one with `replaceState`. The
+*product* keeps the name: `./board <name>`, `/api/board`, `Board:`
+commits, and "board data" all still mean the whole tool and its cards.
 
 ## Layout
 
@@ -42,7 +55,7 @@ Epics mode (the default):
 ├──────────────────┴──────────────────┴────────────────────────────────┤
 ```
 
-Rows mode (same filters + next-up above; board area becomes swimlanes,
+Rows mode (same filters + next-up above; the execution area becomes swimlanes,
 vertically scrolling, lane strip sticky):
 
 ```
@@ -88,13 +101,13 @@ Modal (over everything, via the shared shell in `system.md`):
 
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
-| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
+| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the execution area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Shipped toggle | `.chip[data-arch]` | (Current)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
 | Filter header | `renderFilters()` `#filters` | **one row**: view toggle · Current/Shipped · `Milestone ▾` · `Theme ▾` · `More filters` | the board prioritises execution over taxonomy, so vocabulary collapses to selects (`.fsel`) and the rest hides behind the disclosure (`moreFilters`, `.frow2`): tag chips and ★ set-as-default. A dot on the button marks an active tag filter. Chip rows returned one row per vocab entry — three rows before you reached the work |
 | Work queue | `renderWorkQueue()` `#workq` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. Body lists in-flight stories first — each with **who claimed it and how long ago** (`inFlight()`, `sinceLabel()`) — then pickable ones with why they qualified | replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
  story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
-| Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
-| Claim age | `claimIsStale()` `claimLabel()` `claimTitle()` `.claim.stale` | every claim shows its holder **and how long it has been held**; past 48h on a card outside the done lane it turns amber with `⚠` and explains itself | a claim is *suspect*, never wrong — a long-running job and an abandoned one are indistinguishable from outside, so nothing is ever auto-cleared. One rule feeds cards, story states and the briefing's stale count. On stories the stale reading **outranks the lane's activity verb**: "cooking" for three days is not cooking |
+| Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position, `reviewLane()`, which is null on a board of three lanes or fewer — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. `reviewLane()` is the single definition of that position: `storyState()` reads the same helper, so the lane's colour and its cards' copy can never disagree about which lane is review. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
+| Claim age | `claimIsStale()` `claimLabel()` `claimTitle()` `.claim.stale` | every claim shows its holder **and how long it has been held**; past 48h on a card outside the done lane it turns amber with `⚠` and explains itself | a claim is *suspect*, never wrong — a long-running job and an abandoned one are indistinguishable from outside, so nothing is ever auto-cleared. One rule feeds cards, story states and the briefing's stale count. On stories the stale reading **outranks the lane's activity verb** in every lane: "cooking" for three days is not cooking, and "in review · alice" for three days is not a review in progress |
 | Release claim | `releaseClaim()` `#m-release` `#s-release` `.rq-rel` | "↩ Release claim" in the epic and story modals, and a `↩` on each in-flight row of the work queue | clears `claimed_by`/`claimed_at` in one write and re-renders; lane and readiness are untouched. PROTOCOL §3 treats "already claimed" as unpickable, so a dead claim silently shrinks the queue — this is how it is given back. When nothing is pickable because of claims, the queue's reason says how many are stale |
 | Needs-you state | `needsBit()` `needsLine()` `.needs-you` | amber `⚠ needs decision` (or the record's own `kind`) with the **reason on the card**, plus an amber left edge — on stories and epics alike | the one state asking for a *person*, so it outranks every other in `storyState()`. Deliberately distinct from a dependency: a dependency clears when other work lands, this clears only when you answer. Set from the `needs` field (AGENTS.md §2), accepts `{kind, reason}` or a bare string; never shown on done cards |
 | Needs grooming | `needsGrooming()` | amber `⚠ needs grooming` on a first-lane epic with **no stories** | the promotion gap made visible: an idea promoted from the funnel arrives committed but not broken down, and would otherwise sit in the first lane looking ready |
@@ -115,7 +128,7 @@ Modal (over everything, via the shared shell in `system.md`):
 | Rows: row header | `.swim-h` | epic id, name, gate badge (`.egate`, when gate closed), done-count "d/N {last lane}" | click → `openEdit(id)` |
 | Rows: cell | `.swim .cell` | the epic's stories in that lane | one per lane per row; drop target via `wireStoryDrop()` |
 | Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, **state chip** (`.sstate`), name | draggable within its row; click opens the story modal |
-| Story state chip | `storyState()` `.sstate` | one chip from one rule — lane + `ready` + claim + epic health (the ready-queue rule, extended to display). In priority order: done + unfinished siblings → `✓ done · waiting on <sibling>` (+N); done, epic complete → pooled `✓ shipped` / `✓ plated` / `✓ in the books` (stable per story via id hash — variety without randomness); middle lane → activity by `kind`: feature `cooking` · test `testing` · chore `tidying up` · docs `writing` · integration `wiring up` (tooltip: real lane + claim); first lane + ready → `✓ ready` when pickable, `⛔ gated: <gate>` / `⏳ waiting on <dep>` when the epic is blocked, `claimed` when claimed; first lane, not ready → dim `needs prep` | color: green ok / amber blocked / accent active / dim quiet (`--lane-5`/`--lane-2`/accent/`--ink-3`). The same chip renders read-only in the epic modal's story rows beside the lane text — the ready checkbox stays the editor. `✓ ready` never appears outside the first lane |
+| Story state chip | `storyState()` `.sstate` | one chip from one rule — lane + `ready` + claim + epic health (the ready-queue rule, extended to display). In priority order: done + unfinished siblings → `✓ done · waiting on <sibling>` (+N); done, epic complete → pooled `✓ shipped` / `✓ plated` / `✓ in the books` (stable per story via id hash — variety without randomness); `reviewLane()` → the work is built and waiting on a look, so the register changes: `⚑ ready to check` (feature, chore) · `⚑ results in` (test) · `⚑ ready to read` (docs) · `⚑ wired — verify` (integration), or `⚑ in review · <who> · <since>` when claimed — a claim here names the *reviewer*, which outranks what is being reviewed; any other middle lane → activity by `kind`: feature `cooking` · test `testing` · chore `tidying up` · docs `writing` · integration `wiring up` (tooltip: real lane + claim); first lane + ready → `✓ ready` when pickable, `⛔ gated: <gate>` / `⏳ waiting on <dep>` when the epic is blocked, `claimed` when claimed; first lane, not ready → dim `needs prep` | color: green ok / amber blocked / amber-review / accent active / dim quiet (`--lane-5`/`--lane-2`/`--st-decide`/accent/`--ink-3`). Review gets its own class (`.rev`) rather than borrowing `.warn`: it sits under the same amber lane header, but nothing is wrong — the chip is a hand-off, not an alarm, and `⚠ needs decision` / `⚠ stale claim` must still outrank it. The same chip renders read-only in the epic modal's story rows beside the lane text — the ready checkbox stays the editor. `✓ ready` never appears outside the first lane |
 | Rows: note | `.rows-note` | "N epics without stories — shown in Epics mode" / rows-empty guidance | renders only when it has something to say |
 | Epic modal | `renderModal()` | all epic fields per AGENTS.md §2 | `context_docs` renders read-only (below) — still no edit widget; lane change re-runs `checkMove` |
 | Context docs chips | `.field .ctxdocs` (modal) | the epic's `context_docs` as read-only label+path+note chips, reusing the Milestones `ctxDocs()` renderer; click copies the doc's path (toast confirms) | edit mode only, and only when the epic has docs — no section otherwise, and the create modal never shows it. Copy-on-click follows the Ideas-page copy convention; **no input exists** — `context_docs` stays file/skill-edited (AGENTS.md §2) |
@@ -132,7 +145,7 @@ Modal (over everything, via the shared shell in `system.md`):
   nothing written.
 - View toggle click → set `boardMode`, remember it in `localStorage`
   (per-browser, keyed by project title — `rememberBoardMode()`),
-  re-render the board area; writes no board data. ★ set as default view
+  re-render the execution area; writes no board data. ★ set as default view
   persists the shared default as `config.view.default_board_mode` via
   `persistResource("config", …)`.
 - (Rows) drag story card → cell in its own row: set story `column` +

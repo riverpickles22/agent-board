@@ -128,7 +128,7 @@
   .readyq .rpick .rid{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
   .readyq .rpick .rnm{color:var(--ink);font-weight:500;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .board{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
+  .exec{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
   .col{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;background:var(--panel);
     border:1px solid var(--line);border-top:2px solid var(--lc);border-radius:12px;min-height:0}
   .col-h{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line-2);flex:0 0 auto;
@@ -185,7 +185,7 @@
   /* No top padding on the scroll container: sticky children can't cover a
      parent's padding band, so scrolled rows would show through it. The
      head carries the spacing instead and its background masks the seam. */
-  .board.rows{display:block;overflow-y:auto;overflow-x:hidden;padding-top:0}
+  .exec.rows{display:block;overflow-y:auto;overflow-x:hidden;padding-top:0}
   .rows-head{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(var(--lanes),1fr);
     background:var(--ground);padding-top:16px;padding-bottom:10px;border:1px solid transparent;border-bottom:0}
   .rows-head .rh{display:flex;align-items:center;gap:8px;padding:8px 12px;
@@ -237,6 +237,7 @@
   .sstate{margin-left:auto;font-size:10.5px;font-weight:600;flex:0 0 auto;white-space:nowrap}
   .sstate.ok{color:var(--lane-5)}
   .sstate.warn{color:var(--lane-2)}
+  .sstate.rev{color:var(--st-decide)}
   .sstate.act{color:var(--accent)}
   .sstate.dim{color:var(--ink-3);font-weight:500}
   .scard .snm{font-size:13px;line-height:1.35;color:var(--ink);margin-top:4px}
@@ -646,10 +647,10 @@
     <div class="brf-body" id="brf-body" hidden></div>
   </div>
 
-  <section class="view" id="view-board" hidden>
+  <section class="view" id="view-execution" hidden>
     <div class="filters" id="filters"></div>
     <div class="readyq" id="workq"></div>
-    <main class="board" id="board" aria-label="Kanban board"></main>
+    <main class="exec" id="exec" aria-label="Execution kanban"></main>
   </section>
   <section class="view scroll" id="view-milestones" hidden></section>
   <section class="view scroll" id="view-ideas" hidden></section>
@@ -719,7 +720,7 @@ function laneVar(col){
   const i = COLUMNS.indexOf(col), n = COLUMNS.length;
   if(i <= 0) return "var(--st-idle)";
   if(i === n-1) return "var(--st-ready)";
-  if(n > 3 && i === n-2) return "var(--st-blocked)";
+  if(col === reviewLane()) return "var(--st-blocked)";
   return "var(--accent)";
 }
 // A promoted epic arrives with no stories: committed, but not yet
@@ -742,6 +743,10 @@ function short(s){
 // every dependency has, and a dependency can't leave it while a dependent
 // is already there.
 function doneLane(){ return COLUMNS[COLUMNS.length-1]; }
+// The lane before done reads as verification once a board has a dedicated
+// review lane — one positional rule, never keyed to lane *names*, feeding
+// both the lane colour and the story's copy. Three lanes or fewer: none.
+function reviewLane(){ return COLUMNS.length > 3 ? COLUMNS[COLUMNS.length-2] : null; }
 function depsOf(e){ return (e.deps||[]).map(d=>byId()[d]).filter(Boolean); }
 // One chip per dependency, coloured by that dep's own state, so you can
 // see *which* of several cleared. Unknown ids are shown, never dropped.
@@ -765,9 +770,9 @@ function depChips(ids, soft){
 // no single channel carries two meanings (design/system.md legend).
 function ideaCardState(i){
   const st = ideaStatus(i);
-  if(st === "done")     return { key:"done",     label:"done",           title:"Shipped or promoted to the board" };
+  if(st === "done")     return { key:"done",     label:"done",           title:"Shipped or promoted to execution" };
   if(st === "rejected") return { key:"rejected", label:"rejected",       title:"Declined — see the reason on the deep dive" };
-  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Intent settled — ready to promote to the execution board" };
+  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Intent settled — ready to promote to Execution" };
   if(st === "ready for review")   return { key:"review", label:"ready for review",  title:"Shaped enough — awaiting a deliberate product decision" };
   const ix = PRIOS.indexOf(i.priority), cut = Math.ceil(PRIOS.length/2);
   return (ix > -1 && ix < cut)
@@ -846,6 +851,10 @@ function hashPick(id, pool){
   return pool[h % pool.length];
 }
 const KIND_VERB = { feature:"cooking", test:"testing", chore:"tidying up", docs:"writing", integration:"wiring up" };
+// Review's own register: the work is built, so the verb describes what is
+// waiting to be looked at, not what is still being made.
+const REVIEW_VERB = { feature:"ready to check", test:"results in", chore:"ready to check",
+                      docs:"ready to read", integration:"wired — verify" };
 const DONE_POOL = ["✓ shipped", "✓ plated", "✓ in the books"];
 // "Waiting on you" is not "blocked" — a dependency resolves itself when
 // other work lands, but this one only moves when a human answers. It
@@ -872,6 +881,16 @@ function storyState(s){
       return { cls:"ok", label:"✓ done · waiting on "+waiting[0]+(waiting.length>1?" +"+(waiting.length-1):""),
                title:"finished — the epic ships when "+waiting.join(", ")+" land"+(waiting.length===1?"s":"") };
     return { cls:"ok", label: hashPick(s.id, DONE_POOL), title:"done — epic complete" };
+  }
+  // Review is not "in flight": the work is built and waiting on a look. A
+  // claim here names the reviewer, which outranks what is being reviewed —
+  // who has it is the more useful fact once the making is finished.
+  if(s.column === reviewLane()){
+    const who = s.claimed_by
+      ? "in review · "+s.claimed_by+(sinceLabel(s.claimed_at) ? " · "+sinceLabel(s.claimed_at) : "")
+      : (REVIEW_VERB[s.kind] || "ready to check");
+    return { cls:"rev", label:"⚑ "+who,
+             title: s.claimed_by ? claimTitle(s) : s.column+" — built, waiting on a review" };
   }
   if(s.column !== COLUMNS[0]){
     return { cls:"act", label:"⚙ "+(KIND_VERB[s.kind] || "cooking"),
@@ -1066,7 +1085,7 @@ async function load(){
   const d = viewDefaults();
   filterMS = d.ms; filterTheme = d.theme; boardMode = savedBoardMode() || d.mode;
   loadBurnerFold();
-  if(!location.hash && d.page !== "board") location.hash = "#/" + d.page;
+  if(!location.hash && d.page !== HOME_PAGE) location.hash = "#/" + d.page;
   renderFilters();
   render();
   renderTabs();
@@ -1110,7 +1129,7 @@ function viewDefaults(){
   return {
     ms:    (v.default_milestone && MILESTONES.includes(v.default_milestone)) ? v.default_milestone : "all",
     theme: (v.default_theme && THEMES.includes(v.default_theme)) ? v.default_theme : "all",
-    page:  PAGES.includes(v.default_page) ? v.default_page : "board",
+    page:  PAGES.includes(resolvePage(v.default_page)) ? resolvePage(v.default_page) : HOME_PAGE,
     mode:  v.default_board_mode === "rows" ? "rows" : "epics",
   };
 }
@@ -1198,14 +1217,14 @@ function epicShown(e){
 }
 
 function render(){
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-  board.classList.toggle("rows", boardMode==="rows");
-  board.style.setProperty("--lanes", COLUMNS.length);
+  const exec = document.getElementById("exec");
+  exec.innerHTML = "";
+  exec.classList.toggle("rows", boardMode==="rows");
+  exec.style.setProperty("--lanes", COLUMNS.length);
   const shown = state.epics.filter(epicShown);
   const filtered = filterMS!=="all" || filterTheme!=="all" || filterTag!=="all";
   if(boardMode==="rows"){
-    renderSwimlanes(board, shown);
+    renderSwimlanes(exec, shown);
     const rowStories = shown.flatMap(e => storiesOf(e.id));
     const sdone = rowStories.filter(s => s.column===doneLane()).length;
     const viewStoryN = state.epics.filter(e => !!e.archived_at === boardArchive)
@@ -1243,7 +1262,7 @@ function render(){
       body.appendChild(add);
       items.forEach(e => body.appendChild(cardEl(e)));
       wireDrop(sec);
-      board.appendChild(sec);
+      exec.appendChild(sec);
     });
     const viewEpics = state.epics.filter(e => !!e.archived_at === boardArchive);
     const total = viewEpics.length, done = viewEpics.filter(e=>e.column===doneLane()).length;
@@ -1333,7 +1352,7 @@ function wireDrop(sec){
 }
 
 /* ---- rows mode: story swimlanes by epic ---- */
-function renderSwimlanes(board, shown){
+function renderSwimlanes(exec, shown){
   const withStories = shown.filter(e => storiesOf(e.id).length);
   const head = document.createElement("div");
   head.className = "rows-head";
@@ -1350,9 +1369,9 @@ function renderSwimlanes(board, shown){
     return '<div class="rh" style="--lc:'+laneVar(col)+'"><span class="sw"></span>'+
       '<span class="nm">'+esc(col)+'</span>'+ct+'</div>';
   }).join("");
-  board.appendChild(head);
-  withStories.forEach(e => board.appendChild(swimEl(e)));
-  board.querySelectorAll("[data-arch-epic]").forEach(b =>
+  exec.appendChild(head);
+  withStories.forEach(e => exec.appendChild(swimEl(e)));
+  exec.querySelectorAll("[data-arch-epic]").forEach(b =>
     b.addEventListener("click", ev => { ev.stopPropagation(); toggleArchiveEpic(b.dataset.archEpic); }));
   const without = shown.length - withStories.length;
   const note = document.createElement("div");
@@ -1361,7 +1380,7 @@ function renderSwimlanes(board, shown){
     ? (without ? without + (without===1 ? " epic" : " epics") + " without stories — shown in Epics mode" : "")
     : (shown.length ? "No stories yet — open an epic in Epics mode to add them."
                     : "No epics to show — switch to Epics mode to add cards.");
-  if(note.textContent) board.appendChild(note);
+  if(note.textContent) exec.appendChild(note);
 }
 
 function swimEl(e){
@@ -2019,12 +2038,20 @@ function wireLiveRefresh(){
 /* ================= routing (hash-based SPA) ================= */
 // Ordered by the flow: ideas (capture) -> milestones (intent) -> board (work),
 // plus docs (what the tool can do — CAPABILITIES.md rendered in the UI).
-const PAGES = ["ideas","milestones","board","history","docs"];
-const PAGE_LABELS = { board:"Board", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
+const PAGES = ["ideas","milestones","execution","history","docs"];
+const PAGE_LABELS = { execution:"Execution", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
+// The execution page was called "board" until the name collided with the
+// ideas funnel ("which board?"). Old hashes and every project's existing
+// `view.default_page` still resolve — the alias is permanent, not a
+// migration window: bookmarks and configs live in other people's repos.
+const PAGE_ALIASES = { board:"execution" };
+const HOME_PAGE = "execution";
+function resolvePage(p){ return PAGE_ALIASES[p] || p; }
 function currentRoute(){
   const h = (location.hash || "").replace(/^#\/?/, "");
-  const [page, param] = h.split("/");
-  return { page: PAGES.includes(page) ? page : "board", param: param ? decodeURIComponent(param) : null };
+  const [raw, param] = h.split("/");
+  const page = resolvePage(raw);
+  return { page: PAGES.includes(page) ? page : HOME_PAGE, param: param ? decodeURIComponent(param) : null };
 }
 function navigate(page, param){ location.hash = "#/" + page + (param ? "/" + encodeURIComponent(param) : ""); }
 function renderTabs(){
@@ -2036,12 +2063,12 @@ function renderTabs(){
 function updateFooter(page){
   const fn = document.getElementById("footer-note"); if(!fn) return;
   const keys = ' · <b>/</b> find · <b>n</b> capture';
-  fn.innerHTML = (page==="board"
+  fn.innerHTML = (page===HOME_PAGE
     ? (boardMode==="rows"
       ? '<b>Rows</b>: one swimlane per epic · <b>drag</b> a story across lanes · <b>click a row header</b> to edit the epic'
       : '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>')
     : page==="milestones"
-    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it on the board'
+    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it in Execution'
     : page==="docs"
     ? 'what this tool can do · source: <b>CAPABILITIES.md</b> · also served at <b>/docs</b> and <b>/llms.txt</b>'
     : page==="history"
@@ -2050,9 +2077,15 @@ function updateFooter(page){
 }
 function route(){
   const { page, param } = currentRoute();
+  // An aliased hash is honoured, then quietly rewritten to the canonical
+  // one so a copied URL spreads the current name. replaceState, not
+  // location.hash: no second hashchange, and no junk in the back button.
+  const raw = (location.hash || "").replace(/^#\/?/, "").split("/")[0];
+  if(raw && PAGE_ALIASES[raw])
+    history.replaceState(null, "", "#/" + page + (param ? "/" + encodeURIComponent(param) : ""));
   PAGES.forEach(p => { const el = document.getElementById("view-"+p); if(el) el.hidden = p!==page; });
   document.querySelectorAll("#tabs .tab").forEach(b => b.setAttribute("aria-selected", b.dataset.page===page));
-  const counts = document.getElementById("counts"); if(counts) counts.style.display = page==="board" ? "" : "none";
+  const counts = document.getElementById("counts"); if(counts) counts.style.display = page===HOME_PAGE ? "" : "none";
   updateFooter(page);
   if(page==="ideas") renderIdeas(param);
   else if(page==="milestones") renderMilestones(param);
@@ -2313,7 +2346,7 @@ function goToEpic(id){
   filterMS = (e.milestone && MILESTONES.includes(e.milestone)) ? e.milestone : "all";
   filterTheme = "all"; filterTag = "all";
   renderFilters(); render();
-  navigate("board");
+  navigate(HOME_PAGE);
   requestAnimationFrame(() => {
     const t = document.querySelector('.card[data-id="'+CSS.escape(id)+'"]');
     if(t){ t.scrollIntoView({behavior:"smooth", block:"center"}); t.classList.add("flash"); setTimeout(()=>t.classList.remove("flash"), 1300); }
@@ -2613,7 +2646,7 @@ function promoteIdea(id){
   persistResource("epics", state.epics);
   persistResource("ideas", state.ideas);
   showToast(i.id+" promoted → "+eid+". Groom it into stories when you're ready.");
-  navigate("board");
+  navigate(HOME_PAGE);
   setTimeout(() => goToEpic(eid), 60);
 }
 
@@ -2696,7 +2729,7 @@ function renderIdeaDetail(id){
             ' · <a href="#/history" style="color:var(--accent)">implementation history</a></p>';
         })()
       : (ideaStatus(i) === "ready to implement"
-        ? '<div class="promote-row"><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Board</button>'+
+        ? '<div class="promote-row"><button class="btn primary" id="i-promote" title="Create the execution epic from this idea and close it out of the funnel">⇥ Promote to Execution</button>'+
           '<span class="empty">intent is settled — turn it into committed work</span></div>'
         : '')));
   left += block("context", "Context — what is this really about?",
@@ -2939,7 +2972,7 @@ function deleteIdea(id){
 }
 
 load().catch(() => {
-  document.getElementById("board").innerHTML =
+  document.getElementById("exec").innerHTML =
     '<div style="padding:40px;color:var(--ink-3)">Could not load the board. Start the server with <b style="color:var(--ink)">node server.js</b> and reload.</div>';
 });
 </script>

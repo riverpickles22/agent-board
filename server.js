@@ -47,7 +47,7 @@ const DEFAULTS = {
     milestones: [],
     open_gates: [],
     wip_limits: {},
-    view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
+    view: { title: "Board", default_page: "execution", default_milestone: "all", default_theme: "all" },
   },
   milestones: { overview: null, milestones: [] },
 };

@@ -34,7 +34,8 @@ page and **briefing banner** answer "what shipped" and "what changed
 since I last looked" from git · **Ship & archive** closes a finished
 epic off the active board into the Shipped view (`archived_at`) —
 propose it during curation when an epic is fully done · story cards
-narrate their own state (`cooking`, `testing`, `⛔ gated: X`,
+narrate their own state (`cooking`, `testing` in flight, `⚑ ready to
+check` / `⚑ in review · who` in a review lane, `⛔ gated: X`,
 `⏳ waiting on Y`, `✓ shipped`) · the human has `/` (find any card) and
 `n` (capture an idea) anywhere.
 

@@ -21,7 +21,7 @@
   "wip_limits": {},
   "view": {
     "title": "Demo Board",
-    "default_page": "board",
+    "default_page": "execution",
     "default_milestone": "all",
     "default_theme": "all"
   }
