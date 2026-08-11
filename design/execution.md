@@ -77,25 +77,45 @@ vertically scrolling, lane strip sticky):
 │ 2 epics without stories — shown in Epics mode                        │  note
 ```
 
-Modal (over everything, via the shared shell in `system.md`):
+Card modal (over everything, via the shared shell in `system.md`) — the
+story in a review lane, where the criteria lead:
 
 ```
-┌─ F1 · Edit card ────────────────────────────┐
-│ ID (readonly on edit)   │ Lane ▾            │
-│ Name                                        │
-│ Description / Notes                         │
-│ Milestone ▾             │ Theme ▾           │
-│ Priority ▾              │ Status (free)     │
-│ Tags                    │ Gate              │
-│ Systems involved                            │
-│ Depends on                                  │
-│ Claimed by              │ Claimed at (ro)   │
-│ Stories (N)                                 │
-│  [kind] story name      lane  [✓] ready     │
-│  [+ add story]                              │
-│ [Save] [Cancel]                  [Delete]   │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ F1-1  ⚑ ready to check                    epic F1 · Review   │ sticky
+│ Story name (edits in place)                                  │
+│ This lane asks: What should a reviewer check?                │
+├───────────────────────────────────┬──────────────────────────┤
+│ CHECK THESE · 5           (edit)  │ BUILT BY                 │
+│  • criterion, wrapping cleanly…   │ agent-3 · 2h ago         │
+│  • criterion…                     │ KIND ▾      PRIORITY ▾   │
+│                                   │ LANE ▾                   │
+│ DESCRIPTION                       │ [✓] ready — enough …     │
+│ ┌───────────────────────────────┐ │ EPIC                     │
+│ │ grows to its content, never   │ │ F1 Epic name             │
+│ │ scrolls inside the modal      │ │ 2/6 stories done         │
+│ └───────────────────────────────┘ │ SYSTEMS INVOLVED         │
+│ CONTEXT FOR THE BUILDER           │ [arc-core            ]   │
+│ ┌───────────────────────────────┐ │ UPDATED                  │
+│ └───────────────────────────────┘ │ 2026-08-11               │
+├───────────────────────────────────┴──────────────────────────┤
+│ [Save] [Back to epic]                            [Delete]    │ pinned
+└──────────────────────────────────────────────────────────────┘
 ```
+
+In the **first lane** the same modal leads with the description, and the
+rail opens with *"Before an agent can pick this up"* instead of the claim:
+
+```
+│ BEFORE AN AGENT CAN PICK THIS UP                             │
+│ needs prep — the ready flag is a human's call                │
+│ ⛔ epic gated: design-review                                  │
+│ ⏳ epic waiting on F4                                         │
+```
+
+The **epic modal** is the same shell: description, notes, the stories
+list and context docs in the left column; ID, lane, priority, milestone,
+theme, status, tags, systems, deps, gate and claim in the rail.
 
 ## Components
 
@@ -130,10 +150,14 @@ Modal (over everything, via the shared shell in `system.md`):
 | Rows: story card | `storyCardEl()` `.scard` | kind chip, mono id, **state chip** (`.sstate`), name | draggable within its row; click opens the story modal |
 | Story state chip | `storyState()` `.sstate` | one chip from one rule — lane + `ready` + claim + epic health (the ready-queue rule, extended to display). In priority order: done + unfinished siblings → `✓ done · waiting on <sibling>` (+N); done, epic complete → pooled `✓ shipped` / `✓ plated` / `✓ in the books` (stable per story via id hash — variety without randomness); `reviewLane()` → the work is built and waiting on a look, so the register changes: `⚑ ready to check` (feature, chore) · `⚑ results in` (test) · `⚑ ready to read` (docs) · `⚑ wired — verify` (integration), or `⚑ in review · <who> · <since>` when claimed — a claim here names the *reviewer*, which outranks what is being reviewed; any other middle lane → activity by `kind`: feature `cooking` · test `testing` · chore `tidying up` · docs `writing` · integration `wiring up` (tooltip: real lane + claim); first lane + ready → `✓ ready` when pickable, `⛔ gated: <gate>` / `⏳ waiting on <dep>` when the epic is blocked, `claimed` when claimed; first lane, not ready → dim `needs prep` | color: green ok / amber blocked / amber-review / accent active / dim quiet (`--lane-5`/`--lane-2`/`--st-decide`/accent/`--ink-3`). Review gets its own class (`.rev`) rather than borrowing `.warn`: it sits under the same amber lane header, but nothing is wrong — the chip is a hand-off, not an alarm, and `⚠ needs decision` / `⚠ stale claim` must still outrank it. The same chip renders read-only in the epic modal's story rows beside the lane text — the ready checkbox stays the editor. `✓ ready` never appears outside the first lane |
 | Rows: note | `.rows-note` | "N epics without stories — shown in Epics mode" / rows-empty guidance | renders only when it has something to say |
-| Epic modal | `renderModal()` | all epic fields per AGENTS.md §2 | `context_docs` renders read-only (below) — still no edit widget; lane change re-runs `checkMove` |
+| Card modal | `.modal.wide` `modalHead()` `.mgrid`/`.mcol`/`.mrail` `autoGrow()` | both the epic and story modals: a sticky header (id · state chip · where it sits · the lane's question) over a two-column body — **prose left, decisions right** — with a pinned action bar | the old 560px single column made every field the same width, so `Systems involved` got a full-width input while the acceptance criteria — the reason you opened the card — scrolled inside a 70px box. Content now takes the wide column and **sizes to itself** (`autoGrow()`: no scrollbar inside a scrollbar), while everything that is a one-word decision (kind, lane, priority, milestone, theme, gate, claim) moves to the rail. The name renders as the title and edits in place. The Ideas modal keeps the narrow form — it edits an idea's core fields, not a work card |
+| Lane focus | `laneFocus()` `.mh-ask` | the modal leads with what **this lane** asks: first lane *"Can an agent start this?"*, middle *"Who has this, and how far along?"*, `reviewLane()` *"What should a reviewer check?"*, done *"What shipped?"* | a card is a different question in each lane, so opening it should surface a different thing. In review and done the criteria lead the column and change their heading (*Check these* / *What this delivered*) — they are the checklist and the record; elsewhere the description leads. The rail reorders to match: queued shows **what stops a start** first, in flight and review show the claim first (*Built by* in review), done shows the epic and which siblings still block the ship. Positional like every other lane rule, so a project's own lane names work unchanged. **Nothing is ever hidden, only ordered** — every field stays editable from every lane |
+| Epic modal | `renderModal()` | all epic fields per AGENTS.md §2, in the card-modal shell: description, notes, stories and context docs left; ids, vocabularies, gate, deps and claim in the rail | `context_docs` renders read-only (below) — still no edit widget; lane change re-runs `checkMove`. `claimFact()` states the claim in words above the input, including `⚠ stale` |
 | Context docs chips | `.field .ctxdocs` (modal) | the epic's `context_docs` as read-only label+path+note chips, reusing the Milestones `ctxDocs()` renderer; click copies the doc's path (toast confirms) | edit mode only, and only when the epic has docs — no section otherwise, and the create modal never shows it. Copy-on-click follows the Ideas-page copy convention; **no input exists** — `context_docs` stays file/skill-edited (AGENTS.md §2) |
 | Stories section | `storiesSection()` `wireStoriesSection()` | story rows + ready checkboxes inside the epic modal | edit mode only, not on create |
-| Story modal | `renderStoryModal()` | story fields: name, description, acceptance criteria (one per line), context, systems, kind ▾, lane ▾, priority ▾, ready ✓ | "Back to epic" returns to `openEdit(epicId)` |
+| Story modal | `renderStoryModal()` | the card modal for a story: description, criteria and builder context left; kind/priority/lane/ready, claim, epic and systems in the rail | "Back to epic" returns to `openEdit(epicId)`. The header carries the story's own `stateChip()`, so the computed state (`⚑ ready to check`, `⚠ stale claim`) is visible where you edit it. The Epic block names its parent, its done-count, and any gate or unmet dependency **inherited** from it — a story is blocked by its epic far more often than by itself |
+| Criteria list | `.aclist` `#s-ac-field` `#s-ac-edit` | acceptance criteria render as a **bulleted list**, with an `edit` link that swaps in the raw one-per-line textarea | a textarea cannot show where one criterion ends and the next begins once they wrap, and wrapping is the normal case — five long criteria read as one paragraph. The list is the default reading; editing is one click. `saveModal`'s story path reads the textarea **only if it exists**, so saving a card whose criteria were never opened preserves them exactly |
+| Start blockers | the rail's *"Before an agent can pick this up"* block | on a first-lane story: every reason it is not pickable — `needs prep`, no criteria, already claimed, epic gated, epic waiting on deps — or `✓ nothing is in the way` | the ready-queue rule (PROTOCOL §3) spelled out on the card it governs, instead of leaving the human to infer it from the queue's absence. Same inputs as `storyState()` and the work queue, so the three cannot disagree |
 | Save epic | `saveModal()` | validation → create/update | duplicate-id and empty-name errors in `.m-err` |
 | Remove from board | `toggleArchiveEpic()` `canRemove()` `removeTitle()` `#m-arch` `.rowarch` | "⌂ Remove from board" in the edit modal **and** on the folded row — shown when `canRemove(e)` and it isn't archived yet. `canRemove()`: every story in the done lane, or, for a story-less epic, its own card there | one action closes the whole thread. It stamps `archived_at` (AGENTS.md §2), and first **moves the epic card to the done lane** if it lags — the stories being done makes the card's lane a formality, so the button finishes it rather than making the human drag it. That move still passes `checkMove()`: an unmet dependency refuses the whole removal with the drag's own toast, and nothing is written. It then **closes the idea behind the epic** (`ideaBehind()` — `promoted_to` points here) to `done` with a dated log line, because an idea promoted by an agent editing JSON never runs `promoteIdea()` and otherwise sits in the funnel forever looking like open discovery. Epics and ideas persist separately (`persist()` + `persistResource("ideas", …)`), and `removeTitle()` states every one of these consequences in the button's tooltip before the click. In the Shipped view the button reads "Unarchive" and clears the stamp; the idea stays `done` — it became work, and that doesn't un-happen. Archived epics still feed milestone roll-ups and dependency checks — archiving hides, never deletes |
 | Delete epic | `deleteEpic()` | confirm listing dependents + story cascade | deletes epic + its stories |

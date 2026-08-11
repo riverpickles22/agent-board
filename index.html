@@ -534,6 +534,67 @@
   .field textarea{min-height:88px;resize:vertical;line-height:1.5}
   .field.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .field.mono input{font-family:var(--mono);font-size:13px}
+
+  /* ---- wide modal: a card you read, not a form you fill ----
+     The old 560px column gave `Systems involved` a full-width input and
+     acceptance criteria a 70px box you scrolled inside — exactly backwards.
+     Content takes the wide column and sizes to itself; everything that is a
+     one-word decision (kind, lane, priority, claim) goes to a rail. */
+  .modal.wide{width:min(940px,100%);padding:0}
+  .mhead{padding:20px 26px 16px;border-bottom:1px solid var(--line-2);position:sticky;top:0;background:var(--panel);z-index:1;border-radius:14px 14px 0 0}
+  .mhead .mh-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .mhead .id{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent)}
+  .mhead .sstate{margin-left:0}
+  .mhead .mh-where{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  .mhead .mh-where b{color:var(--ink-2);font-weight:600}
+  /* The name is the title: it reads as a heading and edits as an input. */
+  .mhead .mh-name{width:100%;margin-top:9px;font-family:var(--sans);font-size:19px;font-weight:600;line-height:1.3;
+    color:var(--ink);background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 7px;margin-left:-7px}
+  .mhead .mh-name:hover{border-color:var(--line)}
+  .mhead .mh-name:focus{background:var(--card-2);border-color:var(--accent);outline:none}
+  /* The question this lane asks — the modal's own reason for its order. */
+  .mhead .mh-ask{display:block;margin-top:7px;font-size:12.5px;color:var(--ink-3)}
+  .mhead .mh-ask b{color:var(--lc,var(--accent));font-weight:600}
+  .mgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:0;align-items:start}
+  .mgrid .mcol{padding:18px 26px 8px;min-width:0}
+  .mgrid .mrail{padding:18px 26px 8px;border-left:1px solid var(--line-2);background:var(--card-2);min-width:0;align-self:stretch}
+  @media (max-width:820px){
+    .mgrid{grid-template-columns:1fr}
+    .mgrid .mrail{border-left:0;border-top:1px solid var(--line-2)}
+  }
+  .mgrid .field:first-child{margin-top:0}
+  /* Section headings, not form labels: the block below is content. */
+  .mgrid .field > label:not(.rdy-t),.mrail .rlab{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--ink-3)}
+  /* The ready flag is a decision, not a section: checkbox first, sentence after. */
+  .mgrid label.rdy-t{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--ink-2);cursor:pointer;margin:0}
+  .mgrid label.rdy-t input{width:auto;flex:0 0 auto;margin:0}
+  .mgrid .field > label .ct{text-transform:none;letter-spacing:0;color:var(--ink-3);font-weight:500}
+  .mrail .rlab{display:block;margin-bottom:6px}
+  .mrail .rgroup{margin-top:16px}
+  .mrail .rgroup:first-child{margin-top:0}
+  .mrail .rfact{font-size:13px;line-height:1.5;color:var(--ink-2)}
+  .mrail .rfact .dim{color:var(--ink-3)}
+  .mrail .rfact b{color:var(--ink);font-weight:600}
+  .mrail .field{margin-top:12px}
+  /* Textareas grow to their content (autoGrow) — no scrollbar inside a
+     scrollbar, and the whole criterion list is visible at once. */
+  .modal.wide textarea{min-height:0;overflow:hidden;resize:none}
+  /* Criteria are a list, so they render as one. A textarea cannot mark where
+     one criterion ends and the next begins once they wrap — and wrapping is
+     the normal case here, not the exception. Click "edit" for the raw lines. */
+  .aclist{margin:0;padding:0;list-style:none}
+  .aclist li{position:relative;padding:0 0 0 20px;margin-bottom:9px;font-size:14.5px;line-height:1.55;color:var(--ink)}
+  .aclist li::before{content:"";position:absolute;left:4px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--lc,var(--accent))}
+  .aclist li:last-child{margin-bottom:2px}
+  .field > label .eb{float:right;font-size:11.5px;font-weight:500;color:var(--accent);background:none;border:0;
+    cursor:pointer;text-transform:none;letter-spacing:0;padding:0}
+  .field > label .eb:hover{text-decoration:underline}
+  /* Save stays reachable: a long card scrolls under a pinned action bar
+     rather than pushing it past the fold. */
+  .modal.wide .actions{margin:0;padding:14px 26px;border-top:1px solid var(--line-2);
+    position:sticky;bottom:0;background:var(--panel);border-radius:0 0 14px 14px}
+  .modal.wide .m-err{padding:0 26px}
+  .modal.wide #m-stories{max-height:none}
   .actions{display:flex;gap:10px;margin-top:22px;align-items:center;flex-wrap:wrap}
   .btn{font-family:var(--sans);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);
     background:var(--card-2);color:var(--ink);cursor:pointer}
@@ -747,6 +808,19 @@ function doneLane(){ return COLUMNS[COLUMNS.length-1]; }
 // review lane — one positional rule, never keyed to lane *names*, feeding
 // both the lane colour and the story's copy. Three lanes or fewer: none.
 function reviewLane(){ return COLUMNS.length > 3 ? COLUMNS[COLUMNS.length-2] : null; }
+// A card asks a different question in each lane, so opening it should lead
+// with a different thing. Queued: can this be started? In flight: who has it?
+// Review: what should I check — so the criteria become the checklist and
+// come first. Done: what shipped. Positional like every other lane rule, so
+// a project's own lane names work unchanged; nothing is ever hidden, only
+// ordered — you can still edit any field from any lane.
+function laneFocus(x){
+  const i = COLUMNS.indexOf(x.column), last = COLUMNS.length-1;
+  if(i <= 0)                  return { key:"queued",  ask:"Can an agent start this?",        criteriaFirst:false };
+  if(x.column === reviewLane())return{ key:"review",  ask:"What should a reviewer check?",   criteriaFirst:true  };
+  if(i === last)              return { key:"done",    ask:"What shipped?",                   criteriaFirst:true  };
+  return                             { key:"flight",  ask:"Who has this, and how far along?",criteriaFirst:false };
+}
 function depsOf(e){ return (e.deps||[]).map(d=>byId()[d]).filter(Boolean); }
 // One chip per dependency, coloured by that dep's own state, so you can
 // see *which* of several cleared. Unknown ids are shown, never dropped.
@@ -1506,38 +1580,57 @@ function openCreate(col){ modalMode="create"; editingId=null; renderModal(blankE
 
 function renderModal(e){
   const create = modalMode==="create";
+  const est = create ? [] : storiesOf(e.id);
+  const eDone = est.filter(x => x.column === doneLane()).length;
+  const eFocus = laneFocus(e);
+  const eClaimBlock =
+    '<div class="rgroup"><span class="rlab">'+(eFocus.key==="review" ? "Built by" : "Claim")+'</span>'+
+      '<div class="rfact">'+claimFact(e)+'</div>'+
+      '<div class="field mono"><input id="f-claim" value="'+esc(e.claimed_by||"")+'" placeholder="agent/session id" aria-label="Claimed by"></div>'+
+      '<input type="hidden" id="f-claimed-at" value="'+esc(e.claimed_at||"")+'">'+
+    '</div>';
   const modal = document.getElementById("modal");
+  modal.className = "modal wide";
+  modal.style.setProperty("--lc", laneVar(e.column));
   modal.innerHTML =
-    '<h2 id="m-title"><span class="id">'+esc(e.id)+'</span> <span>'+(create?"New card":"Edit card")+'</span></h2>'+
-    '<div class="field row2">'+
-      '<div class="mono"><label for="f-id">ID</label><input id="f-id" value="'+esc(e.id)+'"'+(create?'':' readonly')+'></div>'+
-      '<div><label for="f-lane">Lane</label><select id="f-lane">'+opts(COLUMNS,e.column)+'</select></div>'+
+    modalHead({ id:e.id, nameId:"f-name", name:e.name, placeholder:"What is this card?",
+      where: (create ? "New card" : (est.length ? eDone+"/"+est.length+" stories done" : "no stories yet"))+
+             ' · <b>'+esc(e.column)+'</b>',
+      ask: create ? "" : eFocus.ask })+
+    '<div class="mgrid">'+
+      '<div class="mcol">'+
+        '<div class="field"><label for="f-desc">Description</label><textarea id="f-desc" placeholder="What is this, and what does it change?">'+esc(e.description)+'</textarea></div>'+
+        '<div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" placeholder="Provenance, workflow impact, decisions taken">'+esc(e.notes||"")+'</textarea></div>'+
+        (create ? "" : storiesSection(e.id))+
+        (!create && (e.context_docs||[]).length
+          ? '<div class="field" id="m-ctxdocs"><label>Context docs <span class="ct">· read-only, click to copy the path</span></label>'+ctxDocs(e.context_docs)+'</div>'
+          : "")+
+      '</div>'+
+      '<div class="mrail">'+
+        (eFocus.key==="flight" || eFocus.key==="review" ? eClaimBlock : "")+
+        '<div class="rgroup">'+
+          '<div class="field row2" style="margin-top:0">'+
+            '<div><label class="rlab" for="f-lane">Lane</label><select id="f-lane">'+opts(COLUMNS,e.column)+'</select></div>'+
+            '<div><label class="rlab" for="f-prio">Priority</label><select id="f-prio">'+opts(PRIOS,e.priority)+'</select></div>'+
+          '</div>'+
+          '<div class="field"><label class="rlab" for="f-ms">Milestone</label><select id="f-ms"><option value="">—</option>'+opts(MILESTONES,e.milestone)+'</select></div>'+
+          '<div class="field"><label class="rlab" for="f-theme">Theme</label><select id="f-theme"><option value="">—</option>'+opts(THEMES,e.theme)+'</select></div>'+
+        '</div>'+
+        '<div class="rgroup">'+
+          '<div class="field mono" style="margin-top:0"><label class="rlab" for="f-id">ID</label><input id="f-id" value="'+esc(e.id)+'"'+(create?'':' readonly')+'></div>'+
+          '<div class="field mono"><label class="rlab" for="f-status">Status <span class="ct">free text</span></label><input id="f-status" value="'+esc(e.status||"")+'"></div>'+
+          '<div class="field mono"><label class="rlab" for="f-tags">Tags</label><input id="f-tags" value="'+esc((e.tags||[]).join(" "))+'" placeholder="space-separated"></div>'+
+          '<div class="field mono"><label class="rlab" for="f-systems">Systems involved</label><input id="f-systems" value="'+esc((e.systems||[]).join(" "))+'" placeholder="e.g. arc-backend arc-frontend"></div>'+
+        '</div>'+
+        '<div class="rgroup">'+
+          '<div class="field mono" style="margin-top:0"><label class="rlab" for="f-deps">Depends on</label><input id="f-deps" value="'+esc((e.deps||[]).join(" "))+'" placeholder="space-separated ids"></div>'+
+          ((e.deps||[]).length ? '<div class="rfact" style="margin-top:7px">'+depChips(e.deps)+'</div>' : "")+
+          '<div class="field mono"><label class="rlab" for="f-gate">Gate <span class="ct">"none" = always open</span></label><input id="f-gate" value="'+esc(e.gate||"none")+'"></div>'+
+          (!create && !gateOpen(e) ? '<div class="rfact" style="color:var(--lane-2);margin-top:7px">⛔ closed — a human opens it in config.json open_gates</div>' : "")+
+        '</div>'+
+        (eFocus.key==="flight" || eFocus.key==="review" ? "" : eClaimBlock)+
+      '</div>'+
     '</div>'+
-    '<div class="field"><label for="f-name">Name</label><input id="f-name" value="'+esc(e.name)+'"></div>'+
-    '<div class="field"><label for="f-desc">Description</label><textarea id="f-desc">'+esc(e.description)+'</textarea></div>'+
-    '<div class="field"><label for="f-notes">Notes</label><textarea id="f-notes" style="min-height:60px">'+esc(e.notes||"")+'</textarea></div>'+
-    '<div class="field row2">'+
-      '<div><label for="f-ms">Milestone</label><select id="f-ms"><option value="">—</option>'+opts(MILESTONES,e.milestone)+'</select></div>'+
-      '<div><label for="f-theme">Theme</label><select id="f-theme"><option value="">—</option>'+opts(THEMES,e.theme)+'</select></div>'+
-    '</div>'+
-    '<div class="field row2">'+
-      '<div><label for="f-prio">Priority</label><select id="f-prio">'+opts(PRIOS,e.priority)+'</select></div>'+
-      '<div class="mono"><label for="f-status">Status (free text)</label><input id="f-status" value="'+esc(e.status||"")+'"></div>'+
-    '</div>'+
-    '<div class="field row2">'+
-      '<div class="mono"><label for="f-tags">Tags (space-separated)</label><input id="f-tags" value="'+esc((e.tags||[]).join(" "))+'"></div>'+
-      '<div class="mono"><label for="f-gate">Gate (\"none\" = always open)</label><input id="f-gate" value="'+esc(e.gate||"none")+'"></div>'+
-    '</div>'+
-    '<div class="field mono"><label for="f-systems">Systems involved (space-separated repos/services)</label><input id="f-systems" value="'+esc((e.systems||[]).join(" "))+'" placeholder="e.g. arc-backend arc-frontend"></div>'+
-    '<div class="field mono"><label for="f-deps">Depends on (space-separated ids)</label><input id="f-deps" value="'+esc((e.deps||[]).join(" "))+'"></div>'+
-    (!create && (e.context_docs||[]).length
-      ? '<div class="field" id="m-ctxdocs"><label>Context docs (read-only — edited via files/skill; click to copy path)</label>'+ctxDocs(e.context_docs)+'</div>'
-      : "")+
-    '<div class="field row2">'+
-      '<div class="mono"><label for="f-claim">Claimed by</label><input id="f-claim" value="'+esc(e.claimed_by||"")+'" placeholder="agent/session id"></div>'+
-      '<div class="mono"><label for="f-claimed-at">Claimed at</label><input id="f-claimed-at" value="'+esc(e.claimed_at||"")+'" readonly></div>'+
-    '</div>'+
-    (create ? "" : storiesSection(e.id))+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions">'+
       '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
@@ -1551,6 +1644,7 @@ function renderModal(e){
       (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
     '</div>';
   document.getElementById("scrim").classList.add("on");
+  wireAutoGrow(modal);
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
@@ -1574,6 +1668,42 @@ function renderModal(e){
 
 /* ---- stories (nested in the epic modal) ---- */
 const KINDS = ["feature","test","integration","chore","docs"];
+/* ---- wide modal chrome ----
+   Shared by the epic and story modals so the board speaks one card
+   vocabulary: a sticky header carrying the id, the computed state chip and
+   where the card sits, then the name as an editable title. */
+// Textareas size themselves to their content. A fixed min-height meant the
+// acceptance criteria — the reason you opened the card — scrolled inside a
+// box inside a scrolling modal.
+function autoGrow(ta){
+  ta.style.height = "auto";
+  ta.style.height = Math.max(ta.scrollHeight, 36) + "px";
+}
+function wireAutoGrow(root){
+  const grow = () => root.querySelectorAll("textarea").forEach(autoGrow);
+  root.querySelectorAll("textarea").forEach(ta => ta.addEventListener("input", () => autoGrow(ta)));
+  grow();
+  requestAnimationFrame(grow);   // again once laid out: scrollHeight is 0 while hidden
+}
+// `where` and `chip` are pre-built HTML; everything else is escaped here.
+function modalHead(o){
+  return '<div class="mhead"><div class="mh-top">'+
+      '<span class="id">'+esc(o.id)+'</span>'+(o.chip || "")+
+      (o.where ? '<span class="mh-where">'+o.where+'</span>' : "")+
+    '</div>'+
+    '<input class="mh-name" id="'+o.nameId+'" value="'+esc(o.name||"")+'" '+
+      'placeholder="'+esc(o.placeholder||"Name")+'" aria-label="Name">'+
+    (o.ask ? '<span class="mh-ask">This lane asks: <b>'+esc(o.ask)+'</b></span>' : "")+
+    '</div>';
+}
+// One claim reading for the rail — the same facts the card shows, spelled out.
+function claimFact(x){
+  if(!x.claimed_by) return '<span class="dim">unclaimed</span>';
+  const since = sinceLabel(x.claimed_at);
+  return '<b>'+esc(x.claimed_by)+'</b>'+(since ? ' <span class="dim">· '+esc(since)+'</span>' : "")+
+         (claimIsStale(x) ? ' <span style="color:var(--lane-2)">⚠ stale</span>' : "");
+}
+
 function storiesSection(epicId){
   const st = storiesOf(epicId);
   return '<div class="field"><label>Stories ('+st.length+')</label><div id="m-stories">'+
@@ -1615,23 +1745,92 @@ function renderStoryModal(epicId, sid){
         claimed_by:null, claimed_at:null, updated_at:null }
     : state.stories.find(x=>x.id===sid);
   if(!s) return;
+  const ep = byId()[epicId];
+  const acN = (s.acceptance_criteria||[]).length;
+  const epStories = ep ? storiesOf(ep.id) : [];
+  const epDone = epStories.filter(x => x.column === doneLane()).length;
+  const unmetDeps = ep ? depsOf(ep).filter(d => d.column !== doneLane()).map(d=>d.id) : [];
+  const siblings = ep ? epStories.filter(x => x.id !== s.id && x.column !== doneLane()).map(x=>x.id) : [];
+  const focus = laneFocus(s);
+
+  // The three content blocks, ordered by what the lane is asking. In review
+  // and done the criteria are the point — they are the checklist and the
+  // record — so they lead; while queued or in flight the description does.
+  const bDesc =
+    '<div class="field"><label for="s-desc">Description</label>'+
+      '<textarea id="s-desc" placeholder="What is being built, and why this shape?">'+esc(s.description||"")+'</textarea></div>';
+  const acLabel = (focus.key==="review" ? "Check these" : focus.key==="done" ? "What this delivered" : "Acceptance criteria")+
+    ' <span class="ct">· '+(acN ? acN : "none yet")+'</span>';
+  const acEditor =
+    '<label for="s-ac">'+acLabel+' <span class="ct">· one per line</span></label>'+
+    '<textarea id="s-ac" placeholder="What must be true for this story to be done?&#10;One per line.">'+esc((s.acceptance_criteria||[]).join("\n"))+'</textarea>';
+  const bAc = '<div class="field" id="s-ac-field">'+
+    (acN
+      ? '<label>'+acLabel+'<button type="button" class="eb" id="s-ac-edit">edit</button></label>'+
+        '<ul class="aclist">'+(s.acceptance_criteria||[]).map(c => '<li>'+esc(c)+'</li>').join("")+'</ul>'
+      : acEditor)+
+    '</div>';
+  const bCtx =
+    '<div class="field"><label for="s-ctx">Context for the builder</label>'+
+      '<textarea id="s-ctx" placeholder="Repos, paths, docs to read before starting">'+esc(s.context||"")+'</textarea></div>';
+
+  // Rail blocks, likewise ordered: what stops a start when queued, who holds
+  // it once it is moving, what is still outstanding once it is done.
+  const rSettings =
+    '<div class="rgroup">'+
+      '<div class="field row2" style="margin-top:0">'+
+        '<div><label class="rlab" for="s-kind">Kind</label><select id="s-kind">'+opts(KINDS,s.kind||"feature")+'</select></div>'+
+        '<div><label class="rlab" for="s-prio">Priority</label><select id="s-prio">'+opts(PRIOS,s.priority)+'</select></div>'+
+      '</div>'+
+      '<div class="field"><label class="rlab" for="s-lane">Lane</label><select id="s-lane">'+opts(COLUMNS,s.column)+'</select></div>'+
+      '<div class="field"><label class="rdy-t" title="Definition of ready: enough context for an agent to build this">'+
+        '<input type="checkbox" id="s-ready" '+(s.ready?"checked":"")+'> ready — enough context to build</label></div>'+
+    '</div>';
+  const rClaim =
+    '<div class="rgroup"><span class="rlab">'+(focus.key==="review" ? "Built by" : "Claim")+'</span>'+
+      '<div class="rfact">'+claimFact(s)+'</div></div>';
+  // Queued only: the pickability rule, spelled out on the card it governs.
+  const blockers = [];
+  if(!s.ready) blockers.push('<span style="color:var(--ink-3)">needs prep — the ready flag is a human\u2019s call</span>');
+  if(!acN) blockers.push('<span style="color:var(--lane-2)">no acceptance criteria yet</span>');
+  if(s.claimed_by) blockers.push('<span style="color:var(--accent)">already claimed</span>');
+  if(ep && !gateOpen(ep)) blockers.push('<span style="color:var(--lane-2)">⛔ epic gated: '+esc(ep.gate)+'</span>');
+  if(unmetDeps.length) blockers.push('<span style="color:var(--lane-2)">⏳ epic waiting on '+esc(unmetDeps.join(" "))+'</span>');
+  const rStart =
+    '<div class="rgroup"><span class="rlab">Before an agent can pick this up</span><div class="rfact">'+
+      (blockers.length ? blockers.join("<br>") : '<span style="color:var(--lane-5)">✓ nothing is in the way</span>')+
+    '</div></div>';
+  const rEpic = ep
+    ? '<div class="rgroup"><span class="rlab">Epic</span><div class="rfact">'+
+        '<b>'+esc(ep.id)+'</b> '+esc(ep.name)+'<br>'+
+        '<span class="dim">'+epDone+'/'+epStories.length+' stories done</span>'+
+        (focus.key==="done" && siblings.length
+          ? '<br><span class="dim">the epic ships when '+esc(siblings.join(" "))+' land'+(siblings.length===1?"s":"")+'</span>' : "")+
+        (focus.key!=="queued" && !gateOpen(ep) ? '<br><span style="color:var(--lane-2)">⛔ gated: '+esc(ep.gate)+'</span>' : "")+
+      '</div></div>'
+    : "";
+  const rSystems =
+    '<div class="rgroup"><label class="rlab" for="s-systems">Systems involved</label>'+
+      '<div class="field mono" style="margin-top:0"><input id="s-systems" value="'+esc((s.systems||[]).join(" "))+'" placeholder="space-separated"></div></div>';
+  const rUpdated = s.updated_at
+    ? '<div class="rgroup"><span class="rlab">Updated</span><div class="rfact dim">'+esc(String(s.updated_at).slice(0,10))+'</div></div>' : "";
+
+  const rail = create ? [rSettings, rEpic, rSystems]
+    : focus.key==="queued" ? [rStart, rSettings, rEpic, rSystems, rUpdated]
+    : focus.key==="done"   ? [rEpic, rSettings, rClaim, rSystems, rUpdated]
+    :                        [rClaim, rSettings, rEpic, rSystems, rUpdated];
+
   const modal = document.getElementById("modal");
+  modal.className = "modal wide";
+  modal.style.setProperty("--lc", laneVar(s.column));
   modal.innerHTML =
-    '<h2 id="m-title"><span class="id">'+esc(s.id)+'</span> <span>'+(create?"New story":"Edit story")+' · epic '+esc(epicId)+'</span></h2>'+
-    '<div class="field"><label for="s-name">Name</label><input id="s-name" value="'+esc(s.name)+'"></div>'+
-    '<div class="field"><label for="s-desc">Description</label><textarea id="s-desc">'+esc(s.description||"")+'</textarea></div>'+
-    '<div class="field"><label for="s-ac">Acceptance criteria (one per line)</label>'+
-      '<textarea id="s-ac" style="min-height:70px" placeholder="What must be true for this story to be done?">'+esc((s.acceptance_criteria||[]).join("\n"))+'</textarea></div>'+
-    '<div class="field"><label for="s-ctx">Context for the builder (repos, paths, docs to read)</label>'+
-      '<textarea id="s-ctx" style="min-height:50px">'+esc(s.context||"")+'</textarea></div>'+
-    '<div class="field mono"><label for="s-systems">Systems involved (space-separated)</label><input id="s-systems" value="'+esc((s.systems||[]).join(" "))+'"></div>'+
-    '<div class="field row2">'+
-      '<div><label for="s-kind">Kind</label><select id="s-kind">'+opts(KINDS,s.kind||"feature")+'</select></div>'+
-      '<div><label for="s-lane">Lane</label><select id="s-lane">'+opts(COLUMNS,s.column)+'</select></div>'+
-    '</div>'+
-    '<div class="field row2">'+
-      '<div><label for="s-prio">Priority</label><select id="s-prio">'+opts(PRIOS,s.priority)+'</select></div>'+
-      '<div><label class="rdy-t" style="margin-top:24px"><input type="checkbox" id="s-ready" '+(s.ready?"checked":"")+'> ready — enough context to build</label></div>'+
+    modalHead({ id:s.id, nameId:"s-name", name:s.name, placeholder:"What is this slice?",
+      chip: create ? "" : stateChip(s),
+      where: (create ? "New story · " : "")+"epic <b>"+esc(epicId)+"</b> · "+esc(s.column),
+      ask: create ? "" : focus.ask })+
+    '<div class="mgrid">'+
+      '<div class="mcol">'+(focus.criteriaFirst ? bAc+bDesc+bCtx : bDesc+bAc+bCtx)+'</div>'+
+      '<div class="mrail">'+rail.filter(Boolean).join("")+'</div>'+
     '</div>'+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions">'+
@@ -1640,14 +1839,26 @@ function renderStoryModal(epicId, sid){
       (!create && s.claimed_by ? '<button class="btn" id="s-release" title="Clear the claim so this story can be picked up again">↩ Release claim</button>' : '')+
       (create?'':'<button class="btn danger" id="s-del">Delete</button>')+
     '</div>';
+  wireAutoGrow(modal);
+  // The list is the default reading; the raw lines are one click away.
+  const acEditBtn = document.getElementById("s-ac-edit");
+  if(acEditBtn) acEditBtn.addEventListener("click", () => {
+    const f = document.getElementById("s-ac-field");
+    f.innerHTML = acEditor;
+    wireAutoGrow(f);
+    f.querySelector("#s-ac").focus();
+  });
   const srb = document.getElementById("s-release");
   if(srb) srb.addEventListener("click", () => releaseClaim("story", s.id));
   document.getElementById("s-save").addEventListener("click", () => {
     const g = id => document.getElementById(id);
     const name = g("s-name").value.trim();
     if(!name){ g("m-err").textContent = "Name is required."; g("s-name").focus(); return; }
+    const acEl = g("s-ac");   // absent while the criteria are still a read list
     const vals = { name, description:g("s-desc").value,
-      acceptance_criteria:g("s-ac").value.split("\n").map(x=>x.trim()).filter(Boolean),
+      acceptance_criteria: acEl
+        ? acEl.value.split("\n").map(x=>x.trim()).filter(Boolean)
+        : (s.acceptance_criteria||[]),
       context:g("s-ctx").value, systems:g("s-systems").value.split(/\s+/).filter(Boolean),
       kind:g("s-kind").value, column:g("s-lane").value,
       priority:g("s-prio").value, ready:g("s-ready").checked, updated_at:new Date().toISOString() };
@@ -2964,6 +3175,7 @@ function openIdea(id){
   if(!i) return;
   editingIdea = i.id;
   const modal = document.getElementById("modal");
+  modal.className = "modal";   // the idea modal stays the narrow core-fields form
   modal.innerHTML = '<h2 id="m-title"><span>'+(id?"Edit idea":"New idea")+'</span></h2>'+
     '<div class="field"><label for="i-title">Title</label><input id="i-title" value="'+esc(i.title)+'"></div>'+
     '<div class="field"><label for="i-desc">Description</label><textarea id="i-desc" style="min-height:70px">'+esc(i.description||"")+'</textarea></div>'+

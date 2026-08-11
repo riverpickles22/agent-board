@@ -89,7 +89,13 @@ and dependencies still count it. The board's rules are visible, not just
 enforced: WIP-limited lanes show board-wide `total/limit` counts that
 go red when over, and closed-gate cards wear a `⛔` chip naming their
 gate in both modes — advisory (drops are never blocked; the agent
-protocol enforces). Each epic's modal renders its `context_docs` as
+protocol enforces). Opening any card gives a two-column
+reader rather than a form: prose and criteria on the left sized to their
+content, decisions in a rail, and the card's computed state in the
+header — and **what it leads with follows the lane**, so a queued card
+opens on what stops an agent starting it, a card in review opens on the
+criteria as a checklist, and a finished one opens on what it delivered.
+Each epic's modal renders its `context_docs` as
 read-only chips that copy their path on click — the reading list is
 visible where the human reviews the card, while editing stays
 file/skill-only. A **Ready queue** strip under Next up is the story
