@@ -46,6 +46,18 @@ would be checked. That plan carries into the epic as its `test_plan` and
 stays editable there, so every committed card answers "how would we know
 this works" before anyone starts building.
 
+The page is **several readings of one backlog**, chosen with a lens
+switcher: **Status** (the pipeline above), **Theme** (one column per
+theme), and **Leverage** — the roadmap question a priority list cannot
+answer. Leverage layers the ideas by what unlocks what: *Foundations*
+first (nothing waits on them, and others wait on these), then the tiers
+they make possible, each card naming what it opens. Ideas that wait on
+nothing and that nothing waits on are listed last as *Standalone*, so
+the load-bearing few stop reading like ordinary features; a dependency
+cycle is reported by name rather than silently broken. It is computed
+from the ideas' own `deps` — no new data, no graph library — and the
+lens is remembered per browser.
+
 Cards drag between the active columns (and between burners, nudging
 priority); the archive is not a drop target since rejecting requires a
 reason. `done` and `rejected` live behind an archive toggle. Each idea

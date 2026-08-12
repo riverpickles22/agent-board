@@ -330,6 +330,31 @@
 
   /* ---- ideas ---- */
   .ideas-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:60vh} /* columns stretch (and the row keeps real height) so even empty ones are full drop targets */
+  /* ---- lens switcher ---- */
+  .lensrow{display:flex;align-items:center;gap:6px;margin-left:14px;padding-left:14px;border-left:1px solid var(--line)}
+  .lenslab{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:600}
+  /* ---- leverage lens: tiers stack, they do not sit side by side ----
+     A tier is a horizontal band because the reading is top-to-bottom: what
+     must exist first, then what it makes possible. Columns would imply the
+     groups are alternatives; they are a sequence. */
+  .ideas-tiers{display:flex;flex-direction:column;gap:0}
+  .tier{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px 4px}
+  .tier>h3.tierh{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);
+    margin:0 0 12px;font-weight:600;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .tier .cnt{font-family:var(--mono);color:var(--ink-3)}
+  .tier .tierhint{margin-left:auto;font-size:11.5px;text-transform:none;letter-spacing:0;color:var(--ink-3);font-weight:400}
+  .tier-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start}
+  .tier-body .idea{margin-bottom:0}
+  .tierlink{align-self:center;color:var(--ink-3);font-size:18px;line-height:1;padding:7px 0}
+  /* The first tier is the answer this view exists to give. */
+  .ideas-tiers .tier:first-child{border-color:color-mix(in srgb,var(--accent) 42%,var(--line))}
+  .ideas-tiers .tier:first-child>h3.tierh{color:var(--accent)}
+  /* Standalone is a footnote, not a tier — it gets no connector and no weight. */
+  .tier.standalone{background:transparent;border-style:dashed;margin-top:18px}
+  .tier.cyc{border-color:color-mix(in srgb,var(--lane-2) 55%,var(--line))}
+  .tier.cyc>h3.tierh{color:var(--lane-2)}
+  .cycwarn{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--lane-2);margin:0 0 12px}
+  @media (max-width:820px){.tier-body{grid-template-columns:1fr}}
   .ideas-col>h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 10px;font-weight:600;display:flex;gap:8px;align-items:center}
   .ideas-col .cnt{font-family:var(--mono);color:var(--ink-3)}
   .idea{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--panel);margin-bottom:10px;cursor:pointer;transition:all .12s}
@@ -1158,6 +1183,7 @@ async function load(){
   // An explicit hash in the URL wins over default_page so bookmarks keep working.
   const d = viewDefaults();
   filterMS = d.ms; filterTheme = d.theme; boardMode = savedBoardMode() || d.mode;
+  ideaLens = savedLens() || "status";
   loadBurnerFold();
   if(!location.hash && d.page !== HOME_PAGE) location.hash = "#/" + d.page;
   renderFilters();
@@ -2619,6 +2645,70 @@ function goToEpic(id){
 }
 
 /* ================= ideas view ================= */
+/* ---- lenses: one backlog, several readings ----
+   Grouping is a pure function from lens → groups; the card renderer draws
+   whatever it is handed. Adding a lens is a function, not a feature. */
+const IDEA_LENSES = [
+  { key:"status",   label:"Status",   title:"Today's pipeline: idea → ready for review → ready to implement" },
+  { key:"theme",    label:"Theme",    title:"Grouped by the project's theme vocabulary" },
+  { key:"leverage", label:"Leverage", title:"Grouped by what unlocks what — foundations first" },
+];
+let ideaLens = "status";
+function lensKey(){ return "agent-board:idealens:" + (((state.config||{}).view||{}).title || "board"); }
+function savedLens(){ try { const v = localStorage.getItem(lensKey()); return IDEA_LENSES.some(l=>l.key===v) ? v : null; } catch(e){ return null; } }
+function rememberLens(v){ try { localStorage.setItem(lensKey(), v); } catch(e){} }
+
+// Topological layering over the ideas' own dependency edges. Deps naming
+// something outside the visible set — an epic, an archived idea, an id that
+// no longer exists — are informational only (the same reading depChips gives
+// them with `soft`), so they never hold a card back a tier.
+// Cycles are *reported*, never silently broken: a card that cannot be placed
+// because it waits on something that waits on it is a real backlog problem,
+// and the acceptance boundary for this view says so.
+function tierIdeas(items){
+  const inSet = new Set(items.map(i => i.id));
+  const edges = new Map(items.map(i => [i.id, (i.deps||[]).filter(d => inSet.has(d) && d !== i.id)]));
+  const dependents = new Map(items.map(i => [i.id, 0]));
+  edges.forEach(ds => ds.forEach(d => dependents.set(d, dependents.get(d) + 1)));
+
+  const placed = new Set(), tiers = [];
+  let rest = items.slice();
+  while(rest.length){
+    const layer = rest.filter(i => edges.get(i.id).every(d => placed.has(d)));
+    if(!layer.length) break;                       // everything left is in a cycle
+    layer.forEach(i => placed.add(i.id));
+    tiers.push(layer);
+    rest = rest.filter(i => !placed.has(i.id));
+  }
+  // Within a tier, the ones carrying the most weight read first.
+  tiers.forEach(t => t.sort((a,b) => dependents.get(b.id) - dependents.get(a.id)));
+  // A card nothing waits on and that waits on nothing is not a foundation —
+  // it is simply standalone, and letting it sit in tier 0 would bury the
+  // cards this view exists to surface.
+  let standalone = [];
+  if(tiers.length){
+    standalone = tiers[0].filter(i => !dependents.get(i.id) && !edges.get(i.id).length);
+    tiers[0] = tiers[0].filter(i => dependents.get(i.id) || edges.get(i.id).length);
+    if(!tiers[0].length) tiers.shift();
+  }
+  return { tiers, standalone, cycle: rest, leverage: dependents, edges };
+}
+// Name the loop, so "there is a cycle" becomes "this cycle".
+function cyclePaths(cycle, edges){
+  const ids = new Set(cycle.map(i => i.id)), seen = new Set(), out = [];
+  for(const start of cycle.map(i => i.id)){
+    if(seen.has(start)) continue;
+    const path = [], onPath = new Set();
+    let cur = start;
+    while(cur && !onPath.has(cur)){
+      path.push(cur); onPath.add(cur); seen.add(cur);
+      cur = (edges.get(cur) || []).find(d => ids.has(d));
+    }
+    if(cur) out.push(path.slice(path.indexOf(cur)).concat(cur));
+  }
+  return out;
+}
+
 const IDEA_STATUS = ["idea","ready for review","ready to implement"];
 const IDEA_STATUS_ARCHIVE = ["done","rejected"];
 const IDEA_STATUS_LABEL = { idea:"Idea", "ready for review":"Ready for review", "ready to implement":"Ready to implement", done:"Done", rejected:"Rejected" };
@@ -2647,6 +2737,12 @@ function renderIdeas(param){
     '<div class="ideas-toggle" style="display:flex;gap:7px;align-items:center;margin:0 0 20px">'+
       '<button class="chip" data-arch="0" aria-pressed="'+(!ideasArchive)+'">Active</button>'+
       '<button class="chip" data-arch="1" aria-pressed="'+ideasArchive+'">Done &amp; rejected ('+archN+')</button>'+
+      (ideasArchive ? "" :
+        '<span class="lensrow">'+
+          '<span class="lenslab">Lens</span>'+
+          IDEA_LENSES.map(l => '<button class="chip lens" data-lens="'+l.key+'" aria-pressed="'+
+            (ideaLens===l.key)+'" title="'+esc(l.title)+'">'+esc(l.label)+'</button>').join("")+
+        '</span>')+
       '<button class="chip" id="copy-ideas" style="margin-left:auto" title="Copy this view to the clipboard as markdown — paste it into another tool to brainstorm">⧉ copy</button>'+
       '<button class="chip" id="refresh-ideas" title="Fetch the latest board data now — handy while an agent works the ideas">↻ refresh</button>'+
       '<button class="btn primary" id="new-idea">+ New idea</button>'+
@@ -2668,12 +2764,18 @@ function renderIdeas(param){
     const rel = [i.milestone].filter(Boolean).map(short)
       .concat(tags.slice(0,3), tags.length > 3 ? ["+"+(tags.length-3)] : []);
     let body = "";
-    if(shaped){
-      body += line("Why now", f("why_now"));
-      if(opens.length) body += '<div class="ifact"><b>Opens:</b> '+
+    // Leverage is the whole point of the leverage lens, so it shows there even
+    // on a back-burner card — a card is in Foundations *because* others wait
+    // on it, and hiding that is the blindness the view exists to correct.
+    const showOpens = opens.length && (shaped || ideaLens === "leverage");
+    if(shaped) body += line("Why now", f("why_now"));
+    if(showOpens){
+      body += '<div class="ifact"><b>Opens:</b> '+
         esc(opens.map(u => short(u.title)).join(" · "))+
         ' <span class="lev" title="'+opens.length+' active idea'+(opens.length===1?'':'s')+
         ' depend'+(opens.length===1?'s':'')+' on this">↑ opens '+opens.length+'</span></div>';
+    }
+    if(shaped){
       if((i.deps||[]).length) body += '<div class="idep">⊸ '+
         (stage==="ready" ? "dependencies satisfied:" : "depends on:")+depChips(i.deps, true)+'</div>';
     }
@@ -2685,7 +2787,7 @@ function renderIdeas(param){
     // The decision is the whole point of the review stage — last, set off.
     const tail = (stage==="review" || stage==="ready") ? line("Decision needed", f("decision"), "decide") : "";
     const promoted = f("promoted_to") ? '<div class="ifact"><b>Promoted:</b> → '+esc(i.promoted_to)+'</div>' : "";
-    return '<div class="idea" data-state="'+stage+'" data-id="'+esc(i.id)+'"'+(ideasArchive?'':' draggable="true"')+'>'+
+    return '<div class="idea" data-state="'+stage+'" data-id="'+esc(i.id)+'">'+
       '<div class="it">'+esc(i.title)+'</div>'+
       (outcomeLine(i) ? '<div class="iout">'+esc(outcomeLine(i))+'</div>' : '')+
       '<div class="imeta">'+
@@ -2703,6 +2805,62 @@ function renderIdeas(param){
   // front burner = the top half of the priority vocab (default Now/Next).
   const prioIx = i => { const x = PRIOS.indexOf(i.priority); return x < 0 ? PRIOS.length : x; };
   const burnerCut = Math.ceil(PRIOS.length/2);
+  const active = ideas.filter(i => !IDEA_STATUS_ARCHIVE.includes(ideaStatus(i)));
+
+  // ---- Leverage lens: tiers, stacked, read-only ----
+  if(!ideasArchive && ideaLens === "leverage"){
+    const { tiers, standalone, cycle, leverage, edges } = tierIdeas(active);
+    const tierHead = (label, hint, n) =>
+      '<h3 class="tierh">'+esc(label)+' <span class="cnt">'+n+'</span>'+
+      '<span class="tierhint">'+esc(hint)+'</span></h3>';
+    const grid = list => '<div class="tier-body">'+list.map(ideaCard).join("")+'</div>';
+    let body = "";
+    if(!tiers.length && !standalone.length && !cycle.length){
+      body = '<div class="tier"><p class="empty">No active ideas yet.</p></div>';
+    }
+    tiers.forEach((t, ix) => {
+      const label = ix === 0 ? "Foundations" : "Tier "+ix;
+      const opens = t.filter(i => leverage.get(i.id)).length;
+      const hint  = ix === 0
+        ? "nothing here waits on another idea — "+opens+(opens===1 ? " unlocks" : " of them unlock")+" others"
+        : "waits on the tier above";
+      body += (ix ? '<div class="tierlink">↓</div>' : "")+
+        '<section class="tier">'+tierHead(label, hint, t.length)+grid(t)+'</section>';
+    });
+    if(cycle.length){
+      const paths = cyclePaths(cycle, edges);
+      body += '<div class="tierlink">↓</div><section class="tier cyc">'+
+        tierHead("Cannot be placed", "these wait on each other — a cycle, not a tier", cycle.length)+
+        '<div class="cycwarn">⚠ '+paths.map(p => esc(p.join(" → "))).join("<br>⚠ ")+'</div>'+
+        grid(cycle)+'</section>';
+    }
+    if(standalone.length){
+      body += '<section class="tier standalone">'+
+        tierHead("Standalone", "nothing depends on these, and they wait on nothing", standalone.length)+
+        grid(standalone)+'</section>';
+    }
+    html += '<div class="ideas-tiers">'+body+'</div>';
+    v.innerHTML = html;
+    wireIdeasChrome(v);
+    return;
+  }
+
+  // ---- Theme lens: the same columns, grouped by config vocabulary ----
+  if(!ideasArchive && ideaLens === "theme"){
+    const groups = THEMES.map(t => ({ label: t, items: active.filter(i => i.theme === t) }))
+      .filter(g => g.items.length);
+    const untagged = active.filter(i => !i.theme || !THEMES.includes(i.theme));
+    if(untagged.length) groups.push({ label:"No theme", items: untagged });
+    html += '<div class="ideas-cols" style="grid-template-columns:repeat('+Math.max(groups.length,1)+',minmax(0,1fr))">'+
+      (groups.length ? groups.map(g =>
+        '<div class="ideas-col"><h3>'+esc(short(g.label))+' <span class="cnt">'+g.items.length+'</span></h3>'+
+        g.items.map(ideaCard).join("")+'</div>').join("")
+      : '<div class="ideas-col"><p class="empty">No active ideas yet.</p></div>')+'</div>';
+    v.innerHTML = html;
+    wireIdeasChrome(v);
+    return;
+  }
+
   html += '<div class="ideas-cols" style="grid-template-columns:repeat('+cols.length+',minmax(0,1fr))">'+cols.map(st => {
     const items = ideas.filter(i => ideaStatus(i)===st);
     let body;
@@ -2727,6 +2885,34 @@ function renderIdeas(param){
     return '<div class="ideas-col" data-st="'+esc(st)+'"><h3>'+IDEA_STATUS_LABEL[st]+' <span class="cnt">'+items.length+'</span></h3>'+body+'</div>';
   }).join("")+'</div>';
   v.innerHTML = html;
+  wireIdeasChrome(v);
+  v.querySelectorAll("h4.burner[role=button]").forEach(h => {
+    h.addEventListener("click", toggleBurnerFold);
+    h.addEventListener("keydown", ev => { if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggleBurnerFold(); } });
+  });
+  // Drag reorders the queue, which only the status lens shows — a tier or a
+  // theme is derived, so dropping into one would have nothing to write.
+  if(!ideasArchive){
+    v.querySelectorAll(".ideas-col").forEach(col => wireIdeaDrop(col, col.dataset.st, null));
+    v.querySelectorAll(".ideas-col[data-st=idea] .bsec").forEach(sec => wireIdeaDrop(sec, "idea", sec.dataset.burner));
+    v.querySelectorAll(".idea").forEach(el => {
+      el.setAttribute("draggable", "true");
+      el.addEventListener("dragstart", ev => {
+        ev.dataTransfer.setData("text/plain", "idea:"+el.dataset.id);
+        ev.dataTransfer.effectAllowed = "move";
+        el.classList.add("dragging"); document.body.classList.add("is-dragging");
+      });
+      el.addEventListener("dragend", () => {
+        el.classList.remove("dragging"); document.body.classList.remove("is-dragging");
+        v.querySelectorAll(".ideas-col, .bsec").forEach(x => x.classList.remove("drop-hover"));
+        clearInsertMarkers();
+      });
+    });
+  }
+}
+
+// Everything every lens shares: the toolbar, and click-through to a deep dive.
+function wireIdeasChrome(v){
   const ni = document.getElementById("new-idea");
   if(ni) ni.addEventListener("click", () => openIdea(null));
   const cp = document.getElementById("copy-ideas");
@@ -2745,33 +2931,15 @@ function renderIdeas(param){
             : res==="deferred" ? "Changes found — applying once the current edit settles."
             : "Could not reach the server.");
   });
-  v.querySelectorAll("h4.burner[role=button]").forEach(h => {
-    h.addEventListener("click", toggleBurnerFold);
-    h.addEventListener("keydown", ev => { if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggleBurnerFold(); } });
-  });
-  v.querySelectorAll(".ideas-toggle .chip").forEach(b => b.addEventListener("click", () => {
+  v.querySelectorAll(".ideas-toggle .chip[data-arch]").forEach(b => b.addEventListener("click", () => {
     ideasArchive = b.dataset.arch === "1";
     renderIdeas(null);
   }));
-  v.querySelectorAll(".idea").forEach(el => {
-    el.addEventListener("click", () => navigate("ideas", el.dataset.id));
-    if(!ideasArchive){
-      el.addEventListener("dragstart", ev => {
-        ev.dataTransfer.setData("text/plain", "idea:"+el.dataset.id);
-        ev.dataTransfer.effectAllowed = "move";
-        el.classList.add("dragging"); document.body.classList.add("is-dragging");
-      });
-      el.addEventListener("dragend", () => {
-        el.classList.remove("dragging"); document.body.classList.remove("is-dragging");
-        v.querySelectorAll(".ideas-col, .bsec").forEach(x => x.classList.remove("drop-hover"));
-        clearInsertMarkers();
-      });
-    }
-  });
-  if(!ideasArchive){
-    v.querySelectorAll(".ideas-col").forEach(col => wireIdeaDrop(col, col.dataset.st, null));
-    v.querySelectorAll(".ideas-col[data-st=idea] .bsec").forEach(sec => wireIdeaDrop(sec, "idea", sec.dataset.burner));
-  }
+  v.querySelectorAll(".chip.lens").forEach(b => b.addEventListener("click", () => {
+    ideaLens = b.dataset.lens; rememberLens(ideaLens); renderIdeas(null);
+  }));
+  v.querySelectorAll(".idea").forEach(el =>
+    el.addEventListener("click", () => navigate("ideas", el.dataset.id)));
 }
 
 // The visible ideas view as markdown, for pasting into another tool to

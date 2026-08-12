@@ -32,7 +32,8 @@ capturing, and deciding.
 ├──────────────────────────────────────────────────────────────────────┤
 │ Ideas backlog                                                        │
 │ Anything worth considering — features, technologies… (full width)    │
-│ (Active)(Done & rejected 3)      (⧉ copy) (↻ refresh)  [+ New idea]  │
+│ (Active)(Done & rejected 3) │LENS (Status)(Theme)(Leverage)         │
+│                                  (⧉ copy) (↻ refresh)  [+ New idea]  │
 │                                                                      │
 │ IDEA 10             READY FOR REVIEW 1       READY TO IMPLEMENT 0    │
 │ FRONT BURNER 4      ┏━━━━━━━━━━━━━━━━━━━┓    none                    │
@@ -50,6 +51,38 @@ capturing, and deciding.
 │ └────────────────────────────────────────────┘                       │
 ├──────────────────────────────────────────────────────────────────────┤
 ```
+
+### The Leverage lens
+
+```
+├──────────────────────────────────────────────────────────────────────┤
+│ FOUNDATIONS 4        nothing here waits on another idea — 4 unlock …  │  accent border
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                   │
+│ │ Title        │ │ Title        │ │ Title        │                   │
+│ │ Opens: X ↑1  │ │ Opens: Y ↑2  │ │ Opens: Z ↑1  │                   │
+│ └──────────────┘ └──────────────┘ └──────────────┘                   │
+│                          ↓                                           │
+│ TIER 1 4                                     waits on the tier above │
+│ ┌──────────────┐ ┌──────────────┐                                    │
+│                          ↓                                           │
+│ TIER 2 1                                     waits on the tier above │
+│                          ↓                                           │
+│ CANNOT BE PLACED 2   these wait on each other — a cycle, not a tier   │  amber
+│ ⚠ idea-a → idea-b → idea-a                                           │
+│                                                                      │
+│ ┌─ STANDALONE 19  nothing depends on these, and they wait on nothing ┐│  dashed
+├──────────────────────────────────────────────────────────────────────┤
+```
+
+Tiers **stack** rather than sitting side by side: the reading is
+top-to-bottom — what must exist first, then what it makes possible.
+Columns would imply the groups are alternatives; they are a sequence.
+
+### Lenses
+
+The page is several readings of one backlog. Grouping is a pure function
+from lens → groups and the card renderer draws whatever it is handed, so
+a new lens is a function rather than a feature.
 
 The **Idea** column alone splits into two sections so the eye knows
 where to spend time: **Front burner** — ideas whose `priority` sits in
@@ -86,6 +119,13 @@ archive — so each view is always a single row; single column under
 
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
+| Lens switcher | `IDEA_LENSES` `.lensrow` `.chip.lens` `savedLens()`/`rememberLens()` | `Lens (Status)(Theme)(Leverage)` beside the Active/Archive toggle | one backlog, several readings. Choice is remembered per browser, keyed by project title, like the execution page's Epics/Rows toggle. Hidden in the archive view — done and rejected have no leverage to read. **The Status lens renders exactly as it did before this existed**, burner split and drag included |
+| Leverage lens | `tierIdeas()` `.ideas-tiers` `.tier` `.tierlink` | active ideas layered by what unlocks what: **Foundations** (accent border — the answer the view exists to give), then `Tier 1…n`, each with a `↓` between and a hint naming the relation | a topological layering over the ideas' own `deps`, computed fresh — **no new data**. Within a tier, cards sort by how many others wait on them. Deps naming something outside the visible set (an epic, an archived idea, a dead id) are informational only and never hold a card back a tier — the same reading `depChips(…, soft)` gives them. A self-dependency is dropped rather than treated as a cycle |
+| Foundations vs standalone | `tierIdeas()` `.tier.standalone` | a card that waits on nothing **and** that nothing waits on is listed last under **Standalone**, dashed and unconnected — not in Foundations | leaving them in tier 0 would bury the handful of cards this view exists to surface. A foundation is load-bearing; a standalone is merely unblocked |
+| Cycle report | `cyclePaths()` `.tier.cyc` `.cycwarn` | ideas that cannot be placed appear in an amber **Cannot be placed** group naming the loop: `⚠ idea-a → idea-b → idea-a` | the card's recorded decision, answered: flagged in place, never broken silently by file order. A cycle in the backlog is a real problem to fix, and a view that hid it would be lying about the ordering it just drew |
+| Leverage on every card | `unlockedBy()` `.lev` | in the leverage lens the `Opens: … ↑ opens N` line renders even on a back-burner card, which otherwise suppresses it | a card sits in Foundations *because* others wait on it; hiding that is exactly the blindness the lens exists to correct ("foundational cards read like ordinary features when you scan the column") |
+| Theme lens | `THEMES` | one column per config theme that has cards, untagged last as **No theme** | the abstraction's second customer — ten lines, because grouping is a function |
+| Read-only lenses | — | drag is wired only in the Status lens | a tier and a theme are *derived*; dropping a card into one would have nothing to write. Clicking still opens the deep dive from any lens |
 | Whole page | `renderIdeas()` `#view-ideas` | header + toggle + columns | with a param, delegates to `renderIdeaDetail()` |
 | Header | `.vhead` | title + one-line description | full page width (`max-width:none` here — this page overrides the shared 760px cap) |
 | Controls row | `.ideas-toggle` | its own row under the description: "Active" / "Done & rejected (N)" chips on the left, "+ New idea" pushed right (`margin-left:auto`) | toggle flips `ideasArchive` (in-memory, defaults to active) and re-renders; N counts archived ideas |
