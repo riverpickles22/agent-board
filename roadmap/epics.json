@@ -732,7 +732,227 @@
     "claimed_by": null,
     "claimed_at": null,
     "needs": null,
-    "archived_at": null,
-    "updated_at": "2026-08-11"
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T12:21:19.406Z"
+  },
+  {
+    "id": "B24",
+    "name": "Story states read their lane, not just their kind",
+    "description": "A four-lane board showed 'cooking' on cards sitting in Review — active-work vocabulary from when In Progress was the only middle lane. Stories in a review lane get their own register, and the review position becomes one positional rule shared by lane colour and card copy.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit c839851. Also carried the Board→Execution page rename, reverted in B30.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "Open a four-lane board in Rows mode: cards in the review lane read '⚑ ready to check' / '⚑ wired — verify' in amber; In Progress still reads '⚙ cooking' in accent. Claim a review story — it reads '⚑ in review · who'. Backdate claimed_at past 48h — '⚠ stale claim' still wins. On a three-lane board nothing changes.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:27:15.267Z"
+  },
+  {
+    "id": "B25",
+    "name": "Finished rows fold, and one action clears them off the board",
+    "description": "Rows sat open at 3/3 done because the fold also demanded the epic's own card be in the done lane, and agents move stories without dragging the epic across. The stories become the truth, and 'Remove from board' closes the whole thread including the idea it came from.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit 4e46a2b.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B24"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "On a board with an epic whose stories are all done but whose card sits in Review: the row folds to one line with '⌂ Remove from board'. Click it — the epic moves to the done lane, gets archived_at, leaves Current for Shipped, and its originating idea closes to done with a log line. On an epic with an unmet dependency the same click is refused with the drag's toast and writes nothing.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:27:02.590Z"
+  },
+  {
+    "id": "B26",
+    "name": "The card modal reads before it edits",
+    "description": "A 560px single column gave every field the same width, so 'Systems involved' got a full-width input while the acceptance criteria — the reason you open the card — scrolled inside a 70px box, and nothing computed was shown at all. Both modals become a two-column reader that leads with whatever its lane is asking.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit 51572d9.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B25"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "Open a story in each lane. The header carries the id, its state chip and where it sits; the first block and the rail's first group change per lane (queued → blockers, in flight/review → claim, done → epic). Criteria render as a bulleted list; click edit and the raw textarea appears. Save a card without opening the criteria — they are unchanged. The Ideas modal is still 560px.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:26:55.060Z"
+  },
+  {
+    "id": "B27",
+    "name": "Promotion requires a validation plan",
+    "description": "Ideas carried an acceptance boundary and stories carried acceptance criteria, but the epic between them — the one recorded moment discovery becomes committed work — held no answer to 'how would we know this works'. Two fields, one per side of the boundary, and promotion refuses without the first.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit 600fffc.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B26"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "Take a 'ready to implement' idea with no validation plan: the deep dive shows an amber 'needs a validation plan' beside the promote button, and clicking it toasts the reason and opens the core modal focused on the field with no epic created. Fill the plan and promote — the epic arrives with test_plan set, editable in its modal. Legacy records missing both fields render and save cleanly.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:27:15.656Z"
+  },
+  {
+    "id": "B28",
+    "name": "Ideas lenses — Status | Theme | Leverage",
+    "description": "Every idea showed what it Opens, but nothing ranked by it, so the few cards several others wait on read like ordinary features. The page becomes several readings of one backlog, and the leverage lens layers ideas by what unlocks what.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit 7382814. Closes idea-board-lenses and idea-dependency-view.",
+    "theme": "Decide fast",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B27"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "On a backlog with dependency edges, switch to Leverage: Foundations first with an accent border, then Tier 1..n with ↓ connectors, then Standalone dashed at the end. Each Foundations card names what it opens, back-burner included. Introduce a cycle — it appears in an amber 'Cannot be placed' group naming the loop. Switch to Status: identical to before, drag and burner split intact. The lens survives a reload.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:25:12.142Z"
+  },
+  {
+    "id": "B29",
+    "name": "Cards colour on hover, peek on dwell, and a theme toggle",
+    "description": "Three changes to how a card behaves before you commit to opening it: hover takes the section's colour, a second of dwell opens a read-only peek, and the header gains a light/dark switch.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Commit eea47d1.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B28"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "Hover a card in each lane and each idea stage — border and wash take that section's colour, in both themes, with the unblocked green edge surviving. Dwell a second — a peek appears beside it with the description, criteria and claim; moving, clicking, scrolling or dragging dismisses it. Toggle the theme, reload — the choice holds with no flash.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:25:15.697Z"
+  },
+  {
+    "id": "B30",
+    "name": "Board doctor — the contract, checked",
+    "description": "AGENTS.md states real invariants and agents edit the five files directly by design, so nothing enforced them: a dangling deliverable link or a theme typo degrades the milestone roll-up silently. One pure function over the five resources, run two ways.",
+    "notes": "Recorded retroactively on 2026-08-12: this shipped before it was carded, which is the decompose-before-build rule (AGENTS.md §5) being skipped. The cards are written from the commit and from what was actually verified, not invented after the fact. Closes idea-board-doctor. Its recorded decision is answered: report-only always, exit non-zero on errors only. Also renames the page from Execution back to Board, keeping both hashes resolving.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "shipped"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [
+      "B29"
+    ],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "Run ./board doctor on a healthy project — one green line, exit 0. Run it on a board with a duplicate id, an orphan story, a dangling deliverable, an early archive and a dep cycle — every one is named with its ids, exit 1. Warnings alone still exit 0. Open the same board in the UI: the ⚕ chip shows the same counts and the panel lists the same codes, and clicking an id jumps to the card.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:26:12.280Z"
+  },
+  {
+    "id": "B31",
+    "name": "One server, every board — the project switcher",
+    "description": "Switch between arc, chaim and board from the header. One server reads projects.json and scopes its data routes by project, watching each active project's data dir; the project lives in the URL path prefix so links deep-link across boards. Single-project BOARD_DATA_DIR mode keeps working untouched.",
+    "notes": "Promoted from idea idea-project-switcher (2026-08-12). Why now: three projects are registered and this session repeatedly ran two servers on two ports to compare boards. Constraints: single-project mode via BOARD_DATA_DIR must keep working, and existing deep links must survive — the project belongs in the URL, not hidden state. Decision taken: one server with project-scoped routes, project as a path prefix. Workflow impact: switching boards stops meaning a second port and a second terminal; this is also the substrate every cross-project surface needs. Built 2026-08-12 against the four stories, each criterion verified before the card moved: three boards served from one port, bare / redirecting to the default, an unknown project 404ing rather than falling through, a PUT landing in exactly one directory (arc's file untouched by byte and by mtime), SSE waking only the project on screen, and BOARD_DATA_DIR mode answering unprefixed exactly as before. REOPENED 2026-08-12: the switcher shipped unreachable. ./board <name> pins the server via BOARD_DATA_DIR, which is exactly the mode that hides the switcher, so the only launch path anyone uses could never show it. B31-5 makes serving-everything the default. Closed again after B31-5: ./board <name> now serves every board and opens on the named one, so the switcher is reachable through the command people actually run; --only and BOARD_DATA_DIR keep the pinned mode. Also corrected the footer's data path, which had been hardcoded to ./data since before this epic.",
+    "theme": "Agent enablement",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "multi-project"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "With three projects registered: /arc/#/board and /board/#/ideas each serve their own data from one port; the header switcher moves between them without a restart and a copied URL reopens the same project on the same page; edits saved on one board do not appear on another; live refresh fires only for the project you are looking at; and BOARD_DATA_DIR=<dir> node server.js still serves an unprefixed single-project board with the skill's contract unchanged.",
+    "archived_at": "2026-08-12",
+    "updated_at": "2026-08-12T23:26:17.005Z"
   }
 ]

@@ -978,5 +978,560 @@
     "claimed_at": null,
     "needs": null,
     "updated_at": "2026-08-11"
+  },
+  {
+    "id": "B24-1",
+    "epic_id": "B24",
+    "name": "reviewLane(): one positional rule for the review position",
+    "description": "The lane before done, when a board has four or more lanes. laneVar() and storyState() both read it so colour and copy cannot disagree.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "reviewLane() returns the second-to-last lane on a 4+ lane board and null on 3 or fewer",
+      "laneVar() reads reviewLane() instead of repeating the index arithmetic",
+      "A three-lane board is unaffected: the middle lane keeps the kind verb"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B24-2",
+    "epic_id": "B24",
+    "name": "Review vocabulary by kind, and the reviewer when claimed",
+    "description": "REVIEW_VERB beside KIND_VERB; a claim in review names the reviewer, which outranks what is being reviewed.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "feature/chore read 'ready to check', test 'results in', docs 'ready to read', integration 'wired — verify'",
+      "An unknown kind falls back to 'ready to check'",
+      "A claimed review story reads 'in review · <who> · <since>'",
+      "needs and stale-claim still outrank the review chip",
+      "The chip uses --st-decide, matching the review lane header, via its own .rev class rather than .warn"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B25-1",
+    "epic_id": "B25",
+    "name": "canRemove(): every story done is enough",
+    "description": "One rule read by the row fold and the modal button. A story-less epic falls back to its own card's lane.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "An epic whose stories are all done folds to one line whatever lane its card is in",
+      "A story-less epic still requires its own card to be in the done lane",
+      "The fold and the modal button read the same function"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B25-2",
+    "epic_id": "B25",
+    "name": "Remove from board closes the whole thread",
+    "description": "Moves the epic's card to the done lane if it lags, archives it, and closes the idea behind it.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The epic card moves to the done lane in the same write when it lags",
+      "checkMove() still rules: an unmet dependency refuses the removal with the drag's toast and writes nothing",
+      "The idea whose promoted_to names this epic closes to done with a dated log entry",
+      "Epics and ideas persist separately; the toast names the idea it closed",
+      "Unarchive returns the epic and leaves the idea done"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B26-1",
+    "epic_id": "B26",
+    "name": "One wide shell for both card modals",
+    "description": "Sticky header, two columns (prose left, decisions right), pinned action bar, textareas that size to their content.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Epic and story modals share .modal.wide; the Ideas modal keeps the 560px form",
+      "Textareas grow to their content — no scrollbar inside the scrolling modal",
+      "Save stays reachable on a long card (pinned action bar)",
+      "The name renders as the title and edits in place",
+      "Each renderer sets modal.className so the shell never inherits the previous card's shape"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B26-2",
+    "epic_id": "B26",
+    "name": "laneFocus(): the modal leads with what the lane asks",
+    "description": "Queued asks whether an agent can start; review asks what to check. Ordering only — nothing is hidden.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Each lane shows its question in the header",
+      "Review and done lead with the criteria, retitled 'Check these' / 'What this delivered'",
+      "Queued opens the rail with every reason the story is not pickable, or '✓ nothing is in the way'",
+      "In flight and review open the rail with the claim",
+      "Every field remains editable from every lane"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B26-3",
+    "epic_id": "B26",
+    "name": "Criteria render as a list, edit as lines",
+    "description": "A textarea cannot show where one criterion ends and the next begins once they wrap, and wrapping is the normal case.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Criteria render as a bulleted list with an edit link",
+      "Clicking edit swaps in the one-per-line textarea, grown to fit, focused",
+      "Saving a card whose criteria were never opened preserves them exactly"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B27-1",
+    "epic_id": "B27",
+    "name": "idea.validation and epic.test_plan",
+    "description": "Two fields answering different questions from acceptance and acceptance_criteria.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Ideas gain a validation field, edited in the core modal and shown on the deep dive",
+      "Epics gain test_plan, rendered in the modal's left column under Notes",
+      "From 'ready to implement' an empty validation renders as an explicit gap",
+      "Records without either field render and save cleanly"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B27-2",
+    "epic_id": "B27",
+    "name": "The promote button refuses without a plan",
+    "description": "The one hard boundary in the funnel is where the requirement belongs.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The button warns before the click and refuses after it, creating no epic",
+      "The refusal opens the core modal focused on the validation field",
+      "A successful promotion copies validation into the epic's test_plan",
+      "AGENTS.md carries the same refusal for agents promoting by editing JSON"
+    ],
+    "context": "index.html promoteIdea(); AGENTS.md §2/§5/§6",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B28-1",
+    "epic_id": "B28",
+    "name": "Grouping as a pure function from lens to groups",
+    "description": "The abstraction idea-board-lenses asked for: the card renderer draws whatever it is handed.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The Status lens renders exactly as before, burner split and drag included",
+      "The Theme lens groups by config vocabulary with untagged last",
+      "Lens choice is remembered per browser, keyed by project title",
+      "Drag is wired only in the Status lens — a tier and a theme are derived"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B28-2",
+    "epic_id": "B28",
+    "name": "tierIdeas(): layer the backlog by what unlocks what",
+    "description": "A topological layering over the ideas' own deps. No graph library, no new data.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Foundations, then Tier 1..n, stacked with connectors; within a tier, most-depended-on first",
+      "Deps naming something outside the visible set are informational and never hold a card back a tier",
+      "A card that waits on nothing and that nothing waits on is listed separately as Standalone",
+      "Leverage renders on back-burner cards in this lens, which suppress it elsewhere",
+      "Self-dependencies are dropped rather than treated as a cycle"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B28-3",
+    "epic_id": "B28",
+    "name": "Cycles are reported, not broken silently",
+    "description": "The decision recorded on idea-dependency-view, answered.",
+    "kind": "test",
+    "acceptance_criteria": [
+      "Ideas that cannot be placed appear in an amber group naming the loop (a → b → a)",
+      "Verified against 2-cycles, 3-cycles, self-deps, dangling deps and the empty case"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B29-1",
+    "epic_id": "B29",
+    "name": "Hover takes the section's colour",
+    "description": "At rest the colour is one left edge; on hover it spreads to the whole card.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Board cards take their lane's colour via the --lc already on the column and cell",
+      "Idea cards take their stage's colour via a --cc set once per data-state",
+      "The wash stays under 10% so prose keeps contrast in light and dark",
+      ".card.unblocked keeps its green left edge through the hover"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B29-2",
+    "epic_id": "B29",
+    "name": "Peek on one second of dwell",
+    "description": "Read a card without opening it. Read-only, and it never takes the pointer.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Dwell on an epic, story or idea opens a popover with description, criteria or stories, claim and footer",
+      "It does not appear before the delay, and mousedown/drag/wheel/scroll/keydown/leaving dismisses it",
+      "pointer-events:none, so it cannot intercept a click or a drag",
+      "It survives a re-render mid-dwell by tracking the card's identity rather than its node",
+      "It reveals without requestAnimationFrame, which never runs in a throttled tab"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B29-3",
+    "epic_id": "B29",
+    "name": "Light/dark toggle, remembered",
+    "description": "Unset follows the OS; one click pins the choice.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The header button toggles and persists the theme, keyed per person not per project",
+      "An inline head script applies the saved value before first paint — no flash",
+      "The glyph shows what you would switch to; it repaints when the OS flips while unset"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B30-1",
+    "epic_id": "B30",
+    "name": "diagnose(): one pure function, two front ends",
+    "description": "No I/O, no dependencies, injectable clock. Loaded by require() in the CLI and by a script tag in the UI so the checks cannot drift.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Referential integrity: duplicate ids, orphan stories, missing deps, dangling deliverables, promoted_to naming nothing",
+      "Lifecycle: archived before done, done before deps, unknown lanes and statuses, dependency cycles",
+      "Advisory: vocabulary drift, stale claims, needs-grooming, ready without criteria, missing validation plans",
+      "Errors and warnings are separated and sorted; every finding carries the ids involved",
+      "It never repairs anything"
+    ],
+    "context": "doctor.js; AGENTS.md §2/§3/§5",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B30-2",
+    "epic_id": "B30",
+    "name": "./board doctor <project>",
+    "description": "Terminal front end. Exit 1 on errors so CI can gate; warnings never fail.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A clean board prints one green line and exits 0",
+      "Findings print grouped by severity with aligned ids and the check code",
+      "Exit 1 when there are errors, 0 when there are only warnings",
+      "Invalid JSON is reported against the file rather than crashing"
+    ],
+    "context": "board; doctor-cli.js",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B30-3",
+    "epic_id": "B30",
+    "name": "The ⚕ chip and panel in the UI",
+    "description": "The same findings, in the surface where the cards are.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A dim '⚕ clean' when there is nothing to say; amber for warnings, red for errors",
+      "The panel lists the same findings as the CLI, grouped by severity",
+      "Clicking a finding's id opens that epic, story or idea",
+      "The UI reports the real lane, not applyBoard's display rescue, so both front ends agree"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B30-4",
+    "epic_id": "B30",
+    "name": "The page is called Board again",
+    "description": "Execution was tried to disambiguate from the ideas funnel and reverted. Both spellings resolve forever.",
+    "kind": "chore",
+    "acceptance_criteria": [
+      "The tab, route, container and promote button all read Board",
+      "#/execution and view.default_page 'execution' still resolve, and an aliased hash rewrites to the canonical one",
+      "design/execution.md returns to design/board.md with the naming history recorded"
+    ],
+    "context": "index.html; design/ specs",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T12:00:00Z"
+  },
+  {
+    "id": "B31-1",
+    "epic_id": "B31",
+    "name": "Server: project-scoped data routes",
+    "description": "The server reads projects.json and serves every registered board's data under a project segment, keeping the unprefixed routes for single-project mode.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "GET /api/projects lists the registered projects and which one is the default",
+      "Every data route answers under /api/<project>/… for each registered project",
+      "With BOARD_DATA_DIR set, the unprefixed routes behave exactly as today and no project segment is required",
+      "An unknown project returns 404 rather than falling back to another board's data",
+      "Writes land in the named project's directory and nowhere else"
+    ],
+    "context": "server.js; index.html; projects.json",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T15:00:00Z"
+  },
+  {
+    "id": "B31-2",
+    "epic_id": "B31",
+    "name": "Server: serve the app under a project prefix",
+    "description": "GET /<project>/ serves the app; bare / redirects to the default project. The hash router never sees the project.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "/arc/ and /board/ both serve index.html",
+      "Bare / redirects to the default project when several are registered, and serves directly in single-project mode",
+      "A deep link like /arc/#/ideas/idea-x opens that project on that card",
+      "Static assets (doctor.js) resolve from a project-prefixed page"
+    ],
+    "context": "server.js; index.html; projects.json",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T15:00:00Z"
+  },
+  {
+    "id": "B31-3",
+    "epic_id": "B31",
+    "name": "Client: every request carries its project",
+    "description": "The client derives the project from the path once and prefixes every API call; live refresh subscribes only to the project on screen.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Board, save, pending, history and events all target the current project",
+      "Edits saved on one board never appear on another",
+      "SSE fires only for the project being viewed",
+      "localStorage keys stay per-project where they already were (lens, board mode, last-seen)",
+      "Single-project mode issues unprefixed requests exactly as today"
+    ],
+    "context": "server.js; index.html; projects.json",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T15:00:00Z"
+  },
+  {
+    "id": "B31-4",
+    "epic_id": "B31",
+    "name": "The header switcher",
+    "description": "A control in the header naming the current board and offering the others.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "The header shows the current project and lists the registered ones",
+      "Choosing another opens it on the equivalent page, without a restart",
+      "The switcher is absent in single-project mode",
+      "A project whose directory is missing is shown as unavailable rather than silently omitted"
+    ],
+    "context": "server.js; index.html; projects.json",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T15:00:00Z"
+  },
+  {
+    "id": "B31-5",
+    "epic_id": "B31",
+    "name": "./board <name> serves every board and opens on that one",
+    "description": "The launcher pinned the server to one data dir, so the switcher it had just gained was invisible through the normal path. Serving all registered projects becomes the default; pinning stays available for the skill contract and CI.",
+    "kind": "chore",
+    "acceptance_criteria": [
+      "./board <name> serves every registered project and prints the URL for the named one",
+      "The header switcher is visible on a board started that way",
+      "./board <name> --only still pins a single project with unprefixed routes",
+      "BOARD_DATA_DIR=<dir> node server.js is unchanged — the skill's contract does not move",
+      "A registry with one project behaves as it always did"
+    ],
+    "context": "board; server.js",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-12T16:00:00Z"
   }
 ]

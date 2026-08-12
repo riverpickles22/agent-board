@@ -46,7 +46,8 @@
     "decision": "In a non-status lens, is drag disabled entirely, or does each lens define its own drop semantics?",
     "conviction": "promising",
     "constraints": "Grouping must be a pure function from lens to [{label, ideas}] with the existing column renderer drawing whatever it is handed; the status lens must render exactly as it does today.",
-    "acceptance": "Switching lenses regroups the same cards with no data written, and the default view is indistinguishable from the current page."
+    "acceptance": "Switching lenses regroups the same cards with no data written, and the default view is indistinguishable from the current page.",
+    "promoted_to": "B28"
   },
   {
     "id": "idea-claim-hygiene",
@@ -747,7 +748,7 @@
     "theme": "Trust the board",
     "milestone": "",
     "tags": [],
-    "status": "ready to implement",
+    "status": "done",
     "priority": "Next",
     "effort": "medium",
     "impact": "medium",
@@ -770,17 +771,23 @@
       {
         "at": "2026-08-10",
         "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-12",
+        "note": "Shipped as B30. Decision answered: report-only always, and exit non-zero on errors only — a check that fails CI over a stale claim gets switched off. Validation plan written retroactively, since the card predates the rule that promotion requires one."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-08",
-    "updated_at": "2026-08-12T12:14:26.891Z",
+    "updated_at": "2026-08-12",
     "deps": [],
     "why_now": "The contract gained several invariants in quick succession — archived_at rules, needs, promoted_to, decompose-before-build — and nothing checks any of them, while arc's board (10 epics, 39 stories, 60+ ideas) is maintained mostly by agents editing JSON directly.",
     "decision": "Report-only, or offer fixes? And should it exit non-zero so it can gate CI, or stay an on-demand human tool?",
     "conviction": "promising",
     "constraints": "A pure function over the five loaded resources — no new endpoint, no schema. Never auto-repair: report and let a human or agent decide, the same stance gates take.",
-    "acceptance": "./board doctor names every violation with the ids involved, and the UI shows a quiet issue count that opens the same list; a clean board says so in one line."
+    "acceptance": "./board doctor names every violation with the ids involved, and the UI shows a quiet issue count that opens the same list; a clean board says so in one line.",
+    "promoted_to": "B30",
+    "validation": "./board doctor exits 1 on a board with a seeded duplicate id, orphan story, dangling deliverable, early archive and dep cycle, naming each; exits 0 on a clean board and on warnings alone; and the UI chip reports the identical counts and codes."
   },
   {
     "id": "idea-dependency-view",
@@ -831,7 +838,8 @@
     "decision": "Answered: cycles are flagged in place. A 'Cannot be placed' group names the loop (idea-a → idea-b → idea-a) rather than breaking it silently by file order — a cycle is a real backlog problem, and a view that hid it would be lying about the order it drew.",
     "conviction": "promising",
     "constraints": "No graph library and no new data: reuse the reverse index behind unlockedBy(). Read-only view — tiers are a reading of the backlog, never an edit to it.",
-    "acceptance": "Foundational ideas appear in a top tier with the capabilities they unlock beneath them, and any cycle is reported rather than hidden."
+    "acceptance": "Foundational ideas appear in a top tier with the capabilities they unlock beneath them, and any cycle is reported rather than hidden.",
+    "promoted_to": "B28"
   },
   {
     "id": "idea-project-switcher",
@@ -842,7 +850,7 @@
     "theme": "Agent enablement",
     "milestone": "",
     "tags": [],
-    "status": "ready for review",
+    "status": "done",
     "priority": "Next",
     "effort": "medium",
     "impact": "medium",
@@ -873,16 +881,22 @@
       {
         "at": "2026-08-10",
         "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-12",
+        "note": "Decision answered and validation plan written, then promoted to B31 and groomed into four stories. One server scoping routes by project; project in the path prefix; single-project BOARD_DATA_DIR mode preserved untouched."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": "2026-08-12T12:14:29.009Z",
+    "updated_at": "2026-08-12",
     "why_now": "Three projects are registered and this session repeatedly ran two servers on two ports to compare boards — the collision that prompted ./board stop was this friction surfacing.",
-    "decision": "Does one server serve every project with routes scoped by project, or does the switcher relaunch and redirect to per-project ports?",
+    "decision": "Answered 2026-08-12: one server, routes scoped by project — nothing cross-project (a queue spanning boards, palette search, a portfolio briefing) can exist while a process sees one directory. The project sits in the path prefix (/arc/#/board), before the hash, so the server can read it without JavaScript and the hash router is untouched.",
     "conviction": "promising",
     "constraints": "Single-project mode via BOARD_DATA_DIR must keep working untouched, and existing deep links must survive — the project belongs in the URL, not in hidden state.",
     "acceptance": "Switching projects from the header shows the other board without a restart, and a copied URL reopens the same project's page.",
-    "deps": []
+    "deps": [],
+    "validation": "With three projects registered: /arc/#/board and /board/#/ideas each serve their own data from one port; the header switcher moves between them without a restart and a copied URL reopens the same project on the same page; edits saved on one board do not appear on another; live refresh fires only for the project you are looking at; and BOARD_DATA_DIR=<dir> node server.js still serves an unprefixed single-project board with the skill's contract unchanged.",
+    "promoted_to": "B31"
   }
 ]
