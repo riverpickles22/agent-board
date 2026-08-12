@@ -60,7 +60,15 @@ function readData(key) {
 function writeData(key, value) {
   fs.mkdirSync(DATA, { recursive: true });
   // Pretty-printed with a trailing newline so git diffs stay clean and reviewable.
-  fs.writeFileSync(path.join(DATA, FILES[key]), JSON.stringify(value, null, 2) + "\n");
+  const json = JSON.stringify(value, null, 2) + "\n";
+  // U+FFFD is what a broken decode leaves behind. No card should ever hold one,
+  // so its presence means text was mangled somewhere upstream. Warn rather than
+  // refuse: losing an edit is worse than keeping a damaged character, and the
+  // line below is what makes the damage findable instead of silent.
+  if (json.includes("\uFFFD")) {
+    console.warn(`[warn] ${key}: replacement characters (U+FFFD) in data being written — text was mangled upstream, not by this write`);
+  }
+  fs.writeFileSync(path.join(DATA, FILES[key]), json);
 }
 
 function sendJSON(res, code, obj) {
@@ -75,11 +83,26 @@ function sendFile(res, file, type) {
     res.end(buf);
   });
 }
+// Collect bytes and decode once at the end. `data += chunk` decodes each
+// chunk on its own, so a multi-byte UTF-8 sequence landing across a chunk
+// boundary becomes replacement characters — silently, and as a function of
+// where the boundary falls rather than what the text says. It corrupted one
+// em-dash in an arc card while three others in the same field survived.
+// Counting bytes rather than string length also makes the size cap mean what
+// it says.
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", (c) => { data += c; if (data.length > 5e6) req.destroy(); });
-    req.on("end", () => { try { resolve(data ? JSON.parse(data) : null); } catch (e) { reject(e); } });
+    const chunks = [];
+    let bytes = 0;
+    req.on("data", (c) => {
+      bytes += c.length;
+      if (bytes > 5e6) return req.destroy();
+      chunks.push(c);
+    });
+    req.on("end", () => {
+      const data = Buffer.concat(chunks).toString("utf8");
+      try { resolve(data ? JSON.parse(data) : null); } catch (e) { reject(e); }
+    });
     req.on("error", reject);
   });
 }

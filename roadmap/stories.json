@@ -954,5 +954,29 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-10T11:30:00Z"
+  },
+  {
+    "id": "B23-1",
+    "epic_id": "B23",
+    "name": "Decode request bodies once, not per chunk",
+    "description": "readBody accumulated with `data += chunk`, calling Buffer.prototype.toString() on each chunk in isolation. Collect the chunks and decode the whole body once.",
+    "kind": "chore",
+    "acceptance_criteria": [
+      "A body whose chunk boundary falls inside a multi-byte character round-trips intact",
+      "The size cap counts bytes rather than string length",
+      "Writing data that contains U+FFFD logs a warning naming the file, and still writes",
+      "Existing board data loads and saves unchanged"
+    ],
+    "context": "agent-board/server.js — readBody and writeData. Reproduced by splitting a Buffer mid-em-dash: the old path yields replacement characters, the fixed path yields the character.",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "needs": null,
+    "updated_at": "2026-08-11"
   }
 ]

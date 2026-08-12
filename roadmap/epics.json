@@ -708,5 +708,31 @@
     "claimed_at": null,
     "updated_at": "2026-08-10T11:30:00Z",
     "archived_at": "2026-08-10"
+  },
+  {
+    "id": "B23",
+    "name": "Board data survives what the UI writes",
+    "description": "A save through the board UI mangled an em-dash in an arc card into replacement characters, and nothing said so. Request bodies were accumulated with `data += chunk`, which decodes every chunk on its own, so a multi-byte UTF-8 sequence landing across a chunk boundary is destroyed on both sides of the split. Which character breaks is a function of where the boundary falls, not of what the text says — three other em-dashes in the same field came through intact, which is exactly why it went unnoticed.\n\nThese backlogs are prose. Em-dashes, accented names, arrows and quotes are everywhere in them, every save goes through this path, and the damage is silent and cumulative.",
+    "notes": "Workflow impact: none visible — which is the point. The fault only ever showed up as text quietly going wrong days later, in a card nobody was looking at.\n\nFixed by collecting Buffers and decoding once at the end, which also makes the 5 MB cap count bytes rather than UTF-16 code units. A write-time warning backs it up: U+FFFD is what a broken decode leaves behind and no card should ever legitimately hold one, so its presence means text was mangled upstream. It warns rather than refuses — losing an author's edit is worse than keeping a damaged character, and the warning is what makes the damage findable instead of silent.",
+    "theme": "Trust the board",
+    "milestone": "",
+    "priority": "Now",
+    "status": "fixed and verified",
+    "tags": [
+      "data-integrity",
+      "server"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "needs": null,
+    "archived_at": null,
+    "updated_at": "2026-08-11"
   }
 ]
