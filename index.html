@@ -75,6 +75,14 @@
   header{padding:16px 22px 12px;border-bottom:1px solid var(--line-2);flex:0 0 auto}
   .hrow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
   .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  /* Which board you are on is a fact about the whole page, so it sits with
+     the title rather than among the filters. Absent entirely when there is
+     only one board to be on. */
+  .projsel{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-2);background:var(--card-2);border:1px solid var(--line);border-radius:20px;
+    padding:3px 8px;cursor:pointer}
+  .projsel:hover{border-color:var(--accent);color:var(--accent)}
+  .projsel[hidden]{display:none}
   h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0}
   .sub{font-size:13px;color:var(--ink-2);margin-left:auto;display:flex;align-items:center;gap:16px}
   #counts{font-variant-numeric:tabular-nums}
@@ -786,6 +794,7 @@
   <header>
     <div class="hrow">
       <span class="eyebrow">Local · agent-board</span>
+      <select class="projsel" id="projsel" hidden aria-label="Switch project"></select>
       <h1 id="board-title">Board</h1>
       <nav class="tabs" id="tabs" role="tablist" aria-label="Views"></nav>
       <div class="sub">
@@ -854,6 +863,14 @@ const today = () => new Date().toISOString().slice(0,10);
 let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overview: null, milestones: [] } };
 let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
 let filterMS = "all", filterTheme = "all", filterTag = "all";
+/* ---- which board am I looking at? ----
+   The project is the first path segment (/arc/#/board), never hidden state,
+   so a copied URL reopens the same board on the same page. In single-project
+   mode the prefix is absent and every request is exactly what it always was. */
+const PROJECT = (location.pathname.match(/^\/([^/]+)\//) || [])[1] || null;
+const api = p => (PROJECT ? "/" + PROJECT : "") + p;
+let projectList = { multi:false, projects:[], current:null };
+
 let rawColumns = new Map();   // ids whose lane the config doesn't know (see applyBoard)
 let boardMode = "epics";   // "epics" (columns of epic cards) | "rows" (story swimlanes by epic)
 let boardArchive = false;  // false = current work, true = the Shipped view (archived_at epics)
@@ -1267,7 +1284,7 @@ function applyBoard(data){
   state.stories.forEach(rescue);
 }
 async function load(){
-  const r = await fetch("/api/board");
+  const r = await fetch(api("/api/board"));
   applyBoard(await r.json());
   // per-project view config: title + the filters/page applied on open.
   // An explicit hash in the URL wins over default_page so bookmarks keep working.
@@ -1279,6 +1296,7 @@ async function load(){
   renderFilters();
   render();
   renderTabs();
+  wireProjects();
   wireTheme();
   wirePeek();
   wireDoctor();
@@ -1946,6 +1964,35 @@ function wirePeek(){
   document.addEventListener("scroll", hidePeek, true);
 }
 
+/* ---- project switcher ----
+   One server serves every registered board; switching is a navigation, not a
+   fetch, because the project lives in the path. Carrying the current hash
+   across means you land on the same page of the other board. */
+async function wireProjects(){
+  const sel = document.getElementById("projsel");
+  if(!sel) return;
+  try{
+    const r = await fetch(api("/api/projects"));
+    if(!r.ok) return;
+    projectList = await r.json();
+    // The path is the authority on which board this is; the server only
+    // echoes it back, and it cannot know when asked without a prefix.
+    projectList.current = PROJECT || projectList.current;
+  }catch(e){ return; }
+  if(!projectList.multi || projectList.projects.length < 2) return;   // nothing to switch between
+  sel.innerHTML = projectList.projects.map(p =>
+    '<option value="'+esc(p.name)+'"'+(p.name===projectList.current ? " selected" : "")+
+    (p.available ? "" : " disabled")+'>'+esc(p.name)+(p.available ? "" : " (missing)")+'</option>').join("");
+  sel.hidden = false;
+  sel.title = "Switch board — the project is in the URL, so this link is shareable";
+  sel.addEventListener("change", () => {
+    // Same page, other board. A hash that names a card is dropped: ids are
+    // per-project, so carrying one across would land on nothing.
+    const { page } = currentRoute();
+    location.href = "/" + sel.value + "/#/" + page;
+  });
+}
+
 /* ---- colour theme ----
    Unset follows the OS (the prefers-color-scheme blocks); one click pins a
    choice for good. The preference is per person, not per project, so unlike
@@ -2317,11 +2364,11 @@ async function wireBriefing(){
   try{
     if(!lastSeen){
       // first visit: remember where we are, silently
-      const h = await (await fetch("/api/history")).json();
+      const h = await (await fetch(api("/api/history"))).json();
       if(h.available && h.commits.length) storeSeen(h.commits[0].hash);
       return;
     }
-    const d = await (await fetch("/api/since/"+lastSeen)).json();
+    const d = await (await fetch(api("/api/since/"+lastSeen))).json();
     if(!d.available){ if(d.head) storeSeen(d.head); return; }   // rewritten history: reset quietly
     if(!d.statements.length){ storeSeen(d.head); return; }
     const stale = staleClaims();
@@ -2437,7 +2484,7 @@ document.addEventListener("keydown", ev => {
 let pendingData = null;
 async function updatePending(){
   try{
-    const r = await fetch("/api/pending");
+    const r = await fetch(api("/api/pending"));
     if(!r.ok) return;
     pendingData = await r.json();
   }catch(err){ return; }
@@ -2574,7 +2621,7 @@ function persistResource(resource, val){
   clearTimeout(saveTimers[resource]);
   saveTimers[resource] = setTimeout(async () => {
     try{
-      const r = await fetch("/api/"+resource, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
+      const r = await fetch(api("/api/"+resource), {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
       if(!r.ok) throw new Error("HTTP "+r.status);
       s.className="save"; t.textContent="saved";
     }catch(err){
@@ -2655,7 +2702,7 @@ function animateCardMoves(before){
 // ignore it — a failure there just waits for the next change event.
 async function refresh(){
   try{
-    const r = await fetch("/api/board");
+    const r = await fetch(api("/api/board"));
     if(!r.ok) return "failed";
     const data = await r.json();
     updatePending();   // any disk change moves the pending set too — even own-write echoes
@@ -2678,7 +2725,7 @@ function applyPendingRefresh(){
   if(pendingRefresh && !refreshBlocked()){ pendingRefresh = false; refresh(); }
 }
 function wireLiveRefresh(){
-  const es = new EventSource("/api/events");   // auto-reconnects on server restart
+  const es = new EventSource(api("/api/events"));   // auto-reconnects on server restart
   es.onmessage = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 150); };
   document.addEventListener("dragend", applyPendingRefresh);
 }
@@ -2752,7 +2799,7 @@ async function renderHistory(){
     '<p>Every save is a commit; every commit is a decision. The data dir’s git log, as a timeline — expand an entry to see its card-level changes.</p></div>'+
     '<div class="htl"><div class="hempty">loading…</div></div>';
   let d;
-  try{ d = await (await fetch("/api/history")).json(); }
+  try{ d = await (await fetch(api("/api/history"))).json(); }
   catch(err){ d = { available: false, reason: "could not reach the server", commits: [] }; }
   const tl = v.querySelector(".htl");
   if(!d.available){ tl.innerHTML = '<div class="hempty">'+esc(d.reason||"history unavailable")+'</div>'; return; }
@@ -2775,7 +2822,7 @@ async function renderHistory(){
       const hash = entry.dataset.hash;
       if(!historyDiffCache[hash]){
         box.innerHTML = '<div class="hline">…</div>';
-        try{ historyDiffCache[hash] = await (await fetch("/api/history/"+hash)).json(); }
+        try{ historyDiffCache[hash] = await (await fetch(api("/api/history/"+hash))).json(); }
         catch(err){ box.innerHTML = '<div class="hline">could not load this commit’s changes</div>'; delete historyDiffCache[hash]; return; }
       }
       const st = historyDiffCache[hash].statements || [];

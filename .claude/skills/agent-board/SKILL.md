@@ -144,6 +144,11 @@ rules. Never mix them.
 
 ## 4. Running the UI for the user
 
+One server can serve every registered project at once: `node server.js`
+then `/arc/#/board`, `/board/#/ideas`, with a switcher in the header.
+`BOARD_DATA_DIR` still pins a single board and leaves its routes unprefixed
+— that contract is unchanged.
+
 If the user wants to see the board: `cd <agent-board> && ./board <name>` →
 http://localhost:4300 (`PORT=4301` for a second board). If the page is open
 while you edit JSON, a current server live-reloads it — your edits show

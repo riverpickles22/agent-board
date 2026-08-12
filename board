@@ -2,7 +2,9 @@
 # agent-board launcher. One board codebase, many projects.
 #
 #   ./board            list registered projects
-#   ./board arc        serve arc's board on :4300
+#   ./board arc        serve arc's board on :4300 (pinned to one project)
+#   ./board            with no name, node server.js serves every registered
+#                      project at once: /arc/#/board, /chaim/#/ideas, …
 #   PORT=4301 ./board chaim   second board on another port
 #   ./board stop [port]       stop the board on a port (default 4300)
 #   ./board setup      install the Claude skill (idempotent)

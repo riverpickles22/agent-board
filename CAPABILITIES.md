@@ -135,6 +135,14 @@ room for, without opening it. And a **light/dark toggle** sits in the
 header: unset it follows your OS, one click pins your choice and it is
 remembered, applied before the page paints.
 
+**Every board from one server.** With several projects registered, one
+process serves them all on one port — `/arc/#/board`, `/board/#/ideas` — and
+a switcher in the header moves between them without a restart or a second
+port. The project sits in the URL rather than in hidden state, so a link
+reopens the same board on the same page; each project's data directory is
+watched on its own, so a change to one board never disturbs a viewer of
+another. Pinning a single board keeps every route unprefixed.
+
 A **board doctor** checks the data against the contract this document
 describes — ids that don't resolve, a story pointing at a missing epic, a
 deliverable linking a dead epic, an epic archived before its stories

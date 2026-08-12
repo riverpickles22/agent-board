@@ -17,9 +17,37 @@ const path = require("path");
 const { execFile } = require("child_process");
 
 const ROOT = __dirname;
-const DATA = path.resolve(process.env.BOARD_DATA_DIR || path.join(ROOT, "data"));
 const PORT = process.env.PORT || 4300;
 const HOST = "127.0.0.1";
+
+/* ---- projects ----
+ * One server, every registered board. `projects.json` maps a name to a data
+ * directory and the URL carries the name as a path prefix (/arc/#/board), so
+ * a link deep-links across boards and the hash router never has to know the
+ * project exists.
+ *
+ * BOARD_DATA_DIR pins the server to one directory and turns the prefix off
+ * entirely — the routes stay exactly as they were, which is the contract the
+ * Claude skill and every existing bookmark already depend on.
+ */
+const PINNED = process.env.BOARD_DATA_DIR ? path.resolve(process.env.BOARD_DATA_DIR) : null;
+function loadProjects() {
+  if (PINNED) return null;
+  try {
+    const reg = JSON.parse(fs.readFileSync(path.join(ROOT, "projects.json"), "utf8"));
+    const out = {};
+    for (const [name, dir] of Object.entries(reg)) {
+      if (/^[a-z0-9][a-z0-9._-]*$/i.test(name)) out[name] = path.resolve(dir);
+    }
+    return Object.keys(out).length ? out : null;
+  } catch (e) { return null; }
+}
+const PROJECTS = loadProjects();
+const MULTI = PROJECTS !== null;
+// Single-project fallback keeps the historical default of ./data.
+const DATA = PINNED || path.join(ROOT, "data");
+const DEFAULT_PROJECT = MULTI ? Object.keys(PROJECTS)[0] : null;
+const dirFor = (project) => (MULTI ? PROJECTS[project] : DATA);
 
 // resource name (used in /api/<resource>) → data file.
 const FILES = {
@@ -52,13 +80,14 @@ const DEFAULTS = {
   milestones: { overview: null, milestones: [] },
 };
 
-function readData(key) {
-  const file = path.join(DATA, FILES[key]);
+function readData(key, dir) {
+  const file = path.join(dir || DATA, FILES[key]);
   if (!fs.existsSync(file)) return DEFAULTS[key];
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
-function writeData(key, value) {
-  fs.mkdirSync(DATA, { recursive: true });
+function writeData(key, value, dir) {
+  dir = dir || DATA;
+  fs.mkdirSync(dir, { recursive: true });
   // Pretty-printed with a trailing newline so git diffs stay clean and reviewable.
   const json = JSON.stringify(value, null, 2) + "\n";
   // U+FFFD is what a broken decode leaves behind. No card should ever hold one,
@@ -68,7 +97,7 @@ function writeData(key, value) {
   if (json.includes("\uFFFD")) {
     console.warn(`[warn] ${key}: replacement characters (U+FFFD) in data being written — text was mangled upstream, not by this write`);
   }
-  fs.writeFileSync(path.join(DATA, FILES[key]), json);
+  fs.writeFileSync(path.join(dir, FILES[key]), json);
 }
 
 function sendJSON(res, code, obj) {
@@ -111,28 +140,41 @@ function readBody(req) {
 // Any write to a data file — by this server or an agent editing JSON
 // directly — notifies every open page so it refetches instead of holding
 // stale state (the old "reload after agent edits" footgun).
-const sseClients = new Set();
 const WATCHED = new Set(Object.values(FILES));
-let watchTimer = null;
-function watchData() {
-  fs.mkdirSync(DATA, { recursive: true });
-  fs.watch(DATA, (event, filename) => {
+// One client set and one watcher per project, both created on demand: a
+// registry of ten projects should not open ten watchers for the one board
+// someone is actually looking at.
+const sseByProject = new Map();
+const watchers = new Map();
+function clientsFor(project) {
+  const key = project || "";
+  if (!sseByProject.has(key)) sseByProject.set(key, new Set());
+  return sseByProject.get(key);
+}
+function watchData(project) {
+  const key = project || "";
+  if (watchers.has(key)) return;
+  const dir = dirFor(project);
+  if (!dir) return;
+  fs.mkdirSync(dir, { recursive: true });
+  let timer = null;
+  watchers.set(key, fs.watch(dir, (event, filename) => {
     if (filename && !WATCHED.has(filename)) return;
     // fs.watch double-fires on most platforms; debounce into one event.
-    clearTimeout(watchTimer);
-    watchTimer = setTimeout(() => {
-      for (const client of sseClients) client.write("data: changed\n\n");
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      for (const client of clientsFor(project)) client.write("data: changed\n\n");
     }, 250);
-  });
+  }));
 }
 
 // ---- git as a readable data source ----
 // Commits are the ratification record (AGENTS.md §4); these helpers read
 // that record — they never write. execFile with an args array: nothing is
 // ever interpolated into a shell.
-function git(args) {
+function git(args, dir) {
   return new Promise((resolve) => {
-    execFile("git", ["-C", DATA, ...args], { maxBuffer: 10e6 }, (err, stdout) => {
+    execFile("git", ["-C", dir || DATA, ...args], { maxBuffer: 10e6 }, (err, stdout) => {
       resolve(err ? null : stdout);
     });
   });
@@ -140,19 +182,19 @@ function git(args) {
 
 // The five data files as parsed JSON at a given commit (DEFAULTS where a
 // file didn't exist yet — so brand-new files read as "everything added").
-async function snapshotAt(ref) {
-  const prefix = ((await git(["rev-parse", "--show-prefix"])) || "").trim();
+async function snapshotAt(ref, dir) {
+  const prefix = ((await git(["rev-parse", "--show-prefix"], dir)) || "").trim();
   const snap = {};
   for (const [key, file] of Object.entries(FILES)) {
-    const out = await git(["show", `${ref}:${prefix}${file}`]);
+    const out = await git(["show", `${ref}:${prefix}${file}`], dir);
     try { snap[key] = out === null ? DEFAULTS[key] : JSON.parse(out); }
     catch (e) { snap[key] = DEFAULTS[key]; }
   }
   return snap;
 }
-function workingSnapshot() {
+function workingSnapshot(dir) {
   const snap = {};
-  for (const key of Object.keys(FILES)) snap[key] = readData(key);
+  for (const key of Object.keys(FILES)) snap[key] = readData(key, dir);
   return snap;
 }
 
@@ -216,23 +258,62 @@ function summarizeChanges(oldSnap, newSnap) {
 }
 
 // Uncommitted board changes vs HEAD — what saying "save" would ratify.
-async function pendingChanges() {
-  if ((await git(["rev-parse", "--git-dir"])) === null)
+async function pendingChanges(dir) {
+  if ((await git(["rev-parse", "--git-dir"], dir)) === null)
     return { clean: null, reason: "data dir is not inside a git repository", statements: [], files: [] };
-  if ((await git(["rev-parse", "--verify", "HEAD"])) === null)
+  if ((await git(["rev-parse", "--verify", "HEAD"], dir)) === null)
     return { clean: null, reason: "no commits yet — everything is unratified", statements: [], files: [] };
-  const status = await git(["status", "--porcelain", "--", ...Object.values(FILES)]);
+  const status = await git(["status", "--porcelain", "--", ...Object.values(FILES)], dir);
   const files = (status || "").split("\n").filter(Boolean).map((l) => l.slice(3).trim());
   if (!files.length) return { clean: true, statements: [], files: [] };
-  const statements = summarizeChanges(await snapshotAt("HEAD"), workingSnapshot());
+  const statements = summarizeChanges(await snapshotAt("HEAD", dir), workingSnapshot(dir));
   return { clean: false, files, statements };
 }
 
+/* Split an optional leading /<project> off a request path. In single-project
+ * mode there is nothing to split and every URL means what it always meant. */
+function routeOf(rawUrl) {
+  const url = rawUrl.split("?")[0];
+  if (!MULTI) return { project: null, url };
+  const m = url.match(/^\/([^/]+)(\/.*)?$/);
+  if (m && Object.prototype.hasOwnProperty.call(PROJECTS, m[1]))
+    return { project: m[1], url: m[2] || "/" };
+  return { project: null, url };
+}
+
 const server = http.createServer(async (req, res) => {
-  const url = req.url.split("?")[0];
+  const { project, url } = routeOf(req.url);
+  const dir = dirFor(project);
   try {
+    // The registry itself, so the client can draw the switcher and know which
+    // board it is looking at without being told twice.
+    if (req.method === "GET" && url === "/api/projects") {
+      return sendJSON(res, 200, {
+        multi: MULTI,
+        current: project,
+        default: DEFAULT_PROJECT,
+        projects: MULTI
+          ? Object.entries(PROJECTS).map(([name, d]) => ({ name, available: fs.existsSync(d) }))
+          : [],
+      });
+    }
+    // A bare / with a registry has no project to serve, so it sends you to
+    // the default one rather than guessing per request.
+    if (req.method === "GET" && MULTI && !project && (url === "/" || url === "/index.html")) {
+      res.writeHead(302, { Location: "/" + DEFAULT_PROJECT + "/" });
+      return res.end();
+    }
+    // /<project> without the slash would make the page's relative asset URLs
+    // resolve against / instead of /<project>/.
+    if (req.method === "GET" && project && url === "/" && !req.url.split("?")[0].endsWith("/")) {
+      res.writeHead(302, { Location: "/" + project + "/" });
+      return res.end();
+    }
     if (req.method === "GET" && (url === "/" || url === "/index.html")) {
       return sendFile(res, "index.html", "text/html; charset=utf-8");
+    }
+    if (req.method === "GET" && MULTI && !project && url.startsWith("/api/") && url !== "/api/projects") {
+      return sendJSON(res, 404, { error: "no project in the path — try /" + DEFAULT_PROJECT + url });
     }
     // The shared check function, served so the UI runs exactly what the CLI
     // runs. Static asset, not an endpoint — the client already holds the data.
@@ -257,20 +338,21 @@ const server = http.createServer(async (req, res) => {
         "Connection": "keep-alive",
       });
       res.write("retry: 2000\n\n");
-      sseClients.add(res);
-      req.on("close", () => sseClients.delete(res));
+      watchData(project);
+      clientsFor(project).add(res);
+      req.on("close", () => clientsFor(project).delete(res));
       return;
     }
     if (req.method === "GET" && url === "/api/pending") {
-      return sendJSON(res, 200, await pendingChanges());
+      return sendJSON(res, 200, await pendingChanges(dir));
     }
     // Ratification history: the data dir's commits, newest first — and,
     // per commit, the same card-level statements the pending panel shows,
     // diffed against the commit's parent.
     if (req.method === "GET" && url === "/api/history") {
-      if ((await git(["rev-parse", "--git-dir"])) === null)
+      if ((await git(["rev-parse", "--git-dir"], dir)) === null)
         return sendJSON(res, 200, { available: false, reason: "data dir is not inside a git repository", commits: [] });
-      const raw = await git(["log", "-50", "--format=%H%x1f%cs%x1f%s%x1e", "--", ...Object.values(FILES)]);
+      const raw = await git(["log", "-50", "--format=%H%x1f%cs%x1f%s%x1e", "--", ...Object.values(FILES)], dir);
       if (raw === null)
         return sendJSON(res, 200, { available: false, reason: "no commits yet — everything is unratified", commits: [] });
       const commits = raw.split("\x1e").map((s) => s.trim()).filter(Boolean).map((entry) => {
@@ -278,7 +360,7 @@ const server = http.createServer(async (req, res) => {
         return { hash, date, message };
       });
       // one extra pass for files touched (name-only log keeps it a single git call)
-      const withFiles = await git(["log", "-50", "--format=%x1e%H", "--name-only", "--", ...Object.values(FILES)]);
+      const withFiles = await git(["log", "-50", "--format=%x1e%H", "--name-only", "--", ...Object.values(FILES)], dir);
       const filesBy = {};
       (withFiles || "").split("\x1e").map((s) => s.trim()).filter(Boolean).forEach((block) => {
         const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -293,31 +375,31 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.startsWith("/api/since/")) {
       const hash = url.slice("/api/since/".length);
       if (!/^[0-9a-f]{4,40}$/i.test(hash)) return sendJSON(res, 200, { available: false, reason: "invalid commit hash" });
-      const head = ((await git(["rev-parse", "--verify", "HEAD"])) || "").trim();
+      const head = ((await git(["rev-parse", "--verify", "HEAD"], dir)) || "").trim();
       if (!head) return sendJSON(res, 200, { available: false, reason: "no commits yet" });
-      const resolved = ((await git(["rev-parse", "--verify", hash + "^{commit}"])) || "").trim();
+      const resolved = ((await git(["rev-parse", "--verify", hash + "^{commit}"], dir)) || "").trim();
       if (!resolved) return sendJSON(res, 200, { available: false, reason: "unknown commit (history rewritten?)", head });
-      const statements = resolved === head ? [] : summarizeChanges(await snapshotAt(resolved), await snapshotAt("HEAD"));
+      const statements = resolved === head ? [] : summarizeChanges(await snapshotAt(resolved, dir), await snapshotAt("HEAD", dir));
       return sendJSON(res, 200, { available: true, head, statements });
     }
     if (req.method === "GET" && url.startsWith("/api/history/")) {
       const hash = url.slice("/api/history/".length);
       if (!/^[0-9a-f]{4,40}$/i.test(hash)) return sendJSON(res, 400, { error: "invalid commit hash" });
-      if ((await git(["cat-file", "-e", hash + "^{commit}"])) === null)
+      if ((await git(["cat-file", "-e", hash + "^{commit}"], dir)) === null)
         return sendJSON(res, 404, { error: "unknown commit" });
       // Root commit has no parent — diff against the empty defaults so
       // everything reads as "added".
-      const hasParent = (await git(["rev-parse", "--verify", hash + "^"])) !== null;
-      const oldSnap = hasParent ? await snapshotAt(hash + "^") : JSON.parse(JSON.stringify(DEFAULTS));
-      return sendJSON(res, 200, { hash, statements: summarizeChanges(oldSnap, await snapshotAt(hash)) });
+      const hasParent = (await git(["rev-parse", "--verify", hash + "^"], dir)) !== null;
+      const oldSnap = hasParent ? await snapshotAt(hash + "^", dir) : JSON.parse(JSON.stringify(DEFAULTS));
+      return sendJSON(res, 200, { hash, statements: summarizeChanges(oldSnap, await snapshotAt(hash, dir)) });
     }
     if (req.method === "GET" && url === "/api/board") {
       return sendJSON(res, 200, {
-        epics: readData("epics"),
-        stories: readData("stories"),
-        ideas: readData("ideas"),
-        config: readData("config"),
-        milestones: readData("milestones"),
+        epics: readData("epics", dir),
+        stories: readData("stories", dir),
+        ideas: readData("ideas", dir),
+        config: readData("config", dir),
+        milestones: readData("milestones", dir),
       });
     }
     // Whole-array (or whole-object) writes: the single-user client owns
@@ -329,7 +411,7 @@ const server = http.createServer(async (req, res) => {
         const expectArray = !OBJECT_RESOURCES.has(key);
         if (expectArray && !Array.isArray(body)) return sendJSON(res, 400, { error: "expected a JSON array" });
         if (!expectArray && (typeof body !== "object" || body === null)) return sendJSON(res, 400, { error: "expected a JSON object" });
-        writeData(key, body);
+        writeData(key, body, dir);
         return sendJSON(res, 200, { ok: true, count: expectArray ? body.length : undefined });
       }
     }
@@ -350,10 +432,21 @@ server.on("error", (err) => {
   throw err;
 });
 
-watchData();
+// Single-project mode watches immediately; multi-project waits for a client
+// to say which board it is looking at.
+if (!MULTI) watchData(null);
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  agent-board  →  http://localhost:${PORT}\n`);
-  console.log(`  data: ${DATA}/ (${Object.values(FILES).join(", ")})`);
+  if (MULTI) {
+    console.log(`  ${Object.keys(PROJECTS).length} projects (projects.json):`);
+    for (const [name, d] of Object.entries(PROJECTS)) {
+      const gone = fs.existsSync(d) ? "" : "   (MISSING)";
+      console.log(`    http://localhost:${PORT}/${name}/`.padEnd(42) + d + gone);
+    }
+    console.log(`\n  default: /${DEFAULT_PROJECT}/   ·   pin one board: BOARD_DATA_DIR=<dir> node server.js`);
+  } else {
+    console.log(`  data: ${DATA}/ (${Object.values(FILES).join(", ")})`);
+  }
   console.log(`  stop: Ctrl+C\n`);
 });

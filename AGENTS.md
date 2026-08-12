@@ -370,6 +370,18 @@ which part of the lens drives your recommendation.
 - Never fork or copy the app into a project. One codebase; per-project
   differences belong in that project's `config.json` and data.
 
+## 3.4 Many boards, one server
+
+`node server.js` with a populated `projects.json` serves every registered
+board from one port, scoped by a path prefix: `/arc/#/board`,
+`/board/#/ideas`. `GET /api/projects` lists them. Data routes take the same
+prefix (`/arc/api/board`), each project's directory is watched separately,
+and a write reaches only the named project.
+
+**`BOARD_DATA_DIR` is unchanged and still the contract you use**: it pins
+the server to one directory, removes the prefix, and leaves every route
+exactly as it was. Nothing about how you find a project's data dir changes.
+
 ## 3.5 Checking the board (`./board doctor`)
 
 `./board doctor <project>` checks the data against the invariants this

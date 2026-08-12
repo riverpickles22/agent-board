@@ -27,6 +27,13 @@ port. Run a second board at the same time with `PORT=4301 ./board chaim`.
 Needs only Node.js (v18+) — no install step, no dependencies, and it
 binds to `127.0.0.1` only.
 
+**Many boards, one server.** With projects registered in
+[`projects.json`](projects.json), `node server.js` serves all of them from a
+single port — `/arc/#/board`, `/chaim/#/ideas` — and a switcher in the header
+moves between them with no restart and no second port. The project lives in
+the URL, so links are shareable across boards. Pinning one board with
+`BOARD_DATA_DIR=<dir>` still serves it unprefixed, exactly as before.
+
 **Check it:** `./board doctor <name>` validates a project's data against
 the rules in [`AGENTS.md`](AGENTS.md) — dangling ids, vocabulary drift,
 lifecycle violations, dependency cycles — and exits non-zero only on
