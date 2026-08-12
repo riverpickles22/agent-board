@@ -23,7 +23,7 @@ Binds to 127.0.0.1 only.
 ## The five surfaces (in flow order: capture → intent → work → record)
 
 **Ideas** — the funnel that decides what enters execution. *Ideas* asks
-"what might this become"; *Execution* asks "what are we building". The
+"what might this become"; the *Board* asks "what are we building". The
 lifecycle runs **capture → back burner → front burner → review → ready
 → promote**, and each stage answers one of two questions: how much do
 we believe in this, and is it defined enough to graduate? **Back
@@ -39,7 +39,7 @@ one-sentence outcome and a bet; front burner adds why-now, **Opens**
 (the inverse of dependencies, making architectural leverage visible)
 and what it waits on; a review card leads with **Decision needed**; a
 ready card states constraints and its acceptance boundary. Then
-**⇥ Promote to Execution** creates the execution epic — the one recorded
+**⇥ Promote to Board** creates the execution epic — the one recorded
 moment an idea becomes committed work — and it **requires a validation
 plan**: an idea cannot cross into execution until it says how the change
 would be checked. That plan carries into the epic as its `test_plan` and
@@ -68,10 +68,10 @@ append-only dated brainstorm log.
 **Milestones** — the narrative. Per milestone: summary, user outcome,
 gate/exit criteria, ROI, context docs, and **deliverables that roll up to
 epic chips with live done-counts** (click a chip to jump to the card in
-Execution). Optional architecture block showing subsystems as
+the board). Optional architecture block showing subsystems as
 new/changed/existing. ←/→ keys step through milestones.
 
-**Execution** — committed work, and it answers four questions: *what
+**Board** — committed work, and it answers four questions: *what
 can an agent start now, what is running, what needs a human, what is
 blocked.* One **work queue** answers "what now": `Ready to pick up · N`,
 or `Agent working` naming the owner and how long ago they claimed it,
@@ -134,6 +134,17 @@ story list, who has it, and the small facts — everything the card had no
 room for, without opening it. And a **light/dark toggle** sits in the
 header: unset it follows your OS, one click pins your choice and it is
 remembered, applied before the page paints.
+
+A **board doctor** checks the data against the contract this document
+describes — ids that don't resolve, a story pointing at a missing epic, a
+deliverable linking a dead epic, an epic archived before its stories
+finished, a dependency cycle, vocabulary that drifted from config, claims
+going stale, promoted ideas still sitting in the funnel. `./board doctor
+<project>` prints them grouped by severity and exits non-zero **only on
+errors**, so CI can gate on real breakage while advice never fails a
+build; the same checks run in the UI behind a quiet `⚕` chip, where each
+finding clicks through to the card. It never repairs anything — reporting
+is the whole job, the same stance gates take.
 
 **History** — the record. The data dir's git log as a timeline page:
 every ratification with date, message, and files touched; expanding an

@@ -6,6 +6,8 @@
 #   PORT=4301 ./board chaim   second board on another port
 #   ./board stop [port]       stop the board on a port (default 4300)
 #   ./board setup      install the Claude skill (idempotent)
+#   ./board doctor <name>     check a project's data against the contract
+#                             (exit 1 if there are errors, 0 otherwise)
 #
 # Projects are registered in projects.json (name -> data directory).
 set -euo pipefail
@@ -44,7 +46,28 @@ list() {
   echo
   echo "Run one with:   ./board <name>"
   echo "Stop one with:  ./board stop [port]"
+  echo "Check one with: ./board doctor <name>"
   echo "Claude skill:   ./board setup"
+}
+
+# Report-only, always: the doctor is a lens, never a repair tool. Exits 1 on
+# errors so CI can gate on real breakage, and 0 on warnings so a stale claim
+# or a vocab typo can never fail a build — a check that cries wolf gets
+# switched off, and then nothing is checked at all.
+doctor() {
+  local name="${1:-}"
+  if [ -z "$name" ]; then
+    echo "Usage: ./board doctor <project>" >&2
+    list
+    exit 2
+  fi
+  local dir
+  dir="$(node -e 'console.log(require(process.argv[1])[process.argv[2]] ?? "")' "$REGISTRY" "$name")"
+  if [ -z "$dir" ]; then
+    echo "Unknown project: $name" >&2
+    exit 2
+  fi
+  node "$HERE/doctor-cli.js" "$dir" "$name"
 }
 
 stop() {
@@ -99,6 +122,11 @@ fi
 if [ "$1" = "stop" ]; then
   stop "${2:-}"
   exit 0
+fi
+
+if [ "$1" = "doctor" ]; then
+  doctor "${2:-}"
+  exit $?
 fi
 
 ensure_skill

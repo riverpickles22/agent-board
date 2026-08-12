@@ -66,6 +66,11 @@ Respect dependency ordering and gates — gates are opened by humans in
 `milestones.json`; when the user asks "where are we on M1?", answer from
 its deliverables' epic roll-up, not vibes.
 
+**Check** ("is the board healthy?", after any grooming or curation pass).
+`./board doctor <project>` — or read `doctor.js` and apply `diagnose()` to
+the loaded files. Errors are contract violations; warnings are advice.
+Report what it found; never repair silently.
+
 **Curate** ("clean up the backlog", "tidy the board"). AGENTS.md §7, all
 five passes: group related/misfiled work, enrich thin cards (what the
 change is, `systems` involved, what to read), add `Workflow impact:` notes

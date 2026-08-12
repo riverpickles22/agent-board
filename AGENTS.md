@@ -60,7 +60,7 @@ on request (§4).
 
 **The surfaces** a human sees (you never need them, but they explain
 what your edits look like): **Ideas** (inbox + deep dives) ·
-**Milestones** (narrative + roll-ups) · **Execution** (lanes, Next-up and
+**Milestones** (narrative + roll-ups) · **Board** (lanes, Next-up and
 Ready-queue strips, Shipped archive) · **History** (git log as a
 timeline) · **Docs** (renders `CAPABILITIES.md`). Full inventory:
 [`CAPABILITIES.md`](CAPABILITIES.md).
@@ -123,9 +123,9 @@ real — they are what makes "read the context before building" possible.
 ```
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
-`default_page` names a tab (`ideas` / `milestones` / `execution` /
-`history` / `docs`); the old value `board` still resolves to `execution`,
-so existing configs need no edit.
+`default_page` names a tab (`ideas` / `milestones` / `board` /
+`history` / `docs`); `execution` also resolves to `board`, so configs
+written during that rename keep working.
 
 `view` is the project's saved view: `title` names the board in the UI
 header and browser tab (when you report which board you're operating on,
@@ -255,7 +255,7 @@ the one status transition an agent makes on its own initiative;
 human's call.
 
 **Ideas are a funnel, not a second board.** *Ideas* answers "what might
-this become"; *Execution* answers "what are we building". The stages
+this become"; the *Board* answers "what are we building". The stages
 mean: **back burner** — preserved, not worth design time now; **front
 burner** — worth actively shaping, questions still open; **ready for
 review** — shaped enough that only a deliberate decision remains
@@ -264,7 +264,7 @@ settled enough to become executable work. The card surfaces more of
 itself at each stage, so fill fields when the stage earns them rather
 than all at once.
 
-**Promotion is the boundary.** `Promote to Execution` turns a
+**Promotion is the boundary.** `Promote to Board` turns a
 `ready to implement` idea into an epic, sets `promoted_to`, and closes
 the idea as `done` with a dated log entry. Promotion creates the
 **epic** only — grooming it into stories is still §5 work, because
@@ -369,6 +369,24 @@ which part of the lens drives your recommendation.
   them.
 - Never fork or copy the app into a project. One codebase; per-project
   differences belong in that project's `config.json` and data.
+
+## 3.5 Checking the board (`./board doctor`)
+
+`./board doctor <project>` checks the data against the invariants this
+document states — ids unique and resolving, vocabulary from config, lanes
+that exist, `archived_at` only once every story is done, the dependency
+guard, cycles, orphaned stories, dangling deliverable links, promoted
+ideas that never closed, ready stories with no criteria, stale claims.
+
+**Errors** are contract violations that break something real, and the
+command exits 1 so CI can gate on them. **Warnings** are advisory and
+always exit 0 — a check that fails a build over a stale claim gets
+switched off, and then nothing is checked at all.
+
+It never repairs: it reports, and you or the human decide. Run it after a
+grooming or curation pass, and before saying a board is clean. The UI runs
+the same function (`doctor.js`, shared with no duplication) behind the
+`⚕` chip in the header.
 
 ## 4. Git conventions
 

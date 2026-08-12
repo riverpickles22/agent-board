@@ -35,7 +35,7 @@ commit-=-ratify convention visible, which reinforces it.
 
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
-| Whole page | `renderHistory()` `#view-history` | header + timeline entries | History tab in `#tabs` (`PAGES`), between Execution and Docs |
+| Whole page | `renderHistory()` `#view-history` | header + timeline entries | History tab in `#tabs` (`PAGES`), between Board and Docs |
 | Entry | `.hentry` | commit date (mono), message, files-touched chips (basenames), expand toggle ▸/▾ | newest first, capped at the server's 50 |
 | Entry changes | `.hchanges` `.hline` | card-level statements from `GET /api/history/<hash>` | fetched lazily on first expand, cached by hash thereafter (commits are immutable); same statement language as the pending panel |
 | Empty state | `.hempty` | the server's `reason` when `available: false` (not a git repo / no commits), or "No ratifications yet…" when the list is empty | a fresh board is an answer, not an error |

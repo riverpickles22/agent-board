@@ -47,7 +47,7 @@ const DEFAULTS = {
     milestones: [],
     open_gates: [],
     wip_limits: {},
-    view: { title: "Board", default_page: "execution", default_milestone: "all", default_theme: "all" },
+    view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
   },
   milestones: { overview: null, milestones: [] },
 };
@@ -233,6 +233,11 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && (url === "/" || url === "/index.html")) {
       return sendFile(res, "index.html", "text/html; charset=utf-8");
+    }
+    // The shared check function, served so the UI runs exactly what the CLI
+    // runs. Static asset, not an endpoint — the client already holds the data.
+    if (req.method === "GET" && url === "/doctor.js") {
+      return sendFile(res, "doctor.js", "text/javascript; charset=utf-8");
     }
     // Capability self-description for agents and humans without repo access:
     // /llms.txt is the emerging agent convention; /docs is the human alias.

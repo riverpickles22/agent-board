@@ -1,32 +1,31 @@
 ---
 screen: execution
-route: "#/execution"
-aliases: ["#/board"]
+route: "#/board"
+aliases: ["#/execution"]
 spec_state: matches-ui
 ---
 
-# Execution — kanban over epics, with a story-rows mode
+# Board — kanban over epics, with a story-rows mode
 
 Drag-and-drop kanban of epics across the configured lanes, filterable by
 milestone / theme / tag, with a dependency guard on every move and a
 **Next up** strip that renders the selection rule (PROTOCOL §3) the
 agent uses — human and agent see the same answer to "what's next".
 Cards open an edit modal that also holds the epic's stories.
-A **View toggle (Epics | Rows)** switches the same execution area to story
+A **View toggle (Epics | Rows)** switches the same board area to story
 swimlanes: one row per epic, the epic's stories as compact cards in the
 lane columns.
 
-**Named "Execution", not "Board".** The tab read `Board` until it
-collided with the ideas funnel — with two card surfaces in one app,
-"the board" stopped identifying either. The page is now `#/execution`
-(`PAGES`/`PAGE_LABELS`), its container is `#exec`/`.exec`, and Ideas'
-promote button reads `⇥ Promote to Execution`. `#/board` and
-`view.default_page: "board"` still resolve, via `PAGE_ALIASES` in
-`resolvePage()` — a permanent alias, not a migration window, since
-bookmarks and `config.json` files live in other people's repos; `route()`
-rewrites an aliased hash to the canonical one with `replaceState`. The
-*product* keeps the name: `./board <name>`, `/api/board`, `Board:`
-commits, and "board data" all still mean the whole tool and its cards.
+**On the name.** This page was briefly renamed *Execution*, to stop
+"the board" from meaning both this and the ideas funnel, then renamed
+back — the collision is real but "Board" is what people call it. Both
+spellings resolve forever: `PAGE_ALIASES`/`resolvePage()` map
+`#/execution` and `view.default_page: "execution"` onto `board`, and
+`route()` rewrites an aliased hash to the canonical one with
+`replaceState`. The alias is permanent, not a migration window — a URL
+that worked once should keep working, and the configs live in other
+people's repos. When disambiguation matters in prose, say *the execution
+board* and *the ideas funnel*.
 
 ## Layout
 
@@ -55,7 +54,7 @@ Epics mode (the default):
 ├──────────────────┴──────────────────┴────────────────────────────────┤
 ```
 
-Rows mode (same filters + next-up above; the execution area becomes swimlanes,
+Rows mode (same filters + next-up above; the board area becomes swimlanes,
 vertically scrolling, lane strip sticky):
 
 ```
@@ -121,7 +120,7 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
-| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the execution area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
+| View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Shipped toggle | `.chip[data-arch]` | (Current)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
 | Filter header | `renderFilters()` `#filters` | **one row**: view toggle · Current/Shipped · `Milestone ▾` · `Theme ▾` · `More filters` | the board prioritises execution over taxonomy, so vocabulary collapses to selects (`.fsel`) and the rest hides behind the disclosure (`moreFilters`, `.frow2`): tag chips and ★ set-as-default. A dot on the button marks an active tag filter. Chip rows returned one row per vocab entry — three rows before you reached the work |
 | Work queue | `renderWorkQueue()` `#workq` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. Body lists in-flight stories first — each with **who claimed it and how long ago** (`inFlight()`, `sinceLabel()`) — then pickable ones with why they qualified | replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
@@ -171,7 +170,7 @@ theme, status, tags, systems, deps, gate and claim in the rail.
   nothing written.
 - View toggle click → set `boardMode`, remember it in `localStorage`
   (per-browser, keyed by project title — `rememberBoardMode()`),
-  re-render the execution area; writes no board data. ★ set as default view
+  re-render the board area; writes no board data. ★ set as default view
   persists the shared default as `config.view.default_board_mode` via
   `persistResource("config", …)`.
 - (Rows) drag story card → cell in its own row: set story `column` +

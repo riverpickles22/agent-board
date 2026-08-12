@@ -27,8 +27,14 @@ port. Run a second board at the same time with `PORT=4301 ./board chaim`.
 Needs only Node.js (v18+) — no install step, no dependencies, and it
 binds to `127.0.0.1` only.
 
+**Check it:** `./board doctor <name>` validates a project's data against
+the rules in [`AGENTS.md`](AGENTS.md) — dangling ids, vocabulary drift,
+lifecycle violations, dependency cycles — and exits non-zero only on
+errors, so it can gate CI without failing over advice. The same checks
+appear in the UI behind the `⚕` chip.
+
 **The five tabs:** **Ideas** (the inbox, with deep dives and a decision
-lens) · **Milestones** (the narrative, with live roll-ups) · **Execution**
+lens) · **Milestones** (the narrative, with live roll-ups) · **Board**
 (kanban over epics, story swimlanes, and the strips that answer "what's
 next") · **History** (your ratification history — the data dir's git log
 as a timeline) · **Docs** ([`CAPABILITIES.md`](CAPABILITIES.md) rendered

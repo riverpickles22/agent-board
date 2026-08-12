@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agent-board</title>
+<!-- The same checks ./board doctor runs. Plain script, no build step: the
+     file defines window.BoardDoctor in a browser and module.exports in node,
+     so one function serves both and cannot drift between them. -->
+<script src="/doctor.js"></script>
 <script>
   /* Before any paint: a saved theme wins over the OS. Inline and first so the
      page never flashes the other scheme on the way in. Unset = follow the OS,
@@ -135,7 +139,7 @@
   .readyq .rpick .rid{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
   .readyq .rpick .rnm{color:var(--ink);font-weight:500;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .exec{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
+  .board{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
   .col{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;background:var(--panel);
     border:1px solid var(--line);border-top:2px solid var(--lc);border-radius:12px;min-height:0}
   .col-h{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line-2);flex:0 0 auto;
@@ -199,7 +203,7 @@
   /* No top padding on the scroll container: sticky children can't cover a
      parent's padding band, so scrolled rows would show through it. The
      head carries the spacing instead and its background masks the seam. */
-  .exec.rows{display:block;overflow-y:auto;overflow-x:hidden;padding-top:0}
+  .board.rows{display:block;overflow-y:auto;overflow-x:hidden;padding-top:0}
   .rows-head{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(var(--lanes),1fr);
     background:var(--ground);padding-top:16px;padding-bottom:10px;border:1px solid transparent;border-bottom:0}
   .rows-head .rh{display:flex;align-items:center;gap:8px;padding:8px 12px;
@@ -740,6 +744,23 @@
     border:1px solid color-mix(in srgb,var(--lane-2) 45%,transparent);border-radius:20px;padding:2px 9px;
     background:color-mix(in srgb,var(--lane-2) 10%,transparent);cursor:pointer}
   .pbadge.on{display:inline-block}
+  /* Quiet by construction: a clean board shows a dim tick, and only real
+     findings raise the colour. A check that always shouts gets ignored. */
+  .dxbadge{display:none;font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:20px;padding:2px 9px;background:transparent;cursor:pointer}
+  .dxbadge.on{display:inline-block}
+  .dxbadge.warn{color:var(--lane-2);border-color:color-mix(in srgb,var(--lane-2) 45%,transparent);
+    background:color-mix(in srgb,var(--lane-2) 10%,transparent)}
+  .dxbadge.err{color:var(--lane-4);border-color:color-mix(in srgb,var(--lane-4) 50%,transparent);
+    background:color-mix(in srgb,var(--lane-4) 12%,transparent)}
+  .dx-row{display:flex;gap:9px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line-2);font-size:12.5px}
+  .dx-row:last-child{border-bottom:0}
+  .dx-row .dxid{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--accent);
+    flex:0 0 auto;cursor:pointer}
+  .dx-row .dxid:hover{text-decoration:underline}
+  .dx-row .dxmsg{color:var(--ink-2);line-height:1.5}
+  .dx-row .dxcode{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:auto;flex:0 0 auto}
+  .dx-clean{font-size:13px;color:var(--st-ready)}
   .ppanel{position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);background:var(--panel);
     border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(105%);
     transition:transform .18s ease;z-index:60;display:flex;flex-direction:column}
@@ -771,6 +792,7 @@
         <span id="counts"></span>
         <button class="themet" id="theme-t" type="button" aria-label="Switch colour theme"></button>
         <span class="save" id="save"><span class="d"></span><span id="save-t">saved</span></span>
+        <button class="dxbadge" id="doctor-badge" type="button" title="Board doctor — data checked against the contract"></button>
         <button class="pbadge" id="pending-badge" type="button" title="Uncommitted board changes — click to review what a 'save' would ratify"></button>
       </div>
     </div>
@@ -783,10 +805,10 @@
     <div class="brf-body" id="brf-body" hidden></div>
   </div>
 
-  <section class="view" id="view-execution" hidden>
+  <section class="view" id="view-board" hidden>
     <div class="filters" id="filters"></div>
     <div class="readyq" id="workq"></div>
-    <main class="exec" id="exec" aria-label="Execution kanban"></main>
+    <main class="board" id="board" aria-label="Kanban board"></main>
   </section>
   <section class="view scroll" id="view-milestones" hidden></section>
   <section class="view scroll" id="view-ideas" hidden></section>
@@ -806,6 +828,12 @@
     </div>
   </div>
 
+  <aside class="ppanel" id="doctor-panel" aria-label="Board doctor">
+    <div class="pp-head"><h2>Board doctor</h2>
+      <button class="pp-x" id="dx-close" type="button" title="Close">✕</button></div>
+    <div class="pp-body"></div>
+    <div class="pp-foot">Reporting only — nothing here is repaired for you. Same checks as <b>./board doctor</b>.</div>
+  </aside>
   <aside class="ppanel" id="pending-panel" aria-label="Pending ratification">
     <div class="pp-head"><h2>Pending ratification</h2>
       <button class="pp-x" id="pp-close" type="button" title="Close">✕</button></div>
@@ -826,6 +854,7 @@ const today = () => new Date().toISOString().slice(0,10);
 let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overview: null, milestones: [] } };
 let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
 let filterMS = "all", filterTheme = "all", filterTag = "all";
+let rawColumns = new Map();   // ids whose lane the config doesn't know (see applyBoard)
 let boardMode = "epics";   // "epics" (columns of epic cards) | "rows" (story swimlanes by epic)
 let boardArchive = false;  // false = current work, true = the Shipped view (archived_at epics)
 let moreFilters = false;   // taxonomy stays hidden until asked for — the board is for execution
@@ -921,7 +950,7 @@ function ideaCardState(i){
   const st = ideaStatus(i);
   if(st === "done")     return { key:"done",     label:"done",           title:"Shipped or promoted to execution" };
   if(st === "rejected") return { key:"rejected", label:"rejected",       title:"Declined — see the reason on the deep dive" };
-  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Intent settled — ready to promote to Execution" };
+  if(st === "ready to implement") return { key:"ready", label:"ready to implement", title:"Intent settled — ready to promote to the Board" };
   if(st === "ready for review")   return { key:"review", label:"ready for review",  title:"Shaped enough — awaiting a deliberate product decision" };
   const ix = PRIOS.indexOf(i.priority), cut = Math.ceil(PRIOS.length/2);
   return (ix > -1 && ix < cut)
@@ -1223,8 +1252,19 @@ function applyBoard(data){
   const view = state.config.view || {};
   document.title = view.title || "agent-board";
   document.getElementById("board-title").textContent = view.title || "Board";
-  state.epics.forEach(e => { if(!COLUMNS.includes(e.column)) e.column = COLUMNS[0]; });
-  state.stories.forEach(s => { if(!COLUMNS.includes(s.column)) s.column = COLUMNS[0]; });
+  // A card in a lane the config doesn't know can't be placed, so it is pulled
+  // to the first lane to keep the board usable. That is a *display* rescue,
+  // not a fix — the file still says something impossible. Remember what it
+  // said so the doctor reports the truth rather than the rescue, and so the
+  // browser and `./board doctor` reach the same verdict on the same files.
+  rawColumns = new Map();
+  const rescue = x => {
+    if(COLUMNS.includes(x.column)) return;
+    rawColumns.set(x.id, x.column);
+    x.column = COLUMNS[0];
+  };
+  state.epics.forEach(rescue);
+  state.stories.forEach(rescue);
 }
 async function load(){
   const r = await fetch("/api/board");
@@ -1241,6 +1281,7 @@ async function load(){
   renderTabs();
   wireTheme();
   wirePeek();
+  wireDoctor();
   route();
   wireLiveRefresh();
   wirePending();
@@ -1369,14 +1410,14 @@ function epicShown(e){
 }
 
 function render(){
-  const exec = document.getElementById("exec");
-  exec.innerHTML = "";
-  exec.classList.toggle("rows", boardMode==="rows");
-  exec.style.setProperty("--lanes", COLUMNS.length);
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  board.classList.toggle("rows", boardMode==="rows");
+  board.style.setProperty("--lanes", COLUMNS.length);
   const shown = state.epics.filter(epicShown);
   const filtered = filterMS!=="all" || filterTheme!=="all" || filterTag!=="all";
   if(boardMode==="rows"){
-    renderSwimlanes(exec, shown);
+    renderSwimlanes(board, shown);
     const rowStories = shown.flatMap(e => storiesOf(e.id));
     const sdone = rowStories.filter(s => s.column===doneLane()).length;
     const viewStoryN = state.epics.filter(e => !!e.archived_at === boardArchive)
@@ -1414,7 +1455,7 @@ function render(){
       body.appendChild(add);
       items.forEach(e => body.appendChild(cardEl(e)));
       wireDrop(sec);
-      exec.appendChild(sec);
+      board.appendChild(sec);
     });
     const viewEpics = state.epics.filter(e => !!e.archived_at === boardArchive);
     const total = viewEpics.length, done = viewEpics.filter(e=>e.column===doneLane()).length;
@@ -1504,7 +1545,7 @@ function wireDrop(sec){
 }
 
 /* ---- rows mode: story swimlanes by epic ---- */
-function renderSwimlanes(exec, shown){
+function renderSwimlanes(board, shown){
   const withStories = shown.filter(e => storiesOf(e.id).length);
   const head = document.createElement("div");
   head.className = "rows-head";
@@ -1521,9 +1562,9 @@ function renderSwimlanes(exec, shown){
     return '<div class="rh" style="--lc:'+laneVar(col)+'"><span class="sw"></span>'+
       '<span class="nm">'+esc(col)+'</span>'+ct+'</div>';
   }).join("");
-  exec.appendChild(head);
-  withStories.forEach(e => exec.appendChild(swimEl(e)));
-  exec.querySelectorAll("[data-arch-epic]").forEach(b =>
+  board.appendChild(head);
+  withStories.forEach(e => board.appendChild(swimEl(e)));
+  board.querySelectorAll("[data-arch-epic]").forEach(b =>
     b.addEventListener("click", ev => { ev.stopPropagation(); toggleArchiveEpic(b.dataset.archEpic); }));
   const without = shown.length - withStories.length;
   const note = document.createElement("div");
@@ -1532,7 +1573,7 @@ function renderSwimlanes(exec, shown){
     ? (without ? without + (without===1 ? " epic" : " epics") + " without stories — shown in Epics mode" : "")
     : (shown.length ? "No stories yet — open an epic in Epics mode to add them."
                     : "No epics to show — switch to Epics mode to add cards.");
-  if(note.textContent) exec.appendChild(note);
+  if(note.textContent) board.appendChild(note);
 }
 
 function swimEl(e){
@@ -2442,6 +2483,79 @@ function wirePending(){
   updatePending();
 }
 
+/* ---- board doctor in the UI ----
+   Same function the CLI runs (doctor.js), over the state already in memory —
+   no fetch, no endpoint, and it re-runs on every render so a fix you make in
+   the modal clears its own finding. */
+function runDoctor(){
+  if(typeof BoardDoctor === "undefined") return [];
+  // Undo applyBoard's display rescue for the check only — never for the state.
+  const unrescue = x => rawColumns.has(x.id) ? Object.assign({}, x, { column: rawColumns.get(x.id) }) : x;
+  return BoardDoctor.diagnose({
+    config: state.config,
+    epics: state.epics.map(unrescue),
+    stories: state.stories.map(unrescue),
+    ideas: state.ideas, milestones: state.milestones
+  });
+}
+let doctorFindings = [];
+function updateDoctor(){
+  const b = document.getElementById("doctor-badge"); if(!b) return;
+  doctorFindings = runDoctor();
+  const { errors, warnings } = BoardDoctor.counts(doctorFindings);
+  b.classList.add("on");
+  b.classList.toggle("err", errors > 0);
+  b.classList.toggle("warn", errors === 0 && warnings > 0);
+  b.textContent = errors ? "⚕ "+errors+" error"+(errors===1?"":"s")
+                : warnings ? "⚕ "+warnings+" issue"+(warnings===1?"":"s")
+                : "⚕ clean";
+  b.title = errors || warnings
+    ? "Board doctor — "+errors+" error"+(errors===1?"":"s")+", "+warnings+" warning"+(warnings===1?"":"s")+". Click for the list."
+    : "Board doctor — data matches the contract";
+  if(document.getElementById("doctor-panel").classList.contains("on")) renderDoctor();
+}
+function renderDoctor(){
+  const body = document.querySelector("#doctor-panel .pp-body");
+  if(!doctorFindings.length){
+    body.innerHTML = '<div class="dx-clean">✓ No issues — every id resolves, the vocabulary matches config, and the lifecycle rules hold.</div>';
+    return;
+  }
+  const group = sev => {
+    const rows = doctorFindings.filter(f => f.severity === sev);
+    if(!rows.length) return "";
+    return '<div class="pp-group"><h4>'+(sev==="error"?"Errors":"Warnings")+
+      ' <span class="cnt">'+rows.length+'</span></h4>'+
+      rows.map(f => '<div class="dx-row">'+
+        (f.ids.length ? '<span class="dxid" data-goto="'+esc(f.ids[0])+'">'+esc(f.ids[0])+'</span>' : '')+
+        '<span class="dxmsg">'+esc(f.message)+'</span>'+
+        '<span class="dxcode">'+esc(f.code)+'</span></div>').join("")+'</div>';
+  };
+  body.innerHTML = group("error")+group("warning");
+  // Every finding names an id, so every finding is one click from the card.
+  body.querySelectorAll("[data-goto]").forEach(el =>
+    el.addEventListener("click", () => {
+      const id = el.dataset.goto;
+      document.getElementById("doctor-panel").classList.remove("on");
+      if(byId()[id]) return goToEpic(id);
+      const st = state.stories.find(x => x.id === id);
+      if(st){ document.getElementById("scrim").classList.add("on"); return renderStoryModal(st.epic_id, st.id); }
+      if(ideaById(id)) return navigate("ideas", id);
+      showToast(id+" is named by the finding but no card carries that id — which is usually the finding.");
+    }));
+}
+function wireDoctor(){
+  const badge = document.getElementById("doctor-badge");
+  const panel = document.getElementById("doctor-panel");
+  if(!badge || !panel) return;
+  badge.addEventListener("click", () => { updateDoctor(); renderDoctor(); panel.classList.add("on"); });
+  document.getElementById("dx-close").addEventListener("click", () => panel.classList.remove("on"));
+  document.addEventListener("click", ev => {
+    if(panel.classList.contains("on") && !panel.contains(ev.target) && !badge.contains(ev.target))
+      panel.classList.remove("on");
+  });
+  updateDoctor();
+}
+
 let toastTimer=null;
 function showToast(msg){
   const t=document.getElementById("toast");
@@ -2572,14 +2686,15 @@ function wireLiveRefresh(){
 /* ================= routing (hash-based SPA) ================= */
 // Ordered by the flow: ideas (capture) -> milestones (intent) -> board (work),
 // plus docs (what the tool can do — CAPABILITIES.md rendered in the UI).
-const PAGES = ["ideas","milestones","execution","history","docs"];
-const PAGE_LABELS = { execution:"Execution", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
-// The execution page was called "board" until the name collided with the
-// ideas funnel ("which board?"). Old hashes and every project's existing
-// `view.default_page` still resolve — the alias is permanent, not a
-// migration window: bookmarks and configs live in other people's repos.
-const PAGE_ALIASES = { board:"execution" };
-const HOME_PAGE = "execution";
+const PAGES = ["ideas","milestones","board","history","docs"];
+const PAGE_LABELS = { board:"Board", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
+// This page was briefly renamed "execution" to avoid colliding with the
+// ideas funnel, then renamed back. Both spellings resolve forever — the
+// alias is permanent, not a migration window, because bookmarks and
+// `config.json` files live in other people's repos and a URL that worked
+// once should keep working.
+const PAGE_ALIASES = { execution:"board" };
+const HOME_PAGE = "board";
 function resolvePage(p){ return PAGE_ALIASES[p] || p; }
 function currentRoute(){
   const h = (location.hash || "").replace(/^#\/?/, "");
@@ -2602,7 +2717,7 @@ function updateFooter(page){
       ? '<b>Rows</b>: one swimlane per epic · <b>drag</b> a story across lanes · <b>click a row header</b> to edit the epic'
       : '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>')
     : page==="milestones"
-    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it in Execution'
+    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it on the board'
     : page==="docs"
     ? 'what this tool can do · source: <b>CAPABILITIES.md</b> · also served at <b>/docs</b> and <b>/llms.txt</b>'
     : page==="history"
@@ -3425,7 +3540,7 @@ function renderIdeaDetail(id){
             ((i.validation||"").trim()
               ? "Create the execution epic from this idea and close it out of the funnel"
               : "Needs a validation plan first — how would we know this works?")+
-            '">⇥ Promote to Execution</button>'+
+            '">⇥ Promote to Board</button>'+
           '<span class="empty">'+((i.validation||"").trim()
             ? "intent is settled — turn it into committed work"
             : '<b style="color:var(--lane-2);font-weight:600">needs a validation plan</b> — how would we know this works?')+'</span></div>'
@@ -3673,7 +3788,7 @@ function deleteIdea(id){
 }
 
 load().catch(() => {
-  document.getElementById("exec").innerHTML =
+  document.getElementById("board").innerHTML =
     '<div style="padding:40px;color:var(--ink-3)">Could not load the board. Start the server with <b style="color:var(--ink)">node server.js</b> and reload.</div>';
 });
 </script>
