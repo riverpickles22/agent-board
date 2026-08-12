@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agent-board</title>
+<script>
+  /* Before any paint: a saved theme wins over the OS. Inline and first so the
+     page never flashes the other scheme on the way in. Unset = follow the OS,
+     which is what the prefers-color-scheme blocks below already do. */
+  try{ var t = localStorage.getItem("agent-board:theme");
+       if(t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); }catch(e){}
+</script>
 <style>
   :root{
     --ground:#EEF2F3; --panel:#FFFFFF; --card:#FFFFFF; --card-2:#F3F7F8;
@@ -147,7 +154,14 @@
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 12px;cursor:grab;
     transition:transform .1s ease,border-color .1s ease,box-shadow .1s ease}
-  .card:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+  /* Same rule on the execution side, where the section's colour is the
+     lane's — `--lc` already rides the column and the swimlane cell
+     (laneVar(): first gray, review amber, done green, active accent). */
+  .card:hover{border-color:var(--lc,var(--accent));box-shadow:var(--shadow);
+    background:color-mix(in srgb,var(--lc,var(--accent)) 9%,var(--card))}
+  /* The unblocked edge says "startable now" — a different fact from the
+     lane, so the lane's hover colour must not eat it. */
+  .card.unblocked:hover{border-left-color:var(--st-ready)}
   .card:active{cursor:grabbing}
   .card.dragging{opacity:.4;box-shadow:none}
   body.is-dragging .card:not(.dragging){pointer-events:none}
@@ -227,7 +241,8 @@
   body.is-dragging .swim .cell.no-drop{opacity:.4}
   .scard{background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:grab;
     transition:border-color .1s ease,box-shadow .1s ease}
-  .scard:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+  .scard:hover{border-color:var(--lc,var(--accent));box-shadow:var(--shadow);
+    background:color-mix(in srgb,var(--lc,var(--accent)) 10%,var(--card-2))}
   .scard:active{cursor:grabbing}
   .scard.dragging{opacity:.4;box-shadow:none}
   body.is-dragging .scard:not(.dragging){pointer-events:none}
@@ -358,7 +373,13 @@
   .ideas-col>h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 10px;font-weight:600;display:flex;gap:8px;align-items:center}
   .ideas-col .cnt{font-family:var(--mono);color:var(--ink-3)}
   .idea{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:var(--panel);margin-bottom:10px;cursor:pointer;transition:all .12s}
-  .idea:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+  /* At rest the state lives on the left edge alone — one quiet stripe per
+     card, so a column scans as a column. On hover the card commits to that
+     colour whole: same hue on every edge, over a wash faint enough to keep
+     the prose readable. Hover is the only moment one card should outrank
+     its neighbours, so it is the only moment the colour spreads. */
+  .idea:hover{border-color:var(--cc,var(--accent));box-shadow:var(--shadow);
+    background:color-mix(in srgb,var(--cc,var(--accent)) 9%,var(--panel))}
   .idea .it{font-size:15px;font-weight:600;color:var(--ink)}
   .idea .ia{font-size:13.5px;color:var(--ink-2);margin-top:5px;line-height:1.45;white-space:pre-line}
   .idea .irel{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:9px}
@@ -389,12 +410,12 @@
   /* The left border carries workflow state and nothing else. One class
      per state, set by the renderer — no cascade races between burner,
      column and blocked-ness the way the old accent/green edges had. */
-  .idea[data-state]{border-left:3px solid var(--st-idle)}
-  .idea[data-state="front"]{border-left-color:var(--st-active)}
-  .idea[data-state="review"]{border-left-color:var(--st-decide)}
-  .idea[data-state="ready"]{border-left-color:var(--st-ready)}
-  .idea[data-state="done"]{border-left-color:var(--st-ready)}
-  .idea[data-state="rejected"]{border-left-color:var(--st-problem)}
+  .idea[data-state]{--cc:var(--st-idle);border-left:3px solid var(--cc)}
+  .idea[data-state="front"]{--cc:var(--st-active)}
+  .idea[data-state="review"]{--cc:var(--st-decide)}
+  .idea[data-state="ready"]{--cc:var(--st-ready)}
+  .idea[data-state="done"]{--cc:var(--st-ready)}
+  .idea[data-state="rejected"]{--cc:var(--st-problem)}
   .bsec.back{background:color-mix(in srgb, var(--ground) 65%, var(--panel));border:1px dashed var(--line);
     border-radius:12px;padding:12px 12px 3px;margin-top:18px}
   .bsec.back.folded{padding-bottom:12px}
@@ -620,6 +641,34 @@
     position:sticky;bottom:0;background:var(--panel);border-radius:0 0 14px 14px}
   .modal.wide .m-err{padding:0 26px}
   .modal.wide #m-stories{max-height:none}
+  /* ---- peek: dwell on a card, read it without opening it ----
+     Deliberately not a title tooltip: those are unstyled, truncate, and
+     cannot show the computed state. Deliberately not instant either — a
+     popover that fires while you sweep the board is noise, so it waits for
+     a dwell that means "this one". */
+  .peek{position:fixed;z-index:60;width:min(400px,calc(100vw - 32px));max-height:60vh;overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--pc,var(--accent));
+    border-radius:10px;box-shadow:var(--shadow);padding:13px 15px;pointer-events:none;
+    opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease}
+  .peek.on{opacity:1;transform:none}
+  .peek h4{margin:0 0 3px;font-size:14px;font-weight:600;color:var(--ink);line-height:1.35}
+  .peek .pkid{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--accent)}
+  .peek .pkhead{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .peek .pkhead .sstate{margin-left:auto}
+  .peek .pkwhere{font-size:11px;color:var(--ink-3)}
+  .peek p{margin:0 0 8px;font-size:12.5px;line-height:1.55;color:var(--ink-2);white-space:pre-wrap}
+  .peek .pksec{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
+    font-weight:600;margin:10px 0 5px}
+  .peek ul{margin:0;padding:0;list-style:none}
+  .peek li{position:relative;padding-left:15px;margin-bottom:5px;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  .peek li::before{content:"";position:absolute;left:2px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--pc,var(--accent))}
+  .peek .pkmore{font-size:11.5px;color:var(--ink-3);font-style:italic}
+  .peek .pkfoot{margin-top:10px;padding-top:8px;border-top:1px solid var(--line-2);
+    font-size:11px;color:var(--ink-3);display:flex;gap:10px;flex-wrap:wrap}
+  @media (prefers-reduced-motion:reduce){.peek{transition:none}}
+  .themet{font-size:14px;line-height:1;padding:5px 8px;border-radius:7px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel);color:var(--ink-3)}
+  .themet:hover{border-color:var(--accent);color:var(--accent)}
   .actions{display:flex;gap:10px;margin-top:22px;align-items:center;flex-wrap:wrap}
   .btn{font-family:var(--sans);font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--line);
     background:var(--card-2);color:var(--ink);cursor:pointer}
@@ -720,6 +769,7 @@
       <nav class="tabs" id="tabs" role="tablist" aria-label="Views"></nav>
       <div class="sub">
         <span id="counts"></span>
+        <button class="themet" id="theme-t" type="button" aria-label="Switch colour theme"></button>
         <span class="save" id="save"><span class="d"></span><span id="save-t">saved</span></span>
         <button class="pbadge" id="pending-badge" type="button" title="Uncommitted board changes — click to review what a 'save' would ratify"></button>
       </div>
@@ -1189,6 +1239,8 @@ async function load(){
   renderFilters();
   render();
   renderTabs();
+  wireTheme();
+  wirePeek();
   route();
   wireLiveRefresh();
   wirePending();
@@ -1697,6 +1749,197 @@ function renderModal(e){
 
 /* ---- stories (nested in the epic modal) ---- */
 const KINDS = ["feature","test","integration","chore","docs"];
+/* ---- peek: what a card says when you dwell on it ----
+   The board is a scanning surface; opening a card to answer "what is this
+   again?" costs a modal and a click back. A second of dwell is the signal
+   that you meant this card, and the peek answers with the things the card
+   had no room for — the prose, the criteria, who has it. Read-only: it never
+   takes the pointer (pointer-events:none), so it cannot get in the way of a
+   drag or a click. */
+const PEEK_DELAY = 1000;
+let peekTimer = null, peekEl = null, peekFor = null, peekKey = null;
+// Cards are replaced wholesale on every re-render, and a live board re-renders
+// while you are still dwelling. Track the card's *identity*, not its node, and
+// re-find it when the timer fires — otherwise an agent moving an unrelated
+// card two rows away silently cancels your peek.
+function cardKey(el){
+  return el.classList.contains("scard") ? "scard:"+el.dataset.sid
+       : el.classList.contains("card")  ? "card:"+el.dataset.id
+       : el.classList.contains("idea")  ? "idea:"+el.dataset.id : null;
+}
+function cardByKey(key){
+  if(!key) return null;
+  const [kind, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":")+1)];
+  const attr = kind === "scard" ? "sid" : "id";
+  return document.querySelector("."+kind+"[data-"+attr+'="'+(window.CSS && CSS.escape ? CSS.escape(id) : id)+'"]');
+}
+
+function peekBox(){
+  if(!peekEl){
+    peekEl = document.createElement("div");
+    peekEl.className = "peek";
+    peekEl.setAttribute("role", "tooltip");
+    peekEl.hidden = true;
+    document.body.appendChild(peekEl);
+  }
+  return peekEl;
+}
+function hidePeek(){
+  clearTimeout(peekTimer); peekTimer = null; peekFor = null; peekKey = null;
+  if(peekEl){ peekEl.classList.remove("on"); peekEl.hidden = true; }
+}
+// Clamp into the viewport rather than letting the box run off an edge: the
+// card can be anywhere, including the last row of a scrolled board.
+function placePeek(box, anchor){
+  const r = anchor.getBoundingClientRect();
+  box.hidden = false;
+  const b = box.getBoundingClientRect();
+  const gap = 10;
+  let x = r.right + gap;
+  if(x + b.width > innerWidth - 8) x = r.left - b.width - gap;      // flip to the left
+  if(x < 8) x = Math.max(8, Math.min(r.left, innerWidth - b.width - 8));
+  let y = r.top;
+  if(y + b.height > innerHeight - 8) y = innerHeight - b.height - 8;
+  box.style.left = Math.round(x)+"px";
+  box.style.top  = Math.round(Math.max(8, y))+"px";
+}
+const pkP = (label, val) => val ? '<p><b style="color:var(--ink-3)">'+esc(label)+':</b> '+esc(val)+'</p>' : "";
+const pkClamp = (t, n) => { t = (t||"").trim(); return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, "")+"…" : t; };
+function pkList(items, n, label){
+  if(!items || !items.length) return "";
+  return '<div class="pksec">'+esc(label)+' · '+items.length+'</div><ul>'+
+    items.slice(0, n).map(c => '<li>'+esc(pkClamp(c, 150))+'</li>').join("")+'</ul>'+
+    (items.length > n ? '<div class="pkmore">+'+(items.length-n)+' more</div>' : "");
+}
+
+function peekStory(s){
+  const ep = byId()[s.epic_id];
+  const foot = [ s.kind && esc(s.kind), s.priority && esc(s.priority),
+                 s.claimed_by ? "claimed by "+esc(s.claimed_by) : "unclaimed",
+                 s.ready ? "✓ ready" : "not ready" ].filter(Boolean);
+  return { colour: laneVar(s.column),
+    html: '<div class="pkhead"><span class="pkid">'+esc(s.id)+'</span>'+stateChip(s)+'</div>'+
+      '<h4>'+esc(s.name)+'</h4>'+
+      '<div class="pkwhere">'+(ep ? esc(ep.id)+" · "+esc(ep.name)+" · " : "")+esc(s.column)+'</div>'+
+      (s.description ? '<p style="margin-top:9px">'+esc(pkClamp(s.description, 320))+'</p>' : "")+
+      pkList(s.acceptance_criteria, 4, "Acceptance criteria")+
+      (s.context ? '<div class="pksec">Context</div><p>'+esc(pkClamp(s.context, 200))+'</p>' : "")+
+      '<div class="pkfoot">'+foot.join(" · ")+'</div>' };
+}
+function peekEpic(e){
+  const st = storiesOf(e.id), done = st.filter(x => x.column === doneLane()).length;
+  const foot = [ st.length ? done+"/"+st.length+" stories done" : "no stories yet",
+                 esc(e.priority), e.milestone && esc(short(e.milestone)), e.theme && esc(short(e.theme)),
+                 e.claimed_by ? "claimed by "+esc(e.claimed_by) : null ].filter(Boolean);
+  return { colour: laneVar(e.column),
+    html: '<div class="pkhead"><span class="pkid">'+esc(e.id)+'</span>'+
+        (needsGrooming(e) ? '<span class="sstate warn">⚠ needs grooming</span>' : "")+
+        '<span class="pkwhere" style="margin-left:auto">'+esc(e.column)+'</span></div>'+
+      '<h4>'+esc(e.name)+'</h4>'+
+      (e.description ? '<p style="margin-top:9px">'+esc(pkClamp(e.description, 320))+'</p>' : "")+
+      (e.test_plan ? '<div class="pksec">Test plan</div><p>'+esc(pkClamp(e.test_plan, 200))+'</p>' : "")+
+      pkList(st.map(x => x.name), 5, "Stories")+
+      (gateOpen(e) ? "" : '<p style="color:var(--lane-2);margin-top:8px">⛔ gated: '+esc(e.gate)+'</p>')+
+      ((e.deps||[]).length ? '<div class="pksec">Depends on</div><div>'+depChips(e.deps)+'</div>' : "")+
+      '<div class="pkfoot">'+foot.join(" · ")+'</div>' };
+}
+function peekIdea(i){
+  const st = ideaCardState(i), opens = unlockedBy(i.id);
+  const foot = [ esc(ideaStatus(i)), esc(i.priority),
+                 (i.effort||i.impact) ? esc((i.effort||"—")+" effort · "+(i.impact||"—")+" impact") : null,
+                 i.theme && esc(short(i.theme)) ].filter(Boolean);
+  return { colour: "var(--st-"+({idle:"idle",front:"active",review:"decide",ready:"ready",done:"ready",rejected:"problem"}[st.key]||"active")+")",
+    html: '<div class="pkhead"><span class="pkid">'+esc(i.id)+'</span>'+
+        '<span class="spill '+st.key+'">'+esc(st.label)+'</span></div>'+
+      '<h4>'+esc(i.title)+'</h4>'+
+      (i.description ? '<p style="margin-top:9px">'+esc(pkClamp(i.description, 320))+'</p>' : "")+
+      pkP("Why now", pkClamp(i.why_now, 180))+
+      pkP("Decision needed", pkClamp(i.decision, 180))+
+      pkP("Validation plan", pkClamp(i.validation, 180))+
+      (opens.length ? '<div class="pksec">Opens · '+opens.length+'</div><ul>'+
+        opens.slice(0,4).map(u => '<li>'+esc(short(u.title))+'</li>').join("")+'</ul>' : "")+
+      '<div class="pkfoot">'+foot.join(" · ")+'</div>' };
+}
+
+function peekFor_(el){
+  if(el.classList.contains("scard")) { const s = state.stories.find(x => x.id === el.dataset.sid); return s && peekStory(s); }
+  if(el.classList.contains("card"))  { const e = byId()[el.dataset.id];                            return e && peekEpic(e); }
+  if(el.classList.contains("idea"))  { const i = ideaById(el.dataset.id);                          return i && peekIdea(i); }
+  return null;
+}
+function showPeek(el){
+  const data = peekFor_(el); if(!data) return;
+  const box = peekBox();
+  box.style.setProperty("--pc", data.colour);
+  box.innerHTML = data.html;
+  placePeek(box, el);
+  // Reflow, then reveal — a rAF here never runs while the tab is throttled or
+  // occluded, which would leave the box positioned but permanently invisible.
+  void box.offsetWidth;
+  box.classList.add("on");
+}
+// One delegated listener per surface rather than a handler per card: cards
+// are re-rendered constantly (live refresh, every filter change) and
+// per-card listeners would have to be re-attached each time.
+function wirePeek(){
+  const armed = ev => {
+    const el = ev.target.closest(".scard, .card, .idea");
+    if(!el) return;
+    const key = cardKey(el);
+    if(!key || key === peekKey) return;         // same card, re-rendered or not
+    hidePeek();
+    peekFor = el; peekKey = key;
+    peekTimer = setTimeout(() => {
+      const live = cardByKey(key);              // survive a re-render mid-dwell
+      if(peekKey === key && live) showPeek(live);
+    }, PEEK_DELAY);
+  };
+  document.addEventListener("mouseover", armed);
+  document.addEventListener("mouseout", ev => {
+    if(peekFor && !ev.relatedTarget?.closest?.(".scard, .card, .idea")) hidePeek();
+  });
+  // Anything that means "I have moved on" kills it, dwell timer included.
+  ["mousedown","dragstart","wheel","keydown"].forEach(e =>
+    document.addEventListener(e, hidePeek, true));
+  window.addEventListener("scroll", hidePeek, true);
+  document.addEventListener("scroll", hidePeek, true);
+}
+
+/* ---- colour theme ----
+   Unset follows the OS (the prefers-color-scheme blocks); one click pins a
+   choice for good. The preference is per person, not per project, so unlike
+   the lens and the board mode its key carries no board title. */
+const THEME_KEY = "agent-board:theme";
+function currentTheme(){
+  const set = document.documentElement.getAttribute("data-theme");
+  if(set === "light" || set === "dark") return set;
+  return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function paintThemeButton(){
+  const b = document.getElementById("theme-t"); if(!b) return;
+  const dark = currentTheme() === "dark";
+  // The glyph shows what you would switch *to* — a button says what it does.
+  b.textContent = dark ? "☀" : "☾";
+  b.title = dark ? "Switch to light" : "Switch to dark";
+}
+function toggleTheme(){
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  paintThemeButton();
+}
+function wireTheme(){
+  const b = document.getElementById("theme-t"); if(!b) return;
+  b.addEventListener("click", toggleTheme);
+  paintThemeButton();
+  // Still following the OS? Then keep following it when the OS flips.
+  if(window.matchMedia){
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const onFlip = () => { if(!document.documentElement.getAttribute("data-theme")) paintThemeButton(); };
+    mq.addEventListener ? mq.addEventListener("change", onFlip) : mq.addListener(onFlip);
+  }
+}
+
 /* ---- wide modal chrome ----
    Shared by the epic and story modals so the board speaks one card
    vocabulary: a sticky header carrying the id, the computed state chip and

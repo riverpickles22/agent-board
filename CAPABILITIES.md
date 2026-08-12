@@ -126,6 +126,15 @@ holds it), `⛔ gated: X` or `⏳ waiting on Y` when blocked, `needs prep`
 before the human's ready flag, and `✓ shipped` / `plated` / `in the
 books` when done (or `✓ done · waiting on <sibling>` while the epic lags).
 
+Two things run across every page. **Hovering any card** — epic, story or
+idea — colours it with the section it belongs to (its lane, or its
+maturity stage) instead of a generic highlight, and after a second of
+dwell opens a **peek**: the full description, the acceptance criteria or
+story list, who has it, and the small facts — everything the card had no
+room for, without opening it. And a **light/dark toggle** sits in the
+header: unset it follows your OS, one click pins your choice and it is
+remembered, applied before the page paints.
+
 **History** — the record. The data dir's git log as a timeline page:
 every ratification with date, message, and files touched; expanding an
 entry shows that commit's card-level changes. And before the commit,
