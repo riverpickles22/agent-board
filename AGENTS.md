@@ -372,8 +372,8 @@ which part of the lens drives your recommendation.
 
 ## 3.4 Many boards, one server
 
-`node server.js` with a populated `projects.json` serves every registered
-board from one port, scoped by a path prefix: `/arc/#/board`,
+`./board <name>` (and bare `node server.js`) with a populated
+`projects.json` serves every registered board from one port, scoped by a path prefix: `/arc/#/board`,
 `/board/#/ideas`. `GET /api/projects` lists them. Data routes take the same
 prefix (`/arc/api/board`), each project's directory is watched separately,
 and a write reaches only the named project.

@@ -46,7 +46,12 @@ const PROJECTS = loadProjects();
 const MULTI = PROJECTS !== null;
 // Single-project fallback keeps the historical default of ./data.
 const DATA = PINNED || path.join(ROOT, "data");
-const DEFAULT_PROJECT = MULTI ? Object.keys(PROJECTS)[0] : null;
+// `./board <name>` serves everything but says which board you asked for, so
+// bare / lands there instead of on whichever project is first in the file.
+const OPEN = process.env.BOARD_OPEN || null;
+const DEFAULT_PROJECT = MULTI
+  ? (OPEN && PROJECTS[OPEN] ? OPEN : Object.keys(PROJECTS)[0])
+  : null;
 const dirFor = (project) => (MULTI ? PROJECTS[project] : DATA);
 
 // resource name (used in /api/<resource>) → data file.
@@ -292,6 +297,8 @@ const server = http.createServer(async (req, res) => {
         multi: MULTI,
         current: project,
         default: DEFAULT_PROJECT,
+        // The footer has always claimed "./data"; tell it the truth.
+        dir: dirFor(project) || DATA,
         projects: MULTI
           ? Object.entries(PROJECTS).map(([name, d]) => ({ name, available: fs.existsSync(d) }))
           : [],

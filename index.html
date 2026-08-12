@@ -1978,8 +1978,12 @@ async function wireProjects(){
     // The path is the authority on which board this is; the server only
     // echoes it back, and it cannot know when asked without a prefix.
     projectList.current = PROJECT || projectList.current;
+    // The footer's data path was hardcoded to "./data" and had never been
+    // right for any project served from elsewhere.
+    const dp = document.getElementById("data-path");
+    if(dp && projectList.dir) dp.textContent = projectList.dir;
   }catch(e){ return; }
-  if(!projectList.multi || projectList.projects.length < 2) return;   // nothing to switch between
+  if(!projectList.multi || projectList.projects.length < 2) return;   // nothing to switch between, but the path above is still set
   sel.innerHTML = projectList.projects.map(p =>
     '<option value="'+esc(p.name)+'"'+(p.name===projectList.current ? " selected" : "")+
     (p.available ? "" : " disabled")+'>'+esc(p.name)+(p.available ? "" : " (missing)")+'</option>').join("");

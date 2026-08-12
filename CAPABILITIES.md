@@ -141,7 +141,8 @@ a switcher in the header moves between them without a restart or a second
 port. The project sits in the URL rather than in hidden state, so a link
 reopens the same board on the same page; each project's data directory is
 watched on its own, so a change to one board never disturbs a viewer of
-another. Pinning a single board keeps every route unprefixed.
+another. Pinning a single board — `./board <name> --only` — keeps every route
+unprefixed.
 
 A **board doctor** checks the data against the contract this document
 describes — ids that don't resolve, a story pointing at a missing epic, a

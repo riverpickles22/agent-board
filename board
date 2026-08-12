@@ -2,9 +2,10 @@
 # agent-board launcher. One board codebase, many projects.
 #
 #   ./board            list registered projects
-#   ./board arc        serve arc's board on :4300 (pinned to one project)
-#   ./board            with no name, node server.js serves every registered
-#                      project at once: /arc/#/board, /chaim/#/ideas, …
+#   ./board arc        serve every registered board on :4300, opening on arc
+#                      (the header switcher moves between them)
+#   ./board arc --only serve only arc, unprefixed — the pinned single-project
+#                      mode the Claude skill and CI rely on
 #   PORT=4301 ./board chaim   second board on another port
 #   ./board stop [port]       stop the board on a port (default 4300)
 #   ./board setup      install the Claude skill (idempotent)
@@ -148,5 +149,13 @@ if [ ! -d "$DIR" ]; then
   exit 1
 fi
 
-echo "Serving '$NAME' from $DIR"
-exec env BOARD_DATA_DIR="$DIR" node "$HERE/server.js"
+# Serving every registered board is the default: the switcher only exists in
+# multi-project mode, and pinning here made it unreachable through the one
+# command anyone runs. `--only` keeps the pinned mode for the skill and CI.
+if [ "${2:-}" = "--only" ]; then
+  echo "Serving only '$NAME' from $DIR (unprefixed)"
+  exec env BOARD_DATA_DIR="$DIR" node "$HERE/server.js"
+fi
+
+echo "Opening '$NAME' — http://localhost:${PORT:-4300}/$NAME/"
+exec env BOARD_OPEN="$NAME" node "$HERE/server.js"
