@@ -9,7 +9,7 @@
     "milestone": "",
     "tags": [],
     "deps": [],
-    "status": "idea",
+    "status": "done",
     "priority": "Next",
     "effort": "medium",
     "impact": "medium",
@@ -33,11 +33,15 @@
       {
         "at": "2026-08-10",
         "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-12",
+        "note": "Shipped. The lens switcher and the grouping abstraction landed with the leverage view (idea-dependency-view), which needed them to exist. Grouping is a pure function from lens to groups with the existing card renderer drawing whatever it is handed, as the constraints required; the Status lens renders exactly as before, drag and burner split included. Theme shipped too — it was ten lines once the abstraction existed, which was the argument for the abstraction. Built directly rather than promoted to an epic first (user instruction)."
       }
     ],
     "rejected_reason": null,
     "created_at": "2026-08-09",
-    "updated_at": "2026-08-10T09:00:00Z",
+    "updated_at": "2026-08-12",
     "why_now": "The idea columns mix two taxonomies — front/back burner is priority, ready-for-review/ready-to-implement is maturity — judged manageable at ~20 ideas; arc is now past 60.",
     "decision": "In a non-status lens, is drag disabled entirely, or does each lens define its own drop semantics?",
     "conviction": "promising",
@@ -92,50 +96,6 @@
     "constraints": "No new fields — reuse claimed_at and the briefing's existing staleness computation. Advisory only: never auto-clear a claim, because a long-running job is indistinguishable from an abandoned one.",
     "acceptance": "A card claimed by a session that has ended shows how long it has been held, and can be released in one action from the board; the ready queue stops hiding pickable work behind dead claims.",
     "promoted_to": "B21"
-  },
-  {
-    "id": "idea-board-doctor",
-    "title": "Board doctor — validate what the contract promises",
-    "description": "One command (and a quiet UI banner) that checks the board's data against the rules AGENTS.md already states: stories pointing at epics that don't exist, deps naming missing ids, themes/milestones outside the config vocab, milestone deliverables linking dead epics, duplicate ids. Report and offer fixes; never silently repair.\n\nTechnical shape: a pure function over the five loaded resources returning {severity, message, ids} — reused two ways: './board doctor' printing to the terminal for CI-ish use, and a dim '⚕ N issues' chip beside the pending badge that opens the list. No new data, no new endpoint (the client already holds every resource).",
-    "notes": "",
-    "category": "feature",
-    "theme": "Trust the board",
-    "milestone": "",
-    "tags": [],
-    "status": "idea",
-    "priority": "Next",
-    "effort": "medium",
-    "impact": "medium",
-    "context": "AGENTS.md §2/§3 state real invariants — ids are permanent, vocab comes from config, deliverable epics must exist — but nothing enforces them, and agents edit these files directly by design. arc's board is now 6 epics / 20 stories / 63 ideas / 5 milestones maintained mostly by agents; a dangling deliverable link or a theme typo degrades the milestone roll-up quietly, and the roll-up is what the human trusts to answer 'where are we'.",
-    "compounding": "Turns the contract from prose into something checkable, which makes every future rule cheap to enforce (add a check, not a convention). Also the natural home for the 'is this board healthy' signals stale claims and drift both produce.",
-    "pros": [
-      "Pure function over data already in memory — no schema, no endpoint",
-      "Protects the milestone roll-up, the board's most trusted number",
-      "Same check serves terminal and UI"
-    ],
-    "cons": [
-      "Report-only by design; auto-fix is tempting and deliberately out of scope until the reports prove boring"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-08",
-        "note": "Captured from the session retrospective: the contract grew several new invariants (archived_at rules, decompose-before-build, real-time moves) with no way to check any of them."
-      },
-      {
-        "at": "2026-08-10",
-        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-08",
-    "updated_at": "2026-08-10T09:00:00Z",
-    "deps": [],
-    "why_now": "The contract gained several invariants in quick succession — archived_at rules, needs, promoted_to, decompose-before-build — and nothing checks any of them, while arc's board (10 epics, 39 stories, 60+ ideas) is maintained mostly by agents editing JSON directly.",
-    "decision": "Report-only, or offer fixes? And should it exit non-zero so it can gate CI, or stay an on-demand human tool?",
-    "conviction": "promising",
-    "constraints": "A pure function over the five loaded resources — no new endpoint, no schema. Never auto-repair: report and let a human or agent decide, the same stance gates take.",
-    "acceptance": "./board doctor names every violation with the ids involved, and the UI shows a quiet issue count that opens the same list; a clean board says so in one line."
   },
   {
     "id": "idea-bulk-actions",
@@ -779,6 +739,101 @@
     "promoted_to": "B22"
   },
   {
+    "id": "idea-board-doctor",
+    "title": "Board doctor — validate what the contract promises",
+    "description": "One command (and a quiet UI banner) that checks the board's data against the rules AGENTS.md already states: stories pointing at epics that don't exist, deps naming missing ids, themes/milestones outside the config vocab, milestone deliverables linking dead epics, duplicate ids. Report and offer fixes; never silently repair.\n\nTechnical shape: a pure function over the five loaded resources returning {severity, message, ids} — reused two ways: './board doctor' printing to the terminal for CI-ish use, and a dim '⚕ N issues' chip beside the pending badge that opens the list. No new data, no new endpoint (the client already holds every resource).",
+    "notes": "",
+    "category": "feature",
+    "theme": "Trust the board",
+    "milestone": "",
+    "tags": [],
+    "status": "ready to implement",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "medium",
+    "context": "AGENTS.md §2/§3 state real invariants — ids are permanent, vocab comes from config, deliverable epics must exist — but nothing enforces them, and agents edit these files directly by design. arc's board is now 6 epics / 20 stories / 63 ideas / 5 milestones maintained mostly by agents; a dangling deliverable link or a theme typo degrades the milestone roll-up quietly, and the roll-up is what the human trusts to answer 'where are we'.",
+    "compounding": "Turns the contract from prose into something checkable, which makes every future rule cheap to enforce (add a check, not a convention). Also the natural home for the 'is this board healthy' signals stale claims and drift both produce.",
+    "pros": [
+      "Pure function over data already in memory — no schema, no endpoint",
+      "Protects the milestone roll-up, the board's most trusted number",
+      "Same check serves terminal and UI"
+    ],
+    "cons": [
+      "Report-only by design; auto-fix is tempting and deliberately out of scope until the reports prove boring"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-08",
+        "note": "Captured from the session retrospective: the contract grew several new invariants (archived_at rules, decompose-before-build, real-time moves) with no way to check any of them."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-08",
+    "updated_at": "2026-08-12T12:14:26.891Z",
+    "deps": [],
+    "why_now": "The contract gained several invariants in quick succession — archived_at rules, needs, promoted_to, decompose-before-build — and nothing checks any of them, while arc's board (10 epics, 39 stories, 60+ ideas) is maintained mostly by agents editing JSON directly.",
+    "decision": "Report-only, or offer fixes? And should it exit non-zero so it can gate CI, or stay an on-demand human tool?",
+    "conviction": "promising",
+    "constraints": "A pure function over the five loaded resources — no new endpoint, no schema. Never auto-repair: report and let a human or agent decide, the same stance gates take.",
+    "acceptance": "./board doctor names every violation with the ids involved, and the UI shows a quiet issue count that opens the same list; a clean board says so in one line."
+  },
+  {
+    "id": "idea-dependency-view",
+    "title": "Dependency view — group the board by leverage",
+    "description": "A third lens beside Active/Archive: stop sorting by priority and group by what enables what. Foundations at the top (ideas nothing waits on but several things need), then the capabilities they unlock beneath — answering the roadmap question a priority list can't: what should I build next that makes several future things possible.\n\nTechnical shape: no graph library. Build the reverse-dependency index already used for the card leverage marker, then bucket: tier 0 = ideas with no unresolved deps that other ideas name; tier 1 = ideas depending only on tier 0; and so on (a simple topological layering, cycles broken by file order and flagged). Render as stacked labelled groups with an ↓ between tiers, reusing the existing idea cards. Read-only view; no new data.",
+    "notes": "",
+    "category": "feature",
+    "theme": "Decide fast",
+    "milestone": "",
+    "tags": [],
+    "deps": [
+      "idea-board-lenses"
+    ],
+    "status": "done",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "high",
+    "context": "arc's board is 23 active ideas where the most strategically valuable ones (temporal character state, prose-canon binding) look like ordinary features because their leverage is invisible. Priority ranking answers 'what is most urgent'; this answers 'what unlocks the most', which for a product still assembling its foundations is the more useful question. Proposed in the user's design critique (2026-08-09) as the highest-value board-level addition.",
+    "compounding": "The tiering computation is the same one a 'critical path to milestone X' view would need, and the reverse index already ships in the card leverage marker — this is presentation over data the board already holds.",
+    "pros": [
+      "Makes foundational work visibly foundational, which priority tiers cannot",
+      "Reuses the reverse-dependency index — no new data, no library",
+      "Answers the roadmap question the user actually asks"
+    ],
+    "cons": [
+      "Only earns its place on a board with real dependency density; a flat backlog shows one tier and learns nothing",
+      "Cycles need a defined, visible fallback rather than silent reordering"
+    ],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-09",
+        "note": "Captured from the user's design critique: 'That is more valuable for Arc than a conventional priority ranking.' Depends on the lens switcher landing first."
+      },
+      {
+        "at": "2026-08-10",
+        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
+      },
+      {
+        "at": "2026-08-12",
+        "note": "Shipped as the Leverage lens on the ideas page. Foundations / Tier n / Standalone, stacked with connectors, computed from the ideas' own deps — no graph library, no new data, read-only, per the constraints. Two departures from the card, both deliberate: deps naming something outside the visible set (an epic, an archived idea) are informational and never hold a card back a tier; and a card that waits on nothing and that nothing waits on is listed separately as Standalone rather than sitting in tier 0, because leaving it there buried the handful of load-bearing cards the view exists to surface. Leverage now also renders on back-burner cards, which suppress it elsewhere. Built directly rather than promoted to an epic first (user instruction)."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-09",
+    "updated_at": "2026-08-12",
+    "why_now": "Every idea now shows what it Opens, but nothing ranks by it — so the foundational cards that several others wait on still read like ordinary features when you scan the column.",
+    "decision": "Answered: cycles are flagged in place. A 'Cannot be placed' group names the loop (idea-a → idea-b → idea-a) rather than breaking it silently by file order — a cycle is a real backlog problem, and a view that hid it would be lying about the order it drew.",
+    "conviction": "promising",
+    "constraints": "No graph library and no new data: reuse the reverse index behind unlockedBy(). Read-only view — tiers are a reading of the backlog, never an edit to it.",
+    "acceptance": "Foundational ideas appear in a top tier with the capabilities they unlock beneath them, and any cycle is reported rather than hidden."
+  },
+  {
     "id": "idea-project-switcher",
     "title": "Project switcher in the header",
     "description": "Switch between arc, chaim, and board from the header — one server serves every board registered in projects.json, no restart, no second port.\n\nTechnical shape: the server reads projects.json and scopes data routes by project (/api/<project>/board, /api/<project>/events), watching each active project's data dir; the client carries the project in the URL (e.g. #/board?p=arc or a path prefix) so links deep-link across boards, and the header dropdown re-fetches + re-renders via the existing applyBoard() path. Touches every data route plus the client fetch layer — honest medium effort.",
@@ -787,7 +842,7 @@
     "theme": "Agent enablement",
     "milestone": "",
     "tags": [],
-    "status": "ready to implement",
+    "status": "ready for review",
     "priority": "Next",
     "effort": "medium",
     "impact": "medium",
@@ -822,59 +877,12 @@
     ],
     "rejected_reason": null,
     "created_at": "2026-08-02",
-    "updated_at": "2026-08-10T09:31:56.332Z",
+    "updated_at": "2026-08-12T12:14:29.009Z",
     "why_now": "Three projects are registered and this session repeatedly ran two servers on two ports to compare boards — the collision that prompted ./board stop was this friction surfacing.",
     "decision": "Does one server serve every project with routes scoped by project, or does the switcher relaunch and redirect to per-project ports?",
     "conviction": "promising",
     "constraints": "Single-project mode via BOARD_DATA_DIR must keep working untouched, and existing deep links must survive — the project belongs in the URL, not in hidden state.",
     "acceptance": "Switching projects from the header shows the other board without a restart, and a copied URL reopens the same project's page.",
     "deps": []
-  },
-  {
-    "id": "idea-dependency-view",
-    "title": "Dependency view — group the board by leverage",
-    "description": "A third lens beside Active/Archive: stop sorting by priority and group by what enables what. Foundations at the top (ideas nothing waits on but several things need), then the capabilities they unlock beneath — answering the roadmap question a priority list can't: what should I build next that makes several future things possible.\n\nTechnical shape: no graph library. Build the reverse-dependency index already used for the card leverage marker, then bucket: tier 0 = ideas with no unresolved deps that other ideas name; tier 1 = ideas depending only on tier 0; and so on (a simple topological layering, cycles broken by file order and flagged). Render as stacked labelled groups with an ↓ between tiers, reusing the existing idea cards. Read-only view; no new data.",
-    "notes": "",
-    "category": "feature",
-    "theme": "Decide fast",
-    "milestone": "",
-    "tags": [],
-    "deps": [
-      "idea-board-lenses"
-    ],
-    "status": "ready to implement",
-    "priority": "Next",
-    "effort": "medium",
-    "impact": "high",
-    "context": "arc's board is 23 active ideas where the most strategically valuable ones (temporal character state, prose-canon binding) look like ordinary features because their leverage is invisible. Priority ranking answers 'what is most urgent'; this answers 'what unlocks the most', which for a product still assembling its foundations is the more useful question. Proposed in the user's design critique (2026-08-09) as the highest-value board-level addition.",
-    "compounding": "The tiering computation is the same one a 'critical path to milestone X' view would need, and the reverse index already ships in the card leverage marker — this is presentation over data the board already holds.",
-    "pros": [
-      "Makes foundational work visibly foundational, which priority tiers cannot",
-      "Reuses the reverse-dependency index — no new data, no library",
-      "Answers the roadmap question the user actually asks"
-    ],
-    "cons": [
-      "Only earns its place on a board with real dependency density; a flat backlog shows one tier and learns nothing",
-      "Cycles need a defined, visible fallback rather than silent reordering"
-    ],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-09",
-        "note": "Captured from the user's design critique: 'That is more valuable for Arc than a conventional priority ranking.' Depends on the lens switcher landing first."
-      },
-      {
-        "at": "2026-08-10",
-        "note": "Enriched for agent pickup: why-now, the open decision, conviction, build constraints and an acceptance boundary — so a builder can judge scope without reconstructing the reasoning from prose."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-09",
-    "updated_at": "2026-08-10T09:32:02.100Z",
-    "why_now": "Every idea now shows what it Opens, but nothing ranks by it — so the foundational cards that several others wait on still read like ordinary features when you scan the column.",
-    "decision": "How are dependency cycles surfaced — flagged in place as a warning, or broken silently by file order?",
-    "conviction": "promising",
-    "constraints": "No graph library and no new data: reuse the reverse index behind unlockedBy(). Read-only view — tiers are a reading of the backlog, never an edit to it.",
-    "acceptance": "Foundational ideas appear in a top tier with the capabilities they unlock beneath them, and any cycle is reported rather than hidden."
   }
 ]
