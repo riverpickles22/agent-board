@@ -1533,5 +1533,124 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-12T16:00:00Z"
+  },
+  {
+    "id": "B32-1",
+    "epic_id": "B32",
+    "name": "queue.js — the selection rule as one shared module",
+    "description": "PROTOCOL §3 (epic grain) and the story-grain ready queue currently live inside index.html; a CLI would have to re-implement them, which is the drift doctor.js exists to prevent. Extract both into queue.js (UMD like doctor.js): pickable stories with ranking, epic-grain next-up fallback, in-flight claims, needs-you, stale claims, and a summary. The UI's readyQueue/nextUp/inFlight delegate to it.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "queue.js is pure — no I/O, no DOM, injectable clock — and loads via require() and a script tag",
+      "The UI work queue renders identically before and after: same picks, same order, same counts",
+      "Ranking matches PROTOCOL §3 and the ready-queue spec: story priority → epic file order → story file order; epic grain priority → unblock count → file order",
+      "Archived epics and their stories are excluded everywhere, per PROTOCOL §3.0"
+    ],
+    "context": "board; board-cli.js; queue.js; server.js; AGENTS.md; PROTOCOL.md §3",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B32-2",
+    "epic_id": "B32",
+    "name": "./board next — the pickable queue, printed",
+    "description": "What an agent asks first. Prints ranked pickable stories (falling back to epic grain when a board has no stories), why others are excluded, and how to claim per AGENTS.md §6. --json for machine reads.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "./board next <project> lists pickable stories in the queue's order with epic, priority and criteria count",
+      "Excluded work is summarized by reason: claimed, gated, waiting on deps, needs prep, WIP-blocked",
+      "A board with no stories falls back to epic-grain next-up",
+      "--json emits the same data as parseable JSON",
+      "Output ends with the claim instruction, citing AGENTS.md §6"
+    ],
+    "context": "board; board-cli.js; queue.js; server.js; AGENTS.md; PROTOCOL.md §3",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B32-3",
+    "epic_id": "B32",
+    "name": "./board status — orientation in one screen",
+    "description": "The cold-start answer: whose attention is needed, what is moving, what is pickable, is the data healthy. Needs-you items first (they outrank everything), in-flight claims with age and staleness, ready count, lane counts, doctor error/warning counts. --json for machine reads.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "Needs-you items print first with their reasons",
+      "In-flight claims show holder and age; stale ones are flagged",
+      "Ready-to-pick-up count matches ./board next",
+      "Doctor counts appear with a pointer to ./board doctor",
+      "--json emits the same data as parseable JSON"
+    ],
+    "context": "board; board-cli.js; queue.js; server.js; AGENTS.md; PROTOCOL.md §3",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B32-4",
+    "epic_id": "B32",
+    "name": "./board new — scaffold and register a project",
+    "description": "The fresh-project setup: create the data dir with the five default files (shared with the server via defaults.js, one source), register it in projects.json, print the serve URL and the git reminder. Adopts an existing data dir without overwriting; refuses a taken name.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "./board new <name> <dir> creates the five files and registers the project",
+      "A taken name is refused with exit 1; an invalid name is refused",
+      "A directory that already holds board files is registered without any file being overwritten",
+      "The scaffolded board serves under /<name>/ and passes ./board doctor",
+      "server.js and the scaffold read the same defaults from one module",
+      "A dir outside a git repo gets a warning naming the ratification consequence"
+    ],
+    "context": "board; board-cli.js; queue.js; server.js; AGENTS.md; PROTOCOL.md §3",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B32-5",
+    "epic_id": "B32",
+    "name": "The skill and the contract teach the CLI",
+    "description": "An agent that doesn't know the commands exist will recompute the rules by hand. SKILL.md gains the CLI as a first-class section (discovery via ./board help, reads via next/status/doctor, writes stay JSON edits); AGENTS.md documents the commands beside the doctor; PROTOCOL §3 points at ./board next as its executable form; README and CAPABILITIES follow.",
+    "kind": "docs",
+    "acceptance_criteria": [
+      "SKILL.md documents every command with when-to-use guidance and the reads-vs-writes boundary",
+      "AGENTS.md and PROTOCOL.md reference the commands where the rules they implement are stated",
+      "./board help prints a 'for agents' orientation block naming the contract files",
+      "CAPABILITIES.md and README.md list the CLI surface"
+    ],
+    "context": ".claude/skills/agent-board/SKILL.md; AGENTS.md; PROTOCOL.md; README.md; CAPABILITIES.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
   }
 ]

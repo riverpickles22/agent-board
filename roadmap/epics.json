@@ -954,5 +954,31 @@
     "test_plan": "With three projects registered: /arc/#/board and /board/#/ideas each serve their own data from one port; the header switcher moves between them without a restart and a copied URL reopens the same project on the same page; edits saved on one board do not appear on another; live refresh fires only for the project you are looking at; and BOARD_DATA_DIR=<dir> node server.js still serves an unprefixed single-project board with the skill's contract unchanged.",
     "archived_at": "2026-08-12",
     "updated_at": "2026-08-12T23:26:17.005Z"
+  },
+  {
+    "id": "B32",
+    "name": "Terminal parity — the board's answers, askable from the CLI",
+    "description": "Claude sessions are the primary interface; the board visualizes. But several answers exist only in the UI: the pickable queue, the orientation summary, and project scaffolding had no command at all. One shared rule module (queue.js, the doctor.js pattern) feeds both the work-queue strip and a set of CLI commands — ./board next, ./board status, ./board new, ./board help — each with --json for machine consumption, so an agent can discover and act without a browser.",
+    "notes": "From the CX brainstorm (2026-08-13), user go-ahead same day: 'add some CLI commands that a claude code session can run to understand what actions it can make and make sure we have updated skills'. Decision inherited from the doctor: the rule lives in one shared pure module consumed by both front ends, so they cannot drift. Reads are CLI-friendly; writes stay direct JSON edits per AGENTS.md — the CLI informs, it does not act. Workflow impact: an agent orients with ./board status, picks work with ./board next, and scaffolds a project with ./board new — no browser, no recomputing PROTOCOL §3 by hand. Built and verified 2026-08-13: queue.js extracted with the UI's readyQueue/nextUp/inFlight delegating to it — the arc Ready strip and ./board next arc produced the identical three picks in the same order after the refactor. next/status ran against board and arc with valid --json; the WIP note surfaced on arc. ./board new scaffolded a project that served under /demo/ and passed the doctor, refused a taken and an invalid name, adopted existing files without overwriting (a seeded idea survived re-registration), and warned about the missing git repo. help prints the agent orientation block. SKILL.md, AGENTS.md §3.5, PROTOCOL §3, README and CAPABILITIES all teach the commands. defaults.js now feeds both server.js and the scaffold.",
+    "theme": "Agent enablement",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "cli"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "./board next board and ./board next arc print the same pickable stories the UI's Ready-to-pick-up strip shows, in the same order, with reasons for what is excluded; --json parses and carries the same items. ./board status names needs-you items, in-flight claims with age and staleness, ready count and doctor counts. ./board new <name> <dir> scaffolds the five files, registers the project, refuses a taken name, adopts an existing data dir without overwriting, and the scaffolded board serves and passes ./board doctor. ./board help prints every command plus the agent orientation block. The UI work queue renders identically before and after the refactor.",
+    "archived_at": null,
+    "updated_at": "2026-08-13T14:00:00Z"
   }
 ]
