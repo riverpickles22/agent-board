@@ -54,36 +54,9 @@ const DEFAULT_PROJECT = MULTI
   : null;
 const dirFor = (project) => (MULTI ? PROJECTS[project] : DATA);
 
-// resource name (used in /api/<resource>) → data file.
-const FILES = {
-  epics: "epics.json",
-  stories: "stories.json",
-  ideas: "ideas.json",
-  config: "config.json",
-  milestones: "milestones.json",
-};
-
-// Resources whose whole value is an object rather than an array.
-const OBJECT_RESOURCES = new Set(["config", "milestones"]);
-
-// Sensible defaults when a project's data dir doesn't have a file yet —
-// so a brand-new project can point BOARD_DATA_DIR at an empty directory
-// and get a working (empty) board instead of an error.
-const DEFAULTS = {
-  epics: [],
-  stories: [],
-  ideas: [],
-  config: {
-    lanes: ["Backlog", "In Progress", "Review", "Done"],
-    priorities: ["Now", "Next", "Later", "Someday"],
-    themes: [],
-    milestones: [],
-    open_gates: [],
-    wip_limits: {},
-    view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
-  },
-  milestones: { overview: null, milestones: [] },
-};
+// Resource names, files, and fresh-board defaults live in defaults.js,
+// shared with the `./board new` scaffold — one source for what a project is.
+const { FILES, OBJECT_RESOURCES, DEFAULTS } = require("./defaults.js");
 
 function readData(key, dir) {
   const file = path.join(dir || DATA, FILES[key]);
@@ -324,8 +297,8 @@ const server = http.createServer(async (req, res) => {
     }
     // The shared check function, served so the UI runs exactly what the CLI
     // runs. Static asset, not an endpoint — the client already holds the data.
-    if (req.method === "GET" && url === "/doctor.js") {
-      return sendFile(res, "doctor.js", "text/javascript; charset=utf-8");
+    if (req.method === "GET" && (url === "/doctor.js" || url === "/queue.js")) {
+      return sendFile(res, url.slice(1), "text/javascript; charset=utf-8");
     }
     // Capability self-description for agents and humans without repo access:
     // /llms.txt is the emerging agent convention; /docs is the human alias.

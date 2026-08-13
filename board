@@ -11,6 +11,11 @@
 #   ./board setup      install the Claude skill (idempotent)
 #   ./board doctor <name>     check a project's data against the contract
 #                             (exit 1 if there are errors, 0 otherwise)
+#   ./board next <name>       the pickable queue (PROTOCOL §3), printed
+#   ./board status <name>     orientation: needs-you, in flight, ready, health
+#   ./board new <name> <dir>  scaffold + register a fresh project
+#   ./board help              every command, plus the agent orientation block
+#   (next/status take --json for machine-readable output)
 #
 # Projects are registered in projects.json (name -> data directory).
 set -euo pipefail
@@ -51,6 +56,39 @@ list() {
   echo "Stop one with:  ./board stop [port]"
   echo "Check one with: ./board doctor <name>"
   echo "Claude skill:   ./board setup"
+  echo "Everything:     ./board help"
+}
+
+# The discovery command — what an agent (or a person) can do from here.
+help() {
+  cat <<'EOT'
+agent-board — one board codebase, many projects (projects.json)
+
+Serve
+  ./board <name>            serve every registered board, opening on <name>
+  ./board <name> --only     serve only <name>, unprefixed (pinned mode)
+  ./board stop [port]       stop the board on a port (default 4300)
+
+Read (safe anytime; next/status take --json)
+  ./board status <name>     orientation: who needs you, what's in flight,
+                            what's pickable, lane counts, data health
+  ./board next <name>       the pickable queue — PROTOCOL §3, executable
+  ./board doctor <name>     the contract, checked (exit 1 on errors)
+
+Create
+  ./board new <name> <dir>  scaffold a fresh project's data dir with the
+                            five files and register it — or adopt a dir
+                            that already has board data (never overwrites)
+
+For agents (Claude Code and friends)
+  The CLI reads; it never writes board data. Acting on a card — claiming,
+  moving, grooming, editing — is done by editing the project's JSON files
+  under the contract in AGENTS.md (schemas §2, edit rules §3, build loop
+  §6). PROTOCOL.md holds the selection rule ./board next implements.
+  A running server serves both at /AGENTS.md and /PROTOCOL.md, and the
+  capability inventory at /llms.txt. Saving is a human act: they say
+  "save", and the data dir gets a git commit.
+EOT
 }
 
 # Report-only, always: the doctor is a lens, never a repair tool. Exits 1 on
@@ -130,6 +168,21 @@ fi
 if [ "$1" = "doctor" ]; then
   doctor "${2:-}"
   exit $?
+fi
+
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  help
+  exit 0
+fi
+
+if [ "$1" = "next" ] || [ "$1" = "status" ]; then
+  cmd="$1"; shift
+  exec node "$HERE/board-cli.js" "$cmd" "$@"
+fi
+
+if [ "$1" = "new" ]; then
+  shift
+  exec node "$HERE/board-cli.js" new "$@"
 fi
 
 ensure_skill

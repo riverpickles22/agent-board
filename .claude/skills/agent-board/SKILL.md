@@ -1,6 +1,6 @@
 ---
 name: agent-board
-description: Work a project's agent-board backlog (ideas, epics, stories, milestones) directly as JSON — no server needed. Use when the user wants to know what to work on next, capture or triage ideas, brainstorm and break a feature request down into an epic with stories and acceptance criteria, clean up / curate the backlog, lay out or update milestone deliverables, move/claim cards, save the board to git, build a story they've declared ready ("begin X"), or change the board's own UI/UX ("change the UI", "redesign the ideas page", "add X to a card" — the Design workflow over design/*.md specs). Projects today: arc, chaim, board (the tool's own backlog).
+description: Work a project's agent-board backlog (ideas, epics, stories, milestones) directly as JSON — no server needed. Use when the user wants to know what to work on next, capture or triage ideas, brainstorm and break a feature request down into an epic with stories and acceptance criteria, clean up / curate the backlog, lay out or update milestone deliverables, move/claim cards, save the board to git, build a story they've declared ready ("begin X"), run the board CLI (./board next/status/doctor/new), or change the board's own UI/UX ("change the UI", "redesign the ideas page", "add X to a card" — the Design workflow over design/*.md specs). Projects today: arc, chaim, board (the tool's own backlog).
 ---
 
 # agent-board
@@ -22,6 +22,27 @@ read it before picking up work. For the capability inventory (or to
 answer "what does agent-board do?"), read
 `<agent-board>/CAPABILITIES.md`. A running board serves all three:
 `/llms.txt` + `/docs` (capabilities), `/AGENTS.md`, `/PROTOCOL.md`.
+
+**The CLI answers before you compute.** From the agent-board checkout,
+`./board help` lists everything; the read commands are safe anytime:
+
+- `./board status <project>` — cold-start orientation: who needs a human
+  (the `needs` items, which outrank everything), what's in flight and
+  whose claims are stale, what's pickable, lane counts, doctor health.
+  **Run this before deciding what to do on a board.**
+- `./board next <project>` — the pickable queue, PROTOCOL §3 executable:
+  the same ranked list the UI's Ready strip shows, with why the rest is
+  excluded. Prefer it to re-deriving the selection rule by hand.
+- `./board doctor <project>` — the contract, checked (exit 1 on errors).
+  Run it after grooming or curation, before calling a board clean.
+- `./board new <name> <dir>` — scaffold and register a fresh project
+  (five default files; adopts existing data without overwriting).
+- `next` and `status` take `--json` for machine-readable output.
+
+The CLI **reads**; it never writes board data. Acting — claiming, moving,
+grooming, editing — is still you editing the JSON files under AGENTS.md.
+`<project>` is a projects.json name or a data-dir path; with
+`BOARD_DATA_DIR` set you can omit it.
 
 **What the board can do for you today** (so you can offer it, not
 rediscover it): the **Next-up strip** and **Ready queue** render the
@@ -58,9 +79,11 @@ Find the agent-board checkout: `~/workspace/agent-board`, or wherever
 
 ## 3. Workflows
 
-**Operate.** "What's next?" → apply PROTOCOL §3 literally and show your
-ranking, naming the milestone each pick serves; an empty result is an
-answer (say why). Move/claim/edit cards and triage ideas per AGENTS.md §3.
+**Operate.** "What's next?" → `./board next <project>` (PROTOCOL §3,
+computed by the same module the UI renders — show its ranking, naming the
+milestone each pick serves; fall back to applying §3 by hand only if the
+CLI is unavailable); an empty result is an answer (say why). Orient first
+with `./board status <project>`. Move/claim/edit cards and triage ideas per AGENTS.md §3.
 Respect dependency ordering and gates — gates are opened by humans in
 `config.json`, never by you. Milestone deliverables live in
 `milestones.json`; when the user asks "where are we on M1?", answer from

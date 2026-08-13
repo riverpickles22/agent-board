@@ -382,7 +382,27 @@ and a write reaches only the named project.
 the server to one directory, removes the prefix, and leaves every route
 exactly as it was. Nothing about how you find a project's data dir changes.
 
-## 3.5 Checking the board (`./board doctor`)
+## 3.5 The read-side CLI
+
+The board's answers are askable without a browser, from the agent-board
+checkout — and they run the **same shared modules the UI renders**
+(`queue.js`, `doctor.js`), so the two can never disagree:
+
+- `./board status <project>` — orientation: `needs` items first (they
+  outrank everything), in-flight claims with age and staleness, the
+  pickable count, lane counts, doctor health.
+- `./board next <project>` — the pickable queue, ranked exactly as §3 of
+  PROTOCOL.md and the UI's Ready strip rank it, with exclusion reasons.
+- `./board new <name> <dir>` — scaffold a fresh project (the five files,
+  from the same defaults the server uses) and register it in
+  projects.json; adopts an existing data dir without overwriting.
+- `./board help` — every command, plus the agent orientation block.
+- `next`/`status` take `--json`.
+
+The CLI reads; **writes stay direct JSON edits under this contract**.
+Nothing here claims, moves, or saves for you.
+
+## 3.6 Checking the board (`./board doctor`)
 
 `./board doctor <project>` checks the data against the invariants this
 document states — ids unique and resolving, vocabulary from config, lanes

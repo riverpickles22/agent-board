@@ -144,6 +144,15 @@ watched on its own, so a change to one board never disturbs a viewer of
 another. Pinning a single board — `./board <name> --only` — keeps every route
 unprefixed.
 
+The read side is also a **CLI**: `./board status` (orientation — needs-you
+first, in-flight claims and staleness, pickable count, health),
+`./board next` (the pickable queue, the same ranked list the Ready strip
+shows, computed by the same shared module), `./board new` (scaffold and
+register a fresh project from the server's own defaults), `./board help`
+(discovery, with an agent orientation block), `--json` on the read
+commands. Agents orient and pick from the terminal; the board stays the
+visualization of the same answers.
+
 A **board doctor** checks the data against the contract this document
 describes — ids that don't resolve, a story pointing at a missing epic, a
 deliverable linking a dead epic, an epic archived before its stories

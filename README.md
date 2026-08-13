@@ -34,6 +34,12 @@ moves between them with no restart and no second port. The project lives in
 the URL, so links are shareable across boards. Pinning one board — `./board <name> --only`, or
 `BOARD_DATA_DIR=<dir>` directly — still serves it unprefixed, exactly as before.
 
+**Ask it:** `./board status <name>` for orientation (who needs you, what's
+moving, what's pickable, health), `./board next <name>` for the pickable
+queue — the same answers the UI shows, from the same shared rule modules —
+and `./board new <name> <dir>` to scaffold and register a fresh project.
+`./board help` lists everything; `--json` makes the reads machine-readable.
+
 **Check it:** `./board doctor <name>` validates a project's data against
 the rules in [`AGENTS.md`](AGENTS.md) — dangling ids, vocabulary drift,
 lifecycle violations, dependency cycles — and exits non-zero only on

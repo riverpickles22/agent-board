@@ -54,7 +54,10 @@ Among pickable cards, rank by:
 3. **file order** — the card's position in `epics.json`, as the final,
    deterministic tiebreak.
 
-The top of that ranking is "next." An empty selection (nothing pickable) is
+The top of that ranking is "next." `./board next <project>` prints this
+computation (story grain first, this epic grain as the fallback), from the
+same module the board UI renders — compute it by hand only when the CLI
+is unavailable. An empty selection (nothing pickable) is
 information, not a failure — report why: everything's blocked on a
 dependency, gated closed, already claimed, or the lane is at its WIP limit.
 

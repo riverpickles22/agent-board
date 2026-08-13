@@ -8,6 +8,7 @@
      file defines window.BoardDoctor in a browser and module.exports in node,
      so one function serves both and cannot drift between them. -->
 <script src="/doctor.js"></script>
+<script src="/queue.js"></script>
 <script>
   /* Before any paint: a saved theme wins over the OS. Inline and first so the
      page never flashes the other scheme on the way in. Unset = follow the OS,
@@ -1011,29 +1012,14 @@ function checkMove(e, target){
   return { ok:true };
 }
 
-/* ---- next up: the selection rule (PROTOCOL §3), rendered ---- */
-function unblockCount(id){ return state.epics.filter(x => (x.deps||[]).includes(id)).length; }
+/* ---- next up: the selection rule (PROTOCOL §3), rendered ----
+   The rule itself lives in queue.js, shared with `./board next` — the
+   doctor's pattern, so the strip and the CLI cannot disagree. These
+   wrappers only re-shape the result for the render code below. */
 function gateOpen(e){ return !e.gate || e.gate==="none" || (state.config.open_gates||[]).includes(e.gate); }
-// A pick would move into the first lane's successor; if that lane has a
-// configured wip_limit and is full, nothing is pickable (PROTOCOL §3.5).
-function wipBlocked(){
-  const lane = COLUMNS[1];
-  const lim = (state.config.wip_limits||{})[lane];
-  return !!lane && lim != null && state.epics.filter(e => e.column===lane).length >= lim;
-}
 function nextUp(){
-  const first = COLUMNS[0];
-  const notes = { deps:0, gate:0, claim:0 };
-  const picks = [];
-  state.epics.forEach((e, ix) => {
-    if(e.column !== first) return;
-    if(depsOf(e).some(d => d.column !== doneLane())){ notes.deps++; return; }
-    if(!gateOpen(e)){ notes.gate++; return; }
-    if(e.claimed_by){ notes.claim++; return; }
-    picks.push({ e, ix, p: Math.max(0, PRIOS.indexOf(e.priority)), u: unblockCount(e.id) });
-  });
-  picks.sort((a,b) => a.p - b.p || b.u - a.u || a.ix - b.ix);
-  return { picks: wipBlocked() ? [] : picks, notes, wip: wipBlocked() };
+  const { picks, notes, wip } = BoardQueue.nextUp(state);
+  return { picks: picks.map(x => ({ e: x.epic, ix: x.ix, p: x.p, u: x.u })), notes, wip };
 }
 // One display state per story from one rule: lane + ready + claim + epic
 // health. Every surface renders this — no surface may read `ready`
@@ -1119,33 +1105,15 @@ function needsLine(x){
 // ready (the human's flag), sitting in the first lane, unclaimed, and its
 // epic is ungated with all deps done. Board-wide, like Next up.
 function readyQueue(){
-  const first = COLUMNS[0];
-  const epicIx = new Map(state.epics.map((e, i) => [e.id, i]));
-  const picks = [];
-  let readyButStuck = 0;
-  state.stories.forEach((s, ix) => {
-    if(!s.ready || s.column === doneLane()) return;   // finished ≠ stuck
-    if(s.column !== first || s.claimed_by){ readyButStuck++; return; }
-    const ep = byId()[s.epic_id];
-    if(!ep || ep.archived_at) return;            // shipped and closed — not pickable
-    if(!gateOpen(ep) || depsOf(ep).some(d => d.column !== doneLane())){ readyButStuck++; return; }
-    picks.push({ s, ep, ix, p: Math.max(0, PRIOS.indexOf(s.priority)), er: epicIx.get(ep.id) });
-  });
-  picks.sort((a,b) => a.p - b.p || a.er - b.er || a.ix - b.ix);
-  return { picks, readyButStuck };
+  const { picks, readyButStuck } = BoardQueue.pickable(state);
+  return { picks: picks.map(x => ({ s: x.story, ep: x.epic, ix: x.ix, p: x.p, er: x.er })), readyButStuck };
 }
 // ---- the work queue: one strip, one answer ----
 // Next up (epic-grain) and Ready (story-grain) used to answer "what now"
 // separately, so the board could say "nothing pickable" directly above
 // three ready stories. This reports the single most actionable state,
 // and names who owns whatever is already moving.
-function inFlight(){
-  return (state.stories||[]).filter(s => {
-    const ep = byId()[s.epic_id];
-    if(!ep || ep.archived_at) return false;      // shipped and closed — not work
-    return s.claimed_by && s.column !== doneLane() && s.column !== COLUMNS[0];
-  });
-}
+function inFlight(){ return BoardQueue.inFlight(state); }
 function sinceLabel(iso){
   const t = Date.parse(iso||""); if(isNaN(t)) return "";
   const m = Math.max(0, Math.round((Date.now()-t)/60000));
