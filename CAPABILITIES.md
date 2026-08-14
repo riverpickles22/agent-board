@@ -176,7 +176,11 @@ visible at both ends. Opening the board after time away starts with a
 **briefing banner** — "Since you last looked: N changes · M stale
 claims" — the ratified history since your last visit as the same
 card-level statements, computed from a per-browser last-seen marker.
-And everything is keyboard-reachable: **`/`** opens a fuzzy command
+An epic **copies whole** — details, test plan, and every story with its
+criteria — as markdown from its row header or modal, the ideas-page copy
+convention applied to a groomed unit of work. The work queue folds to a
+single line (remembered), and in-flight work compresses to chips so the
+strip answers without eating the board. And everything is keyboard-reachable: **`/`** opens a fuzzy command
 palette over every epic, story, and idea (Enter jumps straight to the
 card), **`n`** captures a new idea from any page.
 

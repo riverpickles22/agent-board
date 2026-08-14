@@ -133,6 +133,17 @@
   .rq-item.flight{cursor:pointer}
   .rq-item .rq-who{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--accent);white-space:nowrap}
   .rq-list{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .rq-h{cursor:pointer;user-select:none}
+  .rq-h .fold{color:var(--ink-3);font-size:10px;margin-right:2px}
+  .rq-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .rq-chip{display:inline-flex;align-items:center;gap:5px;padding:1px 4px 1px 8px;border:1px solid var(--line);
+    border-radius:20px;background:color-mix(in srgb,var(--accent) 6%,transparent);cursor:pointer;
+    font-family:var(--mono);font-size:10.5px;color:var(--ink-2);white-space:nowrap}
+  .rq-chip:hover{border-color:var(--accent)}
+  .rq-chip .rid{color:var(--accent);font-weight:700}
+  .rq-chip.stale{color:var(--st-blocked);border-color:color-mix(in srgb,var(--st-blocked) 45%,transparent)}
+  .swim-h .rowcopy{border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:13px;padding:2px 6px;flex:0 0 auto}
+  .swim-h .rowcopy:hover{color:var(--accent)}
   .rq-item{display:flex;align-items:baseline;gap:10px;padding:5px 8px;border:0;border-radius:7px;
     background:none;cursor:pointer;text-align:left;width:100%}
   .rq-item:hover{background:var(--accent-soft)}
@@ -1114,6 +1125,16 @@ function readyQueue(){
 // three ready stories. This reports the single most actionable state,
 // and names who owns whatever is already moving.
 function inFlight(){ return BoardQueue.inFlight(state); }
+// The strip's answer is its header sentence; the rows are optional depth.
+// Folded is remembered per project, like the board mode.
+let workqFolded = false;
+function workqKey(){ return "agent-board:workq:" + (((state.config||{}).view||{}).title || "board"); }
+function loadWorkqFold(){ try{ workqFolded = localStorage.getItem(workqKey()) === "folded"; }catch(e){ workqFolded = false; } }
+function toggleWorkqFold(){
+  workqFolded = !workqFolded;
+  try{ localStorage.setItem(workqKey(), workqFolded ? "folded" : "open"); }catch(e){}
+  renderWorkQueue();
+}
 function sinceLabel(iso){
   const t = Date.parse(iso||""); if(isNaN(t)) return "";
   const m = Math.max(0, Math.round((Date.now()-t)/60000));
@@ -1196,23 +1217,35 @@ function renderWorkQueue(){
     ? 'Ready to pick up <span class="rq-n">'+picks.length+'</span>'+
       (working.length ? '<span class="rq-flight">· '+working.length+' in flight</span>' : '')
     : 'Agent working <span class="rq-n">'+working.length+'</span>';
-  el.innerHTML = '<div class="rq-h">'+head+
-      '<span class="rq-sub">'+(picks.length ? 'dependencies satisfied · criteria defined · unclaimed'
-                                            : 'nothing else is ready to claim')+'</span></div>'+
-    '<div class="rq-list">'+
-      working.map(s => '<div class="rq-item flight'+(claimIsStale(s)?' stale':'')+'" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
-        '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
-        '<span class="rq-who" title="'+esc(claimTitle(s))+'">'+(claimIsStale(s)?'⚠ ':'')+esc(s.claimed_by)+
-          (sinceLabel(s.claimed_at)?' · '+esc(sinceLabel(s.claimed_at)):'')+'</span>'+
-        '<button class="rq-rel" data-rel="'+esc(s.id)+'" title="Release this claim">↩</button>'+
-        '</div>').join("")+
-      picks.map(({s, ep}) => '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
+  // In-flight work needs awareness, not real estate: the board below already
+  // shows those cards in their lanes with the same claim detail, so here they
+  // compress to chips — id, holder, age, and the release. The pickable rows
+  // stay full: they are the strip's actual answer, the begin menu.
+  const chips = working.length
+    ? '<div class="rq-chips">'+working.map(s =>
+        '<span class="rq-chip'+(claimIsStale(s)?' stale':'')+'" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+
+          '" title="'+esc(s.name+' — '+claimTitle(s))+'" role="button" tabindex="0">'+
+          '<span class="rid">'+esc(s.id)+'</span>'+(claimIsStale(s)?'⚠ ':'')+esc(s.claimed_by)+
+          (sinceLabel(s.claimed_at)?' · '+esc(sinceLabel(s.claimed_at)):'')+
+          '<button class="rq-rel" data-rel="'+esc(s.id)+'" title="Release this claim">↩</button>'+
+        '</span>').join("")+'</div>'
+    : "";
+  const list = picks.length
+    ? '<div class="rq-list">'+picks.map(({s, ep}) => '<button class="rq-item" data-eid="'+esc(s.epic_id)+'" data-sid="'+esc(s.id)+'">'+
         '<span class="rid">'+esc(s.id)+'</span><span class="rnm">'+esc(s.name)+'</span>'+
         '<span class="rq-why">'+esc(ep.id+" · "+(s.kind||"feature"))+
           ((s.acceptance_criteria||[]).length ? ' · '+(s.acceptance_criteria||[]).length+' criteria' : '')+
-        '</span></button>').join("")+
-    '</div>';
-  el.querySelectorAll(".rq-item").forEach(b => b.addEventListener("click", ev => {
+        '</span></button>').join("")+'</div>'
+    : "";
+  el.innerHTML = '<div class="rq-h" id="rq-fold" role="button" tabindex="0" title="'+(workqFolded?'Expand':'Collapse')+' the work queue">'+
+      '<span class="fold">'+(workqFolded?'▸':'▾')+'</span>'+head+
+      '<span class="rq-sub">'+(workqFolded ? '' : (picks.length ? 'dependencies satisfied · criteria defined · unclaimed'
+                                            : 'nothing else is ready to claim'))+'</span></div>'+
+    (workqFolded ? '' : chips+list);
+  const fold = document.getElementById("rq-fold");
+  fold.addEventListener("click", toggleWorkqFold);
+  fold.addEventListener("keydown", ev => { if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggleWorkqFold(); } });
+  el.querySelectorAll(".rq-item, .rq-chip").forEach(b => b.addEventListener("click", ev => {
     if(ev.target.closest("[data-rel]")) return;      // the release button owns its click
     renderStoryModal(b.dataset.eid, b.dataset.sid);
   }));
@@ -1260,6 +1293,7 @@ async function load(){
   filterMS = d.ms; filterTheme = d.theme; boardMode = savedBoardMode() || d.mode;
   ideaLens = savedLens() || "status";
   loadBurnerFold();
+  loadWorkqFold();
   if(!location.hash && d.page !== HOME_PAGE) location.hash = "#/" + d.page;
   renderFilters();
   render();
@@ -1552,6 +1586,8 @@ function renderSwimlanes(board, shown){
   withStories.forEach(e => board.appendChild(swimEl(e)));
   board.querySelectorAll("[data-arch-epic]").forEach(b =>
     b.addEventListener("click", ev => { ev.stopPropagation(); toggleArchiveEpic(b.dataset.archEpic); }));
+  board.querySelectorAll("[data-copy-epic]").forEach(b =>
+    b.addEventListener("click", ev => { ev.stopPropagation(); copyEpic(b.dataset.copyEpic); }));
   const without = shown.length - withStories.length;
   const note = document.createElement("div");
   note.className = "rows-note";
@@ -1583,12 +1619,14 @@ function swimEl(e){
   h.innerHTML = folded
     ? '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
       '<span class="edone">✓ '+done+'/'+st.length+'</span>'+
-      '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="'+esc(removeTitle(e))+'">⌂ Remove from board</button>'
+      '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="'+esc(removeTitle(e))+'">⌂ Remove from board</button>'+
+      '<button class="rowcopy" data-copy-epic="'+esc(e.id)+'" title="Copy this epic and its stories as markdown">⧉</button>'
     : '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
       (gated ? '<span class="egate" title="Closed until a human adds this gate to open_gates in config.json">⛔ '+esc(e.gate)+'</span>' : "")+
-      epicRollup(e, st);
+      epicRollup(e, st)+
+      '<button class="rowcopy" data-copy-epic="'+esc(e.id)+'" title="Copy this epic and its stories as markdown">⧉</button>';
   h.addEventListener("click", ev => {
-    if(ev.target.closest("[data-arch-epic]")) return;      // the button owns its click
+    if(ev.target.closest("[data-arch-epic],[data-copy-epic]")) return;   // buttons own their clicks
     if(finished){ expandedRows.has(e.id) ? expandedRows.delete(e.id) : expandedRows.add(e.id); render(); return; }
     openEdit(e.id);
   });
@@ -1743,6 +1781,7 @@ function renderModal(e){
     '<div class="actions">'+
       '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
       '<button class="btn" id="m-cancel">Cancel</button>'+
+      (create ? '' : '<button class="btn" id="m-copy" title="Copy this epic and its stories as markdown">⧉ Copy</button>')+
       (create ? '' : (e.archived_at
         ? '<button class="btn" id="m-arch" title="Return this epic to the active board">Unarchive</button>'
         : (canRemove(e)
@@ -1755,6 +1794,8 @@ function renderModal(e){
   wireAutoGrow(modal);
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
+  const mcp = document.getElementById("m-copy");
+  if(mcp) mcp.addEventListener("click", () => copyEpic(e.id));
   if(!create) document.getElementById("m-del").addEventListener("click", () => deleteEpic(e.id));
   const rb = document.getElementById("m-release");
   if(rb) rb.addEventListener("click", () => releaseClaim("epic", e.id));
@@ -3317,6 +3358,49 @@ function wireIdeasChrome(v){
   }));
   v.querySelectorAll(".idea").forEach(el =>
     el.addEventListener("click", () => navigate("ideas", el.dataset.id)));
+}
+
+// One epic — full record plus every story — as markdown, for pasting a
+// groomed unit of work into another tool. Same conventions as the ideas
+// export: ids in backticks so answers can reference cards back.
+function epicMarkdown(e){
+  const st = storiesOf(e.id);
+  const lines = ["# "+e.name+"  `"+e.id+"`", ""];
+  if(e.description) lines.push(e.description, "");
+  const meta = [];
+  if(e.priority) meta.push("priority: "+e.priority);
+  if(e.status) meta.push("status: "+e.status);
+  if(e.column) meta.push("lane: "+e.column);
+  if(e.theme) meta.push("theme: "+e.theme);
+  if(e.milestone) meta.push("milestone: "+e.milestone);
+  if((e.tags||[]).length) meta.push("tags: "+e.tags.join(", "));
+  if((e.systems||[]).length) meta.push("systems: "+e.systems.join(", "));
+  if((e.deps||[]).length) meta.push("depends on: "+e.deps.join(", "));
+  if(e.gate && e.gate !== "none") meta.push("gate: "+e.gate);
+  if(meta.length) lines.push("— "+meta.join(" · "), "");
+  if(e.notes) lines.push("**Notes:** "+e.notes, "");
+  if(e.test_plan) lines.push("**Test plan:** "+e.test_plan, "");
+  st.forEach(s => {
+    lines.push("## "+s.name+"  `"+s.id+"`", "");
+    lines.push("— "+[(s.kind||"feature"), "lane: "+s.column, (s.ready ? "ready" : "not ready"),
+      "priority: "+(s.priority||"")].filter(Boolean).join(" · "), "");
+    if(s.description) lines.push(s.description, "");
+    if((s.acceptance_criteria||[]).length){
+      lines.push("Acceptance criteria:");
+      s.acceptance_criteria.forEach(c => lines.push("- "+c));
+      lines.push("");
+    }
+    if(s.context) lines.push("Context: "+s.context, "");
+  });
+  return lines.join("\n");
+}
+async function copyEpic(id){
+  const e = byId()[id]; if(!e) return;
+  const n = storiesOf(e.id).length;
+  try{
+    await navigator.clipboard.writeText(epicMarkdown(e));
+    showToast("Copied "+e.id+" + "+n+" stor"+(n===1?"y":"ies")+" as markdown.");
+  }catch(err){ showToast("Couldn't reach the clipboard — is the page focused?"); }
 }
 
 // The visible ideas view as markdown, for pasting into another tool to
