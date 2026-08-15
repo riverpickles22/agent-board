@@ -3403,6 +3403,45 @@ async function copyEpic(id){
   }catch(err){ showToast("Couldn't reach the clipboard — is the page focused?"); }
 }
 
+// One idea's full case — description, meta, reasoning, context, pros/cons,
+// compounding, sections, the whole log — as markdown, for running it past
+// another tool ("what are we missing?"). Same conventions as the epic and
+// ideas exports: the id in backticks so answers can reference the card.
+function ideaMarkdown(i){
+  const lines = ["# "+i.title+"  `"+i.id+"`", ""];
+  if(i.description) lines.push(i.description, "");
+  const meta = ["status: "+ideaStatus(i)];
+  if(i.category) meta.push("category: "+i.category);
+  if(i.priority) meta.push("priority: "+i.priority);
+  if(i.effort) meta.push("effort: "+i.effort);
+  if(i.impact) meta.push("impact: "+i.impact);
+  if(i.milestone) meta.push("milestone: "+i.milestone);
+  if(i.theme) meta.push("theme: "+i.theme);
+  if((i.tags||[]).length) meta.push("tags: "+i.tags.join(", "));
+  if((i.deps||[]).length) meta.push("depends on: "+i.deps.join(", "));
+  if(i.rejected_reason) meta.push("rejected because: "+i.rejected_reason);
+  lines.push("— "+meta.join(" · "), "");
+  const block = (label, val) => { if(val) lines.push("**"+label+":** "+val, ""); };
+  block("Why now", i.why_now);
+  block("Decision needed", i.decision);
+  block("Conviction", i.conviction);
+  block("Constraints", i.constraints);
+  block("Acceptance boundary", i.acceptance);
+  block("Validation plan", i.validation);
+  block("Context", i.context);
+  block("Compounding", i.compounding);
+  block("Notes", i.notes);
+  const pros = i.pros||[], cons = i.cons||[];
+  if(pros.length){ lines.push("Pros:"); pros.forEach(p => lines.push("- "+p)); lines.push(""); }
+  if(cons.length){ lines.push("Cons:"); cons.forEach(c => lines.push("- "+c)); lines.push(""); }
+  (i.sections||[]).forEach(s => { lines.push("## "+s.title, ""); if(s.body) lines.push(s.body, ""); });
+  if((i.log||[]).length){
+    lines.push("## Brainstorm log", "");
+    i.log.forEach(l => lines.push("- "+l.at+" — "+l.note));
+    lines.push("");
+  }
+  return lines.join("\n");
+}
 // The visible ideas view as markdown, for pasting into another tool to
 // brainstorm — full descriptions (both halves), a meta line, and the id
 // so answers can reference cards back.
@@ -3685,6 +3724,7 @@ function renderIdeaDetail(id){
     '<div class="ihead"><h2>'+esc(i.title)+'</h2>'+
       (quickWin(i)?'<span class="qwin">★ quick win</span>':"")+
       '<span style="margin-left:auto;display:flex;gap:8px">'+
+        '<button class="btn" id="idd-copy" title="Copy this idea’s full case as markdown — paste it into another tool to ask what we’re missing">⧉ copy</button>'+
         '<button class="btn" id="idd-edit">Edit core</button>'+
       '</span></div>'+
     lifecycleEl(i)+
@@ -3699,6 +3739,12 @@ function renderIdeaDetail(id){
 
   document.getElementById("idd-back").addEventListener("click", () => navigate("ideas"));
   document.getElementById("idd-edit").addEventListener("click", () => openIdea(i.id));
+  document.getElementById("idd-copy").addEventListener("click", async () => {
+    try{
+      await navigator.clipboard.writeText(ideaMarkdown(i));
+      showToast("Copied "+i.id+" as markdown.");
+    }catch(err){ showToast("Couldn't reach the clipboard — is the page focused?"); }
+  });
   // The title edits in place too — nothing on this page needs the modal.
   const h2 = v.querySelector(".idd h2");
   if(h2){

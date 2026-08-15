@@ -57,6 +57,7 @@ log is a borderless journal, everything else is the standard panel.)
 | Meta row | `metaRowEl()` `.imeta-row` | labeled micro-pills: priority, category, milestone (`short()`, full in title), theme, tags; `⊸ depends on` links; dim created/updated dates right | dep ids that are ideas render as `.dep-l` buttons (`data-goidea`) navigating to that idea; non-idea ids (epics) render inert (`.dep-x`) |
 | Description split | `descParts()` `.dplain` `.dtech` | plain-language description tops the left column, "Technical shape" box tops the right | splits on the `Technical shape:` paragraph convention; the halves live *inside* the `.idd-grid` columns so each side flows with no cross-column gap; descriptions without the marker render as one plain paragraph atop the left column |
 | Edit core | `#idd-edit` | button → `openIdea(id)` | same modal as the Ideas page |
+| Copy | `#idd-copy` `ideaMarkdown()` | "⧉ copy" beside Edit core — the idea's full case (description, meta, reasoning, context, pros/cons, compounding, sections, log) to the clipboard as markdown | for running the idea past another tool ("what are we missing?"); same conventions as the epic/ideas exports — id in backticks so answers can reference the card |
 | Validation plan | the reasoning block's `Validation plan:` line | `validation` — how we would know this works | shown beside constraints and the acceptance boundary; from `ready to implement` an empty one renders as an explicit gap (`#idd-valid-gap`), because that is the stage where it blocks promotion. Edited in the core modal with the other reasoning fields |
 | Context block | `.idd-block` | `context` or empty-state prompt | inline edit via `inlineEdit("context")` |
 | Pros / cons | `.procon` | two lists, markers in `--lane-5`/`--lane-4` | edited as one-per-line textareas |
@@ -81,6 +82,8 @@ log is a borderless journal, everything else is the standard panel.)
 - Dep link click (`data-goidea`) → `navigate("ideas", id)`; writes
   nothing.
 - Log add: Enter in the input or the Add button; empty input is ignored.
+- Copy (`#idd-copy`) → `ideaMarkdown(i)` to the clipboard + toast; writes
+  nothing.
 - Section delete lives inside the section editor (Delete section).
 - Cancel on any inline editor → re-render, nothing written.
 
