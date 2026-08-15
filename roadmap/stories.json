@@ -1652,5 +1652,53 @@
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B33-1",
+    "epic_id": "B33",
+    "name": "⧉ copy an epic — details and every story, as markdown",
+    "description": "The Ideas page's copy-as-markdown convention at the epic level: one click on a row header (and in the epic modal) copies the epic's full record and all its stories, ids in backticks so answers can reference cards back.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "A copy button on the rows-mode row header and in the epic modal copies without opening anything else",
+      "The markdown carries the epic's id, name, description, notes, test plan, and meta (theme, milestone, priority, status, tags, systems, deps, gate)",
+      "Every story follows with id, name, kind, lane, ready flag, description, acceptance criteria and context",
+      "A toast confirms, matching the Ideas copy convention",
+      "The button does not open the epic modal when clicked on the row header"
+    ],
+    "context": "index.html ideasMarkdown()/swimEl()/renderModal(); design/board.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-14T10:30:00Z"
+  },
+  {
+    "id": "B33-2",
+    "epic_id": "B33",
+    "name": "The work queue collapses to its answer",
+    "description": "The strip's answer is the header sentence; the detail rows are optional depth. In-flight stories become inline chips (id · who · age · release) instead of full-width rows, and the whole strip folds to its header line with the fold remembered per browser.",
+    "kind": "feature",
+    "acceptance_criteria": [
+      "With 6 in flight and 2 pickable the strip is dramatically shorter than eight full rows",
+      "In-flight renders as wrapping chips that keep the holder, age, staleness and the ↩ release",
+      "The strip folds to one line and back; the choice is remembered per browser like the board mode",
+      "Pickable rows stay individually visible and clickable when unfolded",
+      "The empty and epic-grain fallback states render as before"
+    ],
+    "context": "index.html renderWorkQueue()/.readyq CSS; design/board.md",
+    "systems": [
+      "agent-board"
+    ],
+    "ready": true,
+    "column": "Done",
+    "priority": "Now",
+    "claimed_by": null,
+    "claimed_at": null,
+    "updated_at": "2026-08-14T10:30:00Z"
   }
 ]

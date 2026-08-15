@@ -980,5 +980,31 @@
     "test_plan": "./board next board and ./board next arc print the same pickable stories the UI's Ready-to-pick-up strip shows, in the same order, with reasons for what is excluded; --json parses and carries the same items. ./board status names needs-you items, in-flight claims with age and staleness, ready count and doctor counts. ./board new <name> <dir> scaffolds the five files, registers the project, refuses a taken name, adopts an existing data dir without overwriting, and the scaffolded board serves and passes ./board doctor. ./board help prints every command plus the agent orientation block. The UI work queue renders identically before and after the refactor.",
     "archived_at": null,
     "updated_at": "2026-08-13T14:00:00Z"
+  },
+  {
+    "id": "B33",
+    "name": "Board ergonomics — epic copy, and a work queue that knows its size",
+    "description": "Two asks from the author's board review (2026-08-14). One: copy a whole epic — details plus every story — from the board itself, the Ideas page's ⧉ convention applied at the epic level, so a full epic can be pasted into another tool. Two: the work queue strip eats the top of the board; with six stories in flight it renders eight full-width rows before the lanes start, duplicating claim detail the Review lane already shows directly beneath it.",
+    "notes": "Direct user request with screenshot (2026-08-14), built same-session. Workflow impact: brainstorming a groomed epic in an outside tool stops meaning opening every story; the board's first screen returns to being lanes, not queue. Verified on arc 2026-08-14: the strip with 6 in flight + 2 pickable dropped from eight rows (~280px) to one chip line + two rows (123px), folds to 37px and the fold survives reload; release buttons live on the chips. A real click on A13's row-header ⧉ toasted 'Copied A13 + 6 stories' without opening the modal; the markdown carried the epic head, meta, and every story with criteria. The modal button renders on edit only.",
+    "theme": "Flow",
+    "milestone": "",
+    "priority": "Now",
+    "status": "shipped",
+    "tags": [
+      "agent-board",
+      "ux"
+    ],
+    "systems": [
+      "agent-board"
+    ],
+    "context_docs": [],
+    "gate": "none",
+    "deps": [],
+    "column": "Done",
+    "claimed_by": null,
+    "claimed_at": null,
+    "test_plan": "On arc: the ⧉ on an epic row header puts markdown on the clipboard containing the epic's description, notes, test plan, meta and every story with its criteria; the same button appears in the epic modal. The work queue with 6 in flight and 2 pickable renders in a fraction of its former height — in-flight collapses to chips, the strip folds to one line and remembers the fold per browser; the release affordance survives on the chips.",
+    "archived_at": null,
+    "updated_at": "2026-08-14T10:30:00Z"
   }
 ]
