@@ -1,6 +1,6 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-08-09.
+*The medium-altitude view, for humans and agents. As of 2026-08-15.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
@@ -63,7 +63,12 @@ priority); the archive is not a drop target since rejecting requires a
 reason. `done` and `rejected` live behind an archive toggle. Each idea
 has a deep-dive page: context, pros/cons, a **decision lens** (effort ×
 impact, quick-win flag, compounding), freeform sections, and an
-append-only dated brainstorm log.
+append-only dated brainstorm log — and a **⧉ copy** button beside Edit
+core that puts the idea's whole case on the clipboard as markdown, for
+running it past another tool to ask what we're missing. With the
+ideas-view copy and the epic copy, everything on the board exports for
+a second opinion at its own grain: the funnel, one idea, one groomed
+unit of work.
 
 **Milestones** — the narrative. Per milestone: summary, user outcome,
 gate/exit criteria, ROI, context docs, and **deliverables that roll up to
