@@ -900,42 +900,6 @@
     "promoted_to": "B31"
   },
   {
-    "id": "idea-doc-registry",
-    "title": "Docs as first-class citizens — a registry with two-way links",
-    "description": "Keep PRFAQs/architecture/decision docs as markdown in the *-system-design repo, but give each identity in a thin registry: type (prfaq/architecture/decision/contract), status (draft/ratified/superseded), and the themes/milestones/epics it drives. Epics answer 'what vision justifies me'; a PRFAQ answers 'what work exists because of me' — the promoted_to trick, applied upstream. A vision doctor then checks drift: a ratified PRFAQ no epic advances, an epic no doc justifies, a cited section that no longer exists. The Docs tab grows from rendering CAPABILITIES.md to rendering the project's own library.",
-    "notes": "Captured from the supply-chain / CX brainstorm (2026-08-13).",
-    "category": "feature",
-    "theme": "Decide fast",
-    "milestone": "",
-    "tags": [],
-    "deps": [],
-    "status": "idea",
-    "priority": "Next",
-    "effort": "medium",
-    "impact": "high",
-    "context": "context_docs today are one-way path+note pointers — unverifiable, and 'copy path' is the only affordance. Every agent session starts cold; justification that isn't linked doesn't inform the work.",
-    "compounding": "The registry is the substrate for the vision doctor, in-board doc reading, and any 'does the work match the strategy' lens.",
-    "why_now": "The supply-chain review named justification (upstream) as one of the two ends where value leaks; this upgrades something that already exists rather than adding a surface.",
-    "decision": "",
-    "conviction": "",
-    "constraints": "",
-    "acceptance": "",
-    "validation": "",
-    "promoted_to": null,
-    "pros": [],
-    "cons": [],
-    "sections": [],
-    "log": [
-      {
-        "at": "2026-08-13",
-        "note": "Captured from brainstorm — upstream/downstream supply chain and CX review of the current loop."
-      }
-    ],
-    "rejected_reason": null,
-    "created_at": "2026-08-13",
-    "updated_at": "2026-08-13"
-  },
-  {
     "id": "idea-verification-records",
     "title": "Verification records — the evidence half of test_plan",
     "description": "When an agent builds a story, 'each criterion: pass, and how I know' lives in chat and evaporates. Record it on the story (or a build log beside it): what was run, what was observed, stamped by the builder. The Review lane's whole question is 'what should a reviewer check' — this gives the reviewer the builder's claims to check against instead of re-deriving them. Doctor check follows: a done story with no verification record.",
@@ -1150,5 +1114,41 @@
     "rejected_reason": null,
     "created_at": "2026-08-13",
     "updated_at": "2026-08-13"
+  },
+  {
+    "id": "idea-doc-registry",
+    "title": "Docs as first-class citizens — a registry with two-way links",
+    "description": "Keep PRFAQs/architecture/decision docs as markdown in the *-system-design repo, but give each identity in a thin registry: type (prfaq/architecture/decision/contract), status (draft/ratified/superseded), and the themes/milestones/epics it drives. Epics answer 'what vision justifies me'; a PRFAQ answers 'what work exists because of me' — the promoted_to trick, applied upstream. A vision doctor then checks drift: a ratified PRFAQ no epic advances, an epic no doc justifies, a cited section that no longer exists. The Docs tab grows from rendering CAPABILITIES.md to rendering the project's own library.",
+    "notes": "Captured from the supply-chain / CX brainstorm (2026-08-13).",
+    "category": "feature",
+    "theme": "Decide fast",
+    "milestone": "",
+    "tags": [],
+    "deps": [],
+    "status": "ready for review",
+    "priority": "Next",
+    "effort": "medium",
+    "impact": "high",
+    "context": "context_docs today are one-way path+note pointers — unverifiable, and 'copy path' is the only affordance. Every agent session starts cold; justification that isn't linked doesn't inform the work.",
+    "compounding": "The registry is the substrate for the vision doctor, in-board doc reading, and any 'does the work match the strategy' lens.",
+    "why_now": "The supply-chain review named justification (upstream) as one of the two ends where value leaks; this upgrades something that already exists rather than adding a surface.",
+    "decision": "",
+    "conviction": "",
+    "constraints": "",
+    "acceptance": "",
+    "validation": "",
+    "promoted_to": null,
+    "pros": [],
+    "cons": [],
+    "sections": [],
+    "log": [
+      {
+        "at": "2026-08-13",
+        "note": "Captured from brainstorm — upstream/downstream supply chain and CX review of the current loop."
+      }
+    ],
+    "rejected_reason": null,
+    "created_at": "2026-08-13",
+    "updated_at": "2026-08-15T20:08:06.471Z"
   }
 ]
