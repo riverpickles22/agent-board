@@ -1,0 +1,4 @@
+{
+  "board": "/absolute/path/to/agent-board/roadmap",
+  "myproject": "/absolute/path/to/myproject/myproject-system-design/roadmap"
+}

@@ -1,0 +1,409 @@
+#!/usr/bin/env bash
+# agent-board launcher. One board codebase, many projects.
+#
+#   board              open your default board (asked once, then remembered)
+#   ./board list       list registered projects
+#   ./board <name>     serve every registered board on :4300, opening on it
+#                      (the header switcher moves between them)
+#   ./board <name> --only
+#                      serve only that one, unprefixed — the pinned
+#                      single-project mode the Claude skill and CI rely on
+#   PORT=4301 ./board <name>  second board on another port
+#   ./board stop [port]       stop the board on a port (default 4300)
+#   ./board install    put `board` on your PATH + install the Claude skill
+#   ./board default [name]    show / set / clear (--none) the default board
+#   ./board doctor <name>     check a project's data against the contract
+#                             (exit 1 if there are errors, 0 otherwise)
+#   ./board next <name>       the pickable queue (PROTOCOL §3), printed
+#   ./board status <name>     orientation: needs-you, in flight, ready, health
+#   ./board new <name> <dir>  scaffold + register a fresh project
+#   ./board help              every command, plus the agent orientation block
+#   (next/status take --json for machine-readable output)
+#
+# Projects are registered in projects.json (name -> data directory).
+set -euo pipefail
+
+# Resolve through symlinks first: once `board` is on PATH it *is* a symlink
+# into this repo, and every path below has to be the repo's, not the link's.
+SELF="$0"
+while [ -L "$SELF" ]; do
+  LINK="$(readlink "$SELF")"
+  case "$LINK" in
+    /*) SELF="$LINK" ;;
+    *)  SELF="$(dirname "$SELF")/$LINK" ;;
+  esac
+done
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
+REGISTRY="$HERE/projects.json"
+SKILL_LINK="$HOME/.claude/skills/agent-board"
+SKILL_TARGET="$HERE/.claude/skills/agent-board"
+BIN_LINK="${BOARD_BIN_DIR:-$HOME/.local/bin}/board"
+# The default board is one person's preference, so it lives in their config
+# dir, not in projects.json — that file is this checkout's registry of
+# absolute paths and is gitignored. Set BOARD_DEFAULT to override for one run.
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/agent-board/config.json"
+# projects.json is gitignored, so a fresh checkout has none until `board new`
+# (or a copy of projects.example.json) writes one — every read tolerates it
+# being absent rather than dying on a missing-module stack trace.
+REG_JS='const fs=require("fs");let reg={};try{reg=JSON.parse(fs.readFileSync(process.argv[1],"utf8"))}catch(e){}'
+
+# Every run self-installs/repairs the skill symlink, so there is no setup
+# step to remember. Because it's a symlink (never a copy), skill updates in
+# this repo are live for new Claude sessions with no action from the user.
+ensure_skill() {
+  if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
+    return 0
+  fi
+  if [ -L "$SKILL_LINK" ] && [ ! -e "$SKILL_LINK" ]; then
+    rm "$SKILL_LINK"   # broken link (repo moved) — repair it
+  elif [ -e "$SKILL_LINK" ]; then
+    echo "note: $SKILL_LINK exists and isn't this repo's skill — run ./board setup for details" >&2
+    return 0
+  fi
+  mkdir -p "$(dirname "$SKILL_LINK")"
+  ln -s "$SKILL_TARGET" "$SKILL_LINK"
+  echo "Claude skill installed: $SKILL_LINK -> $SKILL_TARGET"
+}
+
+project_dir() {
+  node -e "$REG_JS"' ; console.log(reg[process.argv[2]] ?? "")' "$REGISTRY" "$1"
+}
+
+project_names() {
+  node -e "$REG_JS"' ; console.log(Object.keys(reg).join("\n"))' "$REGISTRY"
+}
+
+read_default() {
+  if [ -n "${BOARD_DEFAULT:-}" ]; then
+    printf '%s' "$BOARD_DEFAULT"
+    return 0
+  fi
+  [ -f "$CONFIG_FILE" ] || return 0
+  node -e '
+    try { process.stdout.write(String(require(process.argv[1]).default ?? "")); }
+    catch { /* unreadable config is the same as no default */ }' "$CONFIG_FILE"
+}
+
+write_default() {
+  mkdir -p "$(dirname "$CONFIG_FILE")"
+  node -e '
+    const fs = require("fs"), file = process.argv[1], name = process.argv[2];
+    let cfg = {};
+    try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch { }
+    if (name) cfg.default = name; else delete cfg.default;
+    fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");' "$CONFIG_FILE" "$1"
+}
+
+# Asked exactly once: `board` with no argument and no saved default picks a
+# board and remembers it, so the bare word means something from then on.
+# Prints the chosen name on stdout, the menu on stderr; returns 1 when there
+# is no terminal to ask (a script, a pipe) so the caller can just list.
+choose_default() {
+  local names=() n reply i=1
+  while IFS= read -r n; do [ -n "$n" ] && names+=("$n"); done < <(project_names)
+  if [ "${#names[@]}" -eq 0 ]; then
+    echo "No projects registered yet — add one with: board new <name> <dir>" >&2
+    return 1
+  fi
+  # The menu is written to stderr and read from /dev/tty, because stdout here
+  # is a pipe — the caller captures the chosen name from it.
+  if [ ! -t 2 ] || [ ! -r /dev/tty ]; then
+    return 1
+  fi
+  echo "Which board should 'board' open by default?" >&2
+  for n in "${names[@]}"; do
+    printf '  %d) %s\n' "$i" "$n" >&2
+    i=$((i + 1))
+  done
+  printf 'Choose 1-%d, or a name: ' "${#names[@]}" >&2
+  read -r reply < /dev/tty || return 1
+  case "$reply" in
+    ''|*[!0-9]*) ;;
+    *) if [ "$reply" -ge 1 ] && [ "$reply" -le "${#names[@]}" ]; then
+         printf '%s' "${names[$((reply - 1))]}"
+         return 0
+       fi ;;
+  esac
+  if [ -n "$reply" ] && [ -n "$(project_dir "$reply")" ]; then
+    printf '%s' "$reply"
+    return 0
+  fi
+  echo "Not a registered project: $reply" >&2
+  return 1
+}
+
+# show (no argument), set, or clear (--none) the remembered default.
+default_cmd() {
+  local name="${1:-}" current
+  if [ -z "$name" ]; then
+    current="$(read_default)"
+    if [ -n "$current" ]; then
+      echo "Default board: $current"
+    else
+      echo "No default board set — plain 'board' will ask you once."
+    fi
+    echo "Set it:   board default <name>"
+    echo "Clear it: board default --none"
+    return 0
+  fi
+  if [ "$name" = "--none" ] || [ "$name" = "--clear" ]; then
+    write_default ""
+    echo "Default cleared — plain 'board' will ask again."
+    return 0
+  fi
+  if [ -z "$(project_dir "$name")" ]; then
+    echo "Unknown project: $name" >&2
+    echo >&2
+    list >&2
+    return 1
+  fi
+  write_default "$name"
+  echo "Default board: $name   (just type 'board' to open it)"
+}
+
+list() {
+  echo "Registered projects (projects.json):"
+  node -e "$REG_JS"' ;
+    const rows = Object.entries(reg);
+    if (!rows.length) {
+      console.log("  (none yet — add one with: ./board new <name> <dir>,");
+      console.log("   or copy projects.example.json to projects.json)");
+    }
+    for (const [name, dir] of rows) {
+      const ok = fs.existsSync(dir) ? "" : "   (MISSING: directory not found)";
+      console.log(`  ${name.padEnd(12)} ${dir}${ok}`);
+    }' "$REGISTRY"
+  echo
+  local current
+  current="$(read_default)"
+  if [ -n "$current" ]; then
+    echo "Default (plain 'board'):  $current"
+    echo
+  fi
+  echo "Run one with:   ./board <name>"
+  echo "Stop one with:  ./board stop [port]"
+  echo "Check one with: ./board doctor <name>"
+  echo "Claude skill:   ./board setup"
+  echo "Everything:     ./board help"
+}
+
+# The discovery command — what an agent (or a person) can do from here.
+help() {
+  cat <<'EOT'
+agent-board — one board codebase, many projects (projects.json)
+
+Serve
+  board                     open your default board — asked once, then
+                            remembered (BOARD_DEFAULT=<name> overrides a run)
+  ./board <name>            serve every registered board, opening on <name>
+  ./board <name> --only     serve only <name>, unprefixed (pinned mode)
+  ./board stop [port]       stop the board on a port (default 4300)
+
+Set up
+  ./board install           put `board` on your PATH, install the Claude skill
+  ./board list              registered projects and their data dirs
+  ./board default           show the default board
+  ./board default <name>    set it (--none clears it)
+
+Read (safe anytime; next/status take --json)
+  ./board status <name>     orientation: who needs you, what's in flight,
+                            what's pickable, lane counts, data health
+  ./board next <name>       the pickable queue — PROTOCOL §3, executable
+  ./board doctor <name>     the contract, checked (exit 1 on errors)
+
+Create
+  ./board new <name> <dir>  scaffold a fresh project's data dir with the
+                            five files and register it — or adopt a dir
+                            that already has board data (never overwrites)
+
+For agents (Claude Code and friends)
+  The CLI reads; it never writes board data. Acting on a card — claiming,
+  moving, grooming, editing — is done by editing the project's JSON files
+  under the contract in AGENTS.md (schemas §2, edit rules §3, build loop
+  §6). PROTOCOL.md holds the selection rule ./board next implements.
+  A running server serves both at /AGENTS.md and /PROTOCOL.md, and the
+  capability inventory at /llms.txt. Saving is a human act: they say
+  "save", and the data dir gets a git commit.
+EOT
+}
+
+# Report-only, always: the doctor is a lens, never a repair tool. Exits 1 on
+# errors so CI can gate on real breakage, and 0 on warnings so a stale claim
+# or a vocab typo can never fail a build — a check that cries wolf gets
+# switched off, and then nothing is checked at all.
+doctor() {
+  local name="${1:-}"
+  if [ -z "$name" ]; then
+    echo "Usage: ./board doctor <project>" >&2
+    list
+    exit 2
+  fi
+  local dir
+  dir="$(node -e "$REG_JS"' ; console.log(reg[process.argv[2]] ?? "")' "$REGISTRY" "$name")"
+  if [ -z "$dir" ]; then
+    echo "Unknown project: $name" >&2
+    exit 2
+  fi
+  node "$HERE/doctor-cli.js" "$dir" "$name"
+}
+
+stop() {
+  local port="${1:-4300}"
+  local pids
+  pids="$(lsof -ti "tcp:$port" 2>/dev/null || true)"
+  if [ -z "$pids" ]; then
+    echo "Nothing listening on port $port."
+    return 0
+  fi
+  echo "Stopping on port $port:"
+  # shellcheck disable=SC2086
+  ps -o pid=,command= -p $pids | sed 's/^/  /'
+  # shellcheck disable=SC2086
+  kill $pids
+  echo "Stopped."
+}
+
+# Puts the launcher on PATH as plain `board`, as a symlink so the repo stays
+# the one copy: pull a change here and the command changes with it.
+link_bin() {
+  local dir
+  dir="$(dirname "$BIN_LINK")"
+  if [ -L "$BIN_LINK" ] && [ "$(readlink "$BIN_LINK")" = "$HERE/board" ]; then
+    echo "Command already installed: $BIN_LINK -> $HERE/board"
+  elif [ -e "$BIN_LINK" ] && [ ! -L "$BIN_LINK" ]; then
+    echo "Something else exists at $BIN_LINK — not touching it." >&2
+    echo "Remove it and re-run ./board install." >&2
+    return 1
+  else
+    mkdir -p "$dir"
+    ln -sfn "$HERE/board" "$BIN_LINK"
+    echo "Command installed: $BIN_LINK -> $HERE/board"
+  fi
+  case ":$PATH:" in
+    *":$dir:"*)
+      echo "Type 'board' from any directory." ;;
+    *)
+      echo
+      echo "$dir isn't on your PATH yet. Add this to ~/.zshrc, then open a new shell:"
+      echo "  export PATH=\"$dir:\$PATH\"" ;;
+  esac
+  echo
+}
+
+setup() {
+  if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
+    echo "Claude skill already installed: $SKILL_LINK -> $SKILL_TARGET"
+  elif [ -e "$SKILL_LINK" ] && [ ! -L "$SKILL_LINK" ]; then
+    echo "Something else exists at $SKILL_LINK — not touching it." >&2
+    echo "Remove it and re-run ./board setup to install the skill." >&2
+    exit 1
+  else
+    ensure_skill
+  fi
+  cat <<'EOT'
+
+How it works:
+  - New Claude Code sessions in ANY repo discover the "agent-board" skill
+    automatically; it activates when you talk about the backlog ("what's
+    next?", "break this down into stories", "begin O1-2", "save the board").
+  - Sessions find the right project via projects.json (matched against the
+    repo you're in), or BOARD_DATA_DIR if you set it.
+  - Link a new project by adding it to projects.json — name -> data dir.
+  - Plain `board` opens your default project; `board default <name>` changes
+    it, and `board <name>` opens any project without touching the default.
+EOT
+}
+
+# Everything the launcher does for a project name, from any entry point:
+# the bare `board`, `board <name>`, or the remembered default.
+serve() {
+  local name="$1" only="${2:-}" dir
+  dir="$(project_dir "$name")"
+  if [ -z "$dir" ]; then
+    echo "Unknown project: $name" >&2
+    echo >&2
+    list >&2
+    exit 1
+  fi
+  if [ ! -d "$dir" ]; then
+    echo "Data directory for '$name' not found: $dir" >&2
+    echo "Fix the path in $REGISTRY (gitignored; see projects.example.json)" >&2
+    exit 1
+  fi
+  # Serving every registered board is the default: the switcher only exists in
+  # multi-project mode, and pinning here made it unreachable through the one
+  # command anyone runs. `--only` keeps the pinned mode for the skill and CI.
+  if [ "$only" = "--only" ]; then
+    echo "Serving only '$name' from $dir (unprefixed)"
+    exec env BOARD_DATA_DIR="$dir" node "$HERE/server.js"
+  fi
+  echo "Opening '$name' — http://localhost:${PORT:-4300}/$name/"
+  exec env BOARD_OPEN="$name" node "$HERE/server.js"
+}
+
+# No argument is the whole point of the PATH shim: open the board you meant.
+if [ $# -eq 0 ]; then
+  ensure_skill
+  DEFAULT_NAME="$(read_default)"
+  if [ -n "$DEFAULT_NAME" ]; then
+    if [ -n "$(project_dir "$DEFAULT_NAME")" ]; then
+      serve "$DEFAULT_NAME"
+    fi
+    echo "Default project '$DEFAULT_NAME' is no longer registered — pick another." >&2
+    echo >&2
+  fi
+  if PICKED="$(choose_default)"; then
+    write_default "$PICKED"
+    echo "Saved as your default — change it any time with: board default <name>"
+    serve "$PICKED"
+  fi
+  echo
+  list
+  exit 0
+fi
+
+if [ "$1" = "setup" ] || [ "$1" = "install" ]; then
+  link_bin
+  setup
+  exit 0
+fi
+
+if [ "$1" = "list" ]; then
+  ensure_skill
+  list
+  exit 0
+fi
+
+if [ "$1" = "default" ]; then
+  default_cmd "${2:-}"
+  exit $?
+fi
+
+if [ "$1" = "stop" ]; then
+  stop "${2:-}"
+  exit 0
+fi
+
+if [ "$1" = "doctor" ]; then
+  doctor "${2:-}"
+  exit $?
+fi
+
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  help
+  exit 0
+fi
+
+if [ "$1" = "next" ] || [ "$1" = "status" ]; then
+  cmd="$1"; shift
+  exec node "$HERE/board-cli.js" "$cmd" "$@"
+fi
+
+if [ "$1" = "new" ]; then
+  shift
+  exec node "$HERE/board-cli.js" new "$@"
+fi
+
+ensure_skill
+
+serve "$1" "${2:-}"

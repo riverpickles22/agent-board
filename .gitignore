@@ -1,0 +1,15 @@
+node_modules/
+
+# Your machine's board registry: name -> absolute data directory. The paths
+# are personal to one checkout, so git never sees it. Copy
+# projects.example.json to projects.json and edit it, or let
+# `./board new <name> <dir>` write it for you.
+projects.json
+
+# This checkout's own backlog. Real cards about real work — the tool reads it
+# locally (`./board board`), git stays out of it. `data/` holds the empty
+# defaults a new project is scaffolded from.
+roadmap/
+
+# Per-checkout Claude Code settings.
+.claude/settings.local.json
