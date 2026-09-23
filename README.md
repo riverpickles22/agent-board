@@ -12,9 +12,7 @@ agent at a board it can read, and it will tell you what to work on next, shape
 a rough idea until it's decidable, break the approved ones into stories, and
 build the ones you mark ready — moving the cards as it goes.
 
-<!-- Drop a real screenshot or demo GIF here; it converts better than any badge. -->
-
-![alt text](image.png)
+![The Board view: epics as swimlanes, stories moving Backlog → In Progress → Done](image.png)
 
 ---
 
