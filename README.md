@@ -250,18 +250,29 @@ skill that activates on its own when you talk about backlog work:
 Other agents work too — point them at `AGENTS.md` and `PROTOCOL.md`, which a
 running server also serves at `/AGENTS.md`, `/PROTOCOL.md`, and `/llms.txt`.
 For an MCP-capable agent (Codex, Cursor, Gemini CLI, …), `mcp-server.js` gives
-the same read-side answers as `./board status`/`./board next` over stdio, as
-`status` and `next` tools — no dependency, since it hand-rolls the small
-JSON-RPC framing rather than pulling in `@modelcontextprotocol/sdk`'s ~90
-transitive packages. Point your client's MCP config at it:
+the same protocol as callable tools over stdio — no dependency, since it
+hand-rolls the small JSON-RPC framing rather than pulling in
+`@modelcontextprotocol/sdk`'s ~90 transitive packages. Point your client's
+MCP config at it:
 
 ```json
 { "command": "node", "args": ["/path/to/agent-board/mcp-server.js"] }
 ```
 
 Pass `project` in each call's arguments (or set `BOARD_DATA_DIR`) the same
-way the CLI does. Claiming, moving, and releasing stay direct JSON edits for
-now — see `PROTOCOL.md` §4.
+way the CLI does.
+
+| Tool | Does |
+|---|---|
+| `status` | Same as `./board status` |
+| `next` | Same as `./board next` |
+| `release` | Clear a claim on an epic/story, optionally with a `notes` explanation |
+| `needs-human` | Set or clear the `needs` flag — "I cannot continue without you" |
+| `propose-idea` | Capture a new idea into the funnel, same as the UI's "+ idea" |
+
+Claiming and moving cards stay direct JSON edits for now — see `PROTOCOL.md`
+§4. Grooming (idea → epic + stories) is deliberately not a tool here either:
+it's the conversational judgment work §5 describes, not a structured write.
 
 ---
 

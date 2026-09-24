@@ -15,14 +15,19 @@
  *
  * All judgment lives in queue.js / doctor.js, same as board-cli.js and the
  * UI — this file resolves a project, reads its files, and formats tool
- * results. It is read-only: no tool here writes board data. Claiming,
- * moving, and releasing stay direct JSON edits under AGENTS.md §6, exactly
- * as they are for every other surface today.
+ * results. Phase 1 (status/next) is read-only. Phase 2 adds three
+ * low-risk writes — release, needs-human, propose-idea — each a direct
+ * field write or append with no ordering rule to enforce, unlike claim/move
+ * (still direct JSON edits under PROTOCOL.md §4 — deferred to Phase 3,
+ * since those two need to re-derive queue.js's pickability/dependency
+ * checks before writing, and getting that wrong could put the board in a
+ * state doctor.js would flag as broken).
  */
 const Q = require("./queue.js");
 const { diagnose, counts } = require("./doctor.js");
 const { resolveDir } = require("./resolve.js");
 const { read } = require("./read-data.js");
+const { writeData } = require("./write-data.js");
 
 const SERVER_NAME = "agent-board";
 const SERVER_VERSION = "1.0.0";
@@ -87,6 +92,82 @@ function unresolvedMessage(project) {
     : "Which board? Pass a project name (registered in projects.json) or set BOARD_DATA_DIR.";
 }
 
+// A ready-to-write id may be an epic (epics.json) or a story (stories.json) —
+// find which file it lives in so a write tool knows where to save.
+function findRecord(data, id) {
+  const epic = data.epics.find(e => e.id === id);
+  if (epic) return { key: "epics", list: data.epics, record: epic };
+  const story = data.stories.find(s => s.id === id);
+  if (story) return { key: "stories", list: data.stories, record: story };
+  return null;
+}
+
+const nowISO = () => new Date().toISOString();
+const todayDate = () => new Date().toISOString().slice(0, 10);
+
+/* ---- Phase 2: low-risk writes — no pickability/ordering rule to enforce ---- */
+
+function toolRelease({ project, id, notes }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  const { dir } = resolved;
+  if (!id) throw new Error("id is required");
+  const data = load(dir);
+  const found = findRecord(data, id);
+  if (!found) throw new Error("Unknown id: " + id);
+  const { key, list, record } = found;
+  record.claimed_by = null;
+  record.claimed_at = null;
+  if (typeof notes === "string") record.notes = notes;
+  record.updated_at = nowISO();
+  writeData(key, list, dir);
+  return { id, released: true, notes: record.notes };
+}
+
+function toolNeedsHuman({ project, id, kind, reason, clear }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  const { dir } = resolved;
+  if (!id) throw new Error("id is required");
+  const data = load(dir);
+  const found = findRecord(data, id);
+  if (!found) throw new Error("Unknown id: " + id);
+  const { key, list, record } = found;
+  if (clear) {
+    record.needs = null;
+  } else {
+    if (!reason) throw new Error("reason is required (a specific question, not \"blocked\") unless clear is true");
+    record.needs = { kind: kind || "input", reason };
+  }
+  record.updated_at = nowISO();
+  writeData(key, list, dir);
+  return { id, needs: record.needs };
+}
+
+function toolProposeIdea({ project, title, description, category, theme, priority, context }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  const { dir } = resolved;
+  if (!title) throw new Error("title is required");
+  const data = load(dir);
+  const defaultPriority = (data.config.priorities && data.config.priorities[0]) || "Now";
+  // Same shape and defaults as the UI's blankIdea() (index.html) — an MCP-
+  // proposed idea should be indistinguishable from one captured through it.
+  const idea = {
+    id: "idea-" + Date.now(),
+    title, description: description || "", notes: "",
+    category: category || "", theme: theme || "", milestone: "", tags: [], deps: [],
+    status: "idea", priority: priority || defaultPriority, effort: "", impact: "",
+    context: context || "", compounding: "", pros: [], cons: [], sections: [], log: [],
+    why_now: "", decision: "", conviction: "", constraints: "", acceptance: "", validation: "",
+    promoted_to: null, rejected_reason: null,
+    created_at: todayDate(), updated_at: null,
+  };
+  data.ideas.push(idea);
+  writeData("ideas", data.ideas, dir);
+  return idea;
+}
+
 const TOOLS = [
   {
     name: "status",
@@ -99,6 +180,50 @@ const TOOLS = [
     description: "The pickable queue, ranked by PROTOCOL.md §3 (priority, then unblock count, then file order), with exclusion reasons. Same as `./board next`.",
     inputSchema: { type: "object", properties: PROJECT_PROPERTY, required: [] },
     handler: toolNext,
+  },
+  {
+    name: "release",
+    description: "Release a claim on an epic or story — clears claimed_by/claimed_at. Always safe; use whenever you stop working a card, finished or not (PROTOCOL.md §4 step 7). Optionally record why in notes.",
+    inputSchema: {
+      type: "object",
+      properties: { ...PROJECT_PROPERTY, id: { type: "string", description: "Epic or story id, e.g. \"F1\" or \"F1-2\"." }, notes: { type: "string", description: "Optional explanation, e.g. why work stopped without finishing." } },
+      required: ["id"],
+    },
+    handler: toolRelease,
+  },
+  {
+    name: "needs-human",
+    description: "Set or clear the needs field on an epic or story — \"I cannot continue without you.\" Set it the moment you hit a question only a human can answer; clear it the moment the answer arrives (AGENTS.md §2).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PROPERTY,
+        id: { type: "string", description: "Epic or story id." },
+        kind: { type: "string", description: "Free text, e.g. \"decision\", \"author\", \"input\". Defaults to \"input\"." },
+        reason: { type: "string", description: "A specific question, not \"blocked\". Required unless clear is true." },
+        clear: { type: "boolean", description: "Set true to clear an existing needs flag instead of setting one." },
+      },
+      required: ["id"],
+    },
+    handler: toolNeedsHuman,
+  },
+  {
+    name: "propose-idea",
+    description: "Capture a new idea into the Ideas funnel (status \"idea\"), same as the UI's \"+ idea\" button. Thin structured write only — developing the idea (context, pros/cons, moving it to \"ready for review\") is a separate conversational activity per AGENTS.md §5, not this tool.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PROPERTY,
+        title: { type: "string", description: "Short idea title." },
+        description: { type: "string" },
+        category: { type: "string", description: "Free text, e.g. \"feature\", \"technology\", \"business\"." },
+        theme: { type: "string", description: "Must match a config theme, or leave blank." },
+        priority: { type: "string", description: "Must match a config priority; defaults to the first (usually \"Now\")." },
+        context: { type: "string", description: "What this is really about — problem, for whom, why now." },
+      },
+      required: ["title"],
+    },
+    handler: toolProposeIdea,
   },
 ];
 
