@@ -15,13 +15,14 @@
  *
  * All judgment lives in queue.js / doctor.js, same as board-cli.js and the
  * UI — this file resolves a project, reads its files, and formats tool
- * results. Phase 1 (status/next) is read-only. Phase 2 adds three
- * low-risk writes — release, needs-human, propose-idea — each a direct
- * field write or append with no ordering rule to enforce, unlike claim/move
- * (still direct JSON edits under PROTOCOL.md §4 — deferred to Phase 3,
- * since those two need to re-derive queue.js's pickability/dependency
- * checks before writing, and getting that wrong could put the board in a
- * state doctor.js would flag as broken).
+ * results. Phase 1 (status/next) is read-only. Phase 2 added three
+ * low-risk writes (release, needs-human, propose-idea) with no ordering
+ * rule to enforce. Phase 3 adds claim and move, the two tools that can
+ * put the board in a state doctor.js would flag as broken if they get it
+ * wrong — so both gate on the *actual* Q.pickable/Q.nextUp membership
+ * (not re-derived predicates) for the go/no-go decision, and only
+ * duplicate a little of that logic separately to build a human-readable
+ * reason when the answer is no.
  */
 const Q = require("./queue.js");
 const { diagnose, counts } = require("./doctor.js");
@@ -168,6 +169,116 @@ function toolProposeIdea({ project, title, description, category, theme, priorit
   return idea;
 }
 
+/* ---- Phase 3: claim and move — the two writes that can break the board ---- */
+
+const gateOpen = (epic, cfg) => !epic.gate || epic.gate === "none" || (arr(cfg.open_gates)).includes(epic.gate);
+const arr = v => Array.isArray(v) ? v : [];
+
+// Informational only — the actual go/no-go for claim comes from checking
+// Q.pickable/Q.nextUp membership below, never from these checks directly,
+// so this can't drift into allowing something the selection rule wouldn't.
+function explainNotPickable(data, id, story, epic) {
+  const lanes = data.config.lanes || [];
+  const first = lanes[0], done = lanes[lanes.length - 1];
+  if (story) {
+    if (story.claimed_by) return "already claimed by " + story.claimed_by;
+    if (!story.ready) return "not ready (only a human sets ready:true)";
+    if (story.column !== first) return `not in "${first}" (currently "${story.column}")`;
+    const ep = data.epics.find(e => e.id === story.epic_id);
+    if (!ep) return "its epic " + story.epic_id + " was not found";
+    if (ep.archived_at) return "its epic " + ep.id + " is archived";
+    if (!gateOpen(ep, data.config)) return `its epic ${ep.id}'s gate "${ep.gate}" is not open`;
+    const undone = arr(ep.deps).filter(d => { const dep = data.epics.find(e => e.id === d); return dep && dep.column !== done; });
+    if (undone.length) return `its epic ${ep.id} depends on ${undone.join(", ")}, not yet done`;
+    return "not currently pickable";
+  }
+  if (epic) {
+    if (epic.claimed_by) return "already claimed by " + epic.claimed_by;
+    if (epic.archived_at) return "archived";
+    if (epic.column !== first) return `not in "${first}" (currently "${epic.column}")`;
+    if (!gateOpen(epic, data.config)) return `gate "${epic.gate}" is not open`;
+    const undone = arr(epic.deps).filter(d => { const dep = data.epics.find(e => e.id === d); return dep && dep.column !== done; });
+    if (undone.length) return `depends on ${undone.join(", ")}, not yet done`;
+    return "the work lane is at its WIP limit";
+  }
+  return "id not found";
+}
+
+function toolClaim({ project, id, claimed_by }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  const { dir } = resolved;
+  if (!id) throw new Error("id is required");
+  if (!claimed_by) throw new Error("claimed_by is required (an agent/session identifier — PROTOCOL.md §4 step 3)");
+  const data = load(dir);
+  const story = data.stories.find(s => s.id === id);
+  const epic = !story && data.epics.find(e => e.id === id);
+  if (!story && !epic) throw new Error("Unknown id: " + id);
+
+  if (story) {
+    const pickable = Q.pickable(data).picks.some(p => p.story.id === id);
+    if (!pickable) throw new Error(`"${id}" is not pickable right now — ${explainNotPickable(data, id, story, null)}`);
+    story.claimed_by = claimed_by;
+    story.claimed_at = nowISO();
+    story.updated_at = story.claimed_at;
+    writeData("stories", data.stories, dir);
+    return { id, claimed_by, claimed_at: story.claimed_at };
+  }
+  const pickable = Q.nextUp(data).picks.some(p => p.epic.id === id);
+  if (!pickable) throw new Error(`"${id}" is not pickable right now — ${explainNotPickable(data, id, null, epic)}`);
+  epic.claimed_by = claimed_by;
+  epic.claimed_at = nowISO();
+  epic.updated_at = epic.claimed_at;
+  writeData("epics", data.epics, dir);
+  return { id, claimed_by, claimed_at: epic.claimed_at };
+}
+
+function toolMove({ project, id, to_column, notes }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  const { dir } = resolved;
+  if (!id) throw new Error("id is required");
+  if (!to_column) throw new Error("to_column is required");
+  const data = load(dir);
+  const lanes = data.config.lanes || [];
+  if (!lanes.includes(to_column)) throw new Error(`Unknown column "${to_column}" — valid: ${lanes.join(", ")}`);
+  const done = lanes[lanes.length - 1];
+
+  const found = findRecord(data, id);
+  if (!found) throw new Error("Unknown id: " + id);
+  const { key, list, record } = found;
+  const fromColumn = record.column;
+
+  // Dependency ordering (AGENTS.md §3) applies to epics only — deps live on
+  // the epic schema, stories only carry epic_id.
+  if (key === "epics") {
+    if (to_column === done) {
+      const undone = arr(record.deps).filter(d => { const dep = data.epics.find(e => e.id === d); return dep && dep.column !== done; });
+      if (undone.length) throw new Error(`Cannot move ${id} to "${done}" — depends on ${undone.join(", ")}, not yet done`);
+    }
+    if (fromColumn === done && to_column !== done) {
+      const dependents = data.epics.filter(e => e.id !== id && arr(e.deps).includes(id) && e.column === done);
+      if (dependents.length) throw new Error(`Cannot move ${id} out of "${done}" — ${dependents.map(e => e.id).join(", ")} depend(s) on it and are already done`);
+    }
+  }
+
+  // PROTOCOL.md §4 step 5: moving back to an earlier lane means the work
+  // couldn't be finished — clear the claim and require an explanation.
+  const isRetreat = lanes.indexOf(to_column) < lanes.indexOf(fromColumn);
+  if (isRetreat) {
+    if (!notes) throw new Error(`Moving ${id} back from "${fromColumn}" to "${to_column}" needs a notes explanation (PROTOCOL.md §4 step 5)`);
+    record.claimed_by = null;
+    record.claimed_at = null;
+    record.notes = notes;
+  } else if (typeof notes === "string") {
+    record.notes = notes;
+  }
+  record.column = to_column;
+  record.updated_at = nowISO();
+  writeData(key, list, dir);
+  return { id, column: record.column, claimed_by: record.claimed_by };
+}
+
 const TOOLS = [
   {
     name: "status",
@@ -224,6 +335,35 @@ const TOOLS = [
       required: ["title"],
     },
     handler: toolProposeIdea,
+  },
+  {
+    name: "claim",
+    description: "Claim an epic or story — sets claimed_by/claimed_at, after checking it's actually pickable right now (PROTOCOL.md §3's selection rule, the same check ./board next uses). Does not move the card; call move separately once work starts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PROPERTY,
+        id: { type: "string", description: "Epic or story id." },
+        claimed_by: { type: "string", description: "An agent/session identifier (PROTOCOL.md §4 step 3)." },
+      },
+      required: ["id", "claimed_by"],
+    },
+    handler: toolClaim,
+  },
+  {
+    name: "move",
+    description: "Move an epic or story to a column. Refuses a move into the last lane if the epic's deps aren't all done, and refuses moving an epic out of the last lane while another done epic depends on it (AGENTS.md §3). Moving back to an earlier lane than the card's current one requires a notes explanation and clears any claim (PROTOCOL.md §4 step 5).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...PROJECT_PROPERTY,
+        id: { type: "string", description: "Epic or story id." },
+        to_column: { type: "string", description: "Must be one of the project's configured lanes." },
+        notes: { type: "string", description: "Explanation, required when moving back to an earlier lane." },
+      },
+      required: ["id", "to_column"],
+    },
+    handler: toolMove,
   },
 ];
 

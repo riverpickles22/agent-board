@@ -108,6 +108,16 @@ human) might write concurrently:
   the data dir and pushes changes over SSE (`/api/events`), so a page
   that's open while an agent edits the files re-renders from fresh state
   instead of clobbering the edits with its stale in-memory arrays.
+- **`mcp-server.js`'s write tools** (`claim`, `move`, `release`,
+  `needs-human`, `propose-idea`) do their own direct read-modify-write file
+  I/O, the same as an agent editing JSON by hand — no locking, no revision
+  check. Each MCP client process is one more potential writer with the
+  same race profile as any other direct edit; the answer is the same one
+  as above: re-read and re-select on conflict, don't assume a write held.
+  This is, honestly, a step toward the "unattended multi-agent swarm"
+  scenario the next bullet says this design doesn't handle — it's still
+  fine for one person's own agents claiming distinct cards, less fine for
+  several agents racing to claim the *same* card at the same instant.
 - For a single person plus their own coding agents (the expected use case),
   this is enough. It is not designed for unattended multi-agent swarms
   writing the same file concurrently without any coordination layer — that

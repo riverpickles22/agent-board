@@ -269,10 +269,14 @@ way the CLI does.
 | `release` | Clear a claim on an epic/story, optionally with a `notes` explanation |
 | `needs-human` | Set or clear the `needs` flag — "I cannot continue without you" |
 | `propose-idea` | Capture a new idea into the funnel, same as the UI's "+ idea" |
+| `claim` | Claim an epic/story, after checking it's actually pickable right now |
+| `move` | Move a card to a column, enforcing dependency ordering and the notes-on-retreat rule |
 
-Claiming and moving cards stay direct JSON edits for now — see `PROTOCOL.md`
-§4. Grooming (idea → epic + stories) is deliberately not a tool here either:
-it's the conversational judgment work §5 describes, not a structured write.
+Grooming (idea → epic + stories) is deliberately not a tool here: it's the
+conversational judgment work AGENTS.md §5 describes — acceptance criteria,
+an honest `kind`, a `test_plan` — not a structured write a schema can
+validate. The calling agent still drafts `epics.json`/`stories.json`
+directly for that, same as today.
 
 ---
 
