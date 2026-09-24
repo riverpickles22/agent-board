@@ -15,43 +15,32 @@ const path = require("path");
 const Q = require("./queue.js");
 const { diagnose, counts } = require("./doctor.js");
 const { FILES, DEFAULTS } = require("./defaults.js");
+const { projects, resolveDir: resolveDirShared, REGISTRY } = require("./resolve.js");
+const { read: readShared } = require("./read-data.js");
 
 const ROOT = __dirname;
-const REGISTRY = path.join(ROOT, "projects.json");
 
 const tty = process.stdout.isTTY;
 const c = (code, s) => tty ? "\x1b[" + code + "m" + s + "\x1b[0m" : s;
 const red = s => c(31, s), yellow = s => c(33, s), green = s => c(32, s), dim = s => c(2, s), bold = s => c(1, s);
 
-function projects() {
-  try { return JSON.parse(fs.readFileSync(REGISTRY, "utf8")); } catch (e) { return {}; }
-}
-
 // A project name from the registry, a literal directory, or BOARD_DATA_DIR —
-// the same three ways the skill locates a board.
+// the same three ways the skill locates a board. Lookup itself lives in
+// resolve.js (shared with mcp-server.js); this wraps it with the CLI's own
+// error reporting and exit code.
 function resolveDir(ref) {
-  const reg = projects();
-  if (ref && reg[ref]) return { name: ref, dir: path.resolve(reg[ref]) };
-  if (ref && fs.existsSync(ref) && fs.statSync(ref).isDirectory())
-    return { name: path.basename(ref), dir: path.resolve(ref) };
-  if (!ref && process.env.BOARD_DATA_DIR)
-    return { name: path.basename(process.env.BOARD_DATA_DIR), dir: path.resolve(process.env.BOARD_DATA_DIR) };
+  const r = resolveDirShared(ref);
+  if (r) return r;
   if (ref) { console.error("Unknown project: " + ref); }
   else { console.error("Which board? Pass a project name or set BOARD_DATA_DIR."); }
-  const names = Object.keys(reg);
+  const names = Object.keys(projects());
   if (names.length) console.error("Registered: " + names.join(", "));
   process.exit(2);
 }
 
 function read(key, dir) {
-  const file = path.join(dir, FILES[key]);
-  if (!fs.existsSync(file)) return DEFAULTS[key];
-  let raw;
-  try { raw = JSON.parse(fs.readFileSync(file, "utf8")); }
-  catch (e) { console.error("✗ " + FILES[key] + " is not valid JSON — " + e.message); process.exit(1); }
-  if (Array.isArray(raw)) return raw;
-  if (raw && Array.isArray(raw[key])) return raw[key];   // the wrapped shape
-  return raw;
+  try { return readShared(key, dir); }
+  catch (e) { console.error("✗ " + e.message); process.exit(1); }
 }
 const load = dir => ({
   config: read("config", dir), epics: read("epics", dir), stories: read("stories", dir),

@@ -249,6 +249,19 @@ skill that activates on its own when you talk about backlog work:
 
 Other agents work too — point them at `AGENTS.md` and `PROTOCOL.md`, which a
 running server also serves at `/AGENTS.md`, `/PROTOCOL.md`, and `/llms.txt`.
+For an MCP-capable agent (Codex, Cursor, Gemini CLI, …), `mcp-server.js` gives
+the same read-side answers as `./board status`/`./board next` over stdio, as
+`status` and `next` tools — no dependency, since it hand-rolls the small
+JSON-RPC framing rather than pulling in `@modelcontextprotocol/sdk`'s ~90
+transitive packages. Point your client's MCP config at it:
+
+```json
+{ "command": "node", "args": ["/path/to/agent-board/mcp-server.js"] }
+```
+
+Pass `project` in each call's arguments (or set `BOARD_DATA_DIR`) the same
+way the CLI does. Claiming, moving, and releasing stay direct JSON edits for
+now — see `PROTOCOL.md` §4.
 
 ---
 
