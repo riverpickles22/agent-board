@@ -453,5 +453,4 @@ errors and zero on advice.
 
 ## License
 
-Not yet licensed. Until a license is added, default copyright applies and you do
-not have permission to redistribute or modify this code.
+[MIT](LICENSE)
