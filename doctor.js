@@ -192,14 +192,15 @@
         warn("story-kind", [s.id], "story kind \"" + s.kind + "\" is not one of feature / test / integration / chore / docs");
     });
 
-    /* ---- claims: suspect, never wrong (the board's own reading) ---- */
+    /* ---- claims: suspect, never wrong (the board's own reading); a review
+       lane waits on the human, so a claim there is never stale (B36) ---- */
     [].concat(epics, stories).forEach(x => {
-      if (!x || !x.id || !x.claimed_by || x.column === doneLane) return;
+      if (!x || !x.id || !x.claimed_by || x.column === doneLane || (reviewLane && x.column === reviewLane)) return;
       const at = Date.parse(x.claimed_at || "");
       if (isNaN(at)) { warn("claim-undated", [x.id], "claimed by " + x.claimed_by + " with no valid claimed_at"); return; }
       const days = Math.floor((now - at) / 86400000);
       if (now - at > CLAIM_STALE_MS)
-        warn("claim-stale", [x.id], "claimed by " + x.claimed_by + " " + days + "d ago and still in " + x.column);
+        warn("claim-stale", [x.id], "claimed by " + x.claimed_by + " " + days + "d ago and still in " + x.column + " (a claim in the review lane is the human's wait and is not checked)");
     });
 
     /* ---- validation plans (the promotion boundary) ---- */

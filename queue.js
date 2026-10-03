@@ -30,6 +30,9 @@
       lanes,
       first: lanes[0],
       done: lanes[lanes.length - 1],
+      // the review lane, read as the UI and doctor read it: the lane before
+      // done when the board has more than three (B36)
+      review: lanes.length > 3 ? lanes[lanes.length - 2] : null,
       prios: arr(cfg.priorities),
       epicById: Object.fromEntries(epics.filter(e => e && e.id).map(e => [e.id, e])),
     };
@@ -116,15 +119,19 @@
     ).filter(Boolean);
   }
 
-  function isStale(x, doneLane, now) {
-    if (!x || !x.claimed_by || x.column === doneLane) return false;
+  // Stale means "the claimer should be working here and has not been seen
+  // for 48h". In the done lane nobody is waited on; in the review lane the
+  // card waits on the HUMAN, and the claim only says who built it (B36) —
+  // so neither lane is ever stale. Suspect, never auto-cleared (B21-1).
+  function isStale(x, doneLane, now, reviewLane) {
+    if (!x || !x.claimed_by || x.column === doneLane || (reviewLane && x.column === reviewLane)) return false;
     const at = Date.parse(x.claimed_at || "");
     return !isNaN(at) && at < now - CLAIM_STALE_MS;
   }
   function staleClaims(data, opts) {
     const now = (opts && opts.now) || Date.now();
     const c = ctx(data);
-    return [].concat(c.epics, c.stories).filter(x => x && x.id && isStale(x, c.done, now));
+    return [].concat(c.epics, c.stories).filter(x => x && x.id && isStale(x, c.done, now, c.review));
   }
 
   /* Everything ./board status prints, one call. */
@@ -139,7 +146,7 @@
       stories: { total: c.stories.length, byLane: laneCount(c.stories) },
       needsYou: needsYou(data),
       inFlight: inFlight(data).map(s => ({ id: s.id, name: s.name, column: s.column,
-        claimed_by: s.claimed_by, claimed_at: s.claimed_at, stale: isStale(s, c.done, now) })),
+        claimed_by: s.claimed_by, claimed_at: s.claimed_at, stale: isStale(s, c.done, now, c.review) })),
       pickable: pickable(data).picks.length,
       staleClaims: staleClaims(data, { now }).map(x => x.id),
     };

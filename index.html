@@ -1201,10 +1201,12 @@ function sinceLabel(iso){
 }
 // A claim older than this is *suspect*, never wrong: a long-running job and
 // an abandoned one look identical from outside, so the board flags it and a
-// human decides. Nothing here ever clears a claim by itself.
+// human decides. Nothing here ever clears a claim by itself. Not in the
+// review lane: there the card waits on the human and the claim only says
+// who built it (B36) — same reading as queue.js isStale().
 const CLAIM_STALE_MS = 48*3600*1000;
 function claimIsStale(x){
-  if(!x || !x.claimed_by || x.column === doneLane()) return false;
+  if(!x || !x.claimed_by || x.column === doneLane() || (reviewLane() && x.column === reviewLane())) return false;
   const at = Date.parse(x.claimed_at || "");
   return !isNaN(at) && at < Date.now() - CLAIM_STALE_MS;
 }
@@ -2569,7 +2571,7 @@ async function wireBriefing(){
       (stale.length ? ' · <b>'+stale.length+' stale claim'+(stale.length===1?'':'s')+'</b>' : '');
     document.getElementById("brf-body").innerHTML =
       d.statements.map(s => '<div class="pp-line">'+esc(s.text)+'</div>').join("")+
-      (stale.length ? '<h4>Stale claims (>48h, not done)</h4>'+
+      (stale.length ? '<h4>Stale claims (>48h, still being worked)</h4>'+
         stale.map(t => '<div class="pp-line">'+esc(t)+'</div>').join("") : '');
     el.hidden = false;
     document.getElementById("brf-view").onclick = () => {
