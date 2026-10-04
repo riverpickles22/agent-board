@@ -12,7 +12,8 @@ machine, delete it.
 
 ```
 design/
-├── DESIGN.md        # this contract: format, workflow, drift rules
+├── DESIGN.md        # this index: placement, spec format, workflow, drift rules
+├── hld.md           # architecture map of the code (not a screen spec)
 ├── system.md        # token names/roles + shared chrome (header, modal, toast…)
 ├── board.md         # #/board — kanban over epics
 ├── milestones.md    # #/milestones(/<id>) — narrative + deliverables roll-up
@@ -21,6 +22,20 @@ design/
 ├── history.md       # #/history — ratification history (git log as a page)
 └── docs.md          # #/docs — CAPABILITIES.md rendered in the UI
 ```
+
+**Where documents go.** This is agent-board's design index under the
+tooling exception in [`PROJECT-STRUCTURE.md`](../PROJECT-STRUCTURE.md).
+Architecture belongs in [`hld.md`](hld.md); one file per screen belongs
+here as a spec in the format below; direction belongs in
+[`../strategy/roadmap.md`](../strategy/roadmap.md); data schemas and agent
+rules belong in [`../AGENTS.md`](../AGENTS.md). A UI proposal that is not
+approved is an idea card, not a document. The screen-spec rules below
+(frontmatter, anchors, drift) do not apply to `hld.md`.
+
+**Status lines.** PROJECT-STRUCTURE.md requires every document to say
+whether it is current. For a screen spec, `spec_state` in the frontmatter
+*is* that line and no second one is needed; `hld.md` and the strategy
+roadmap carry one in prose.
 
 ## 1. Spec format
 
@@ -102,7 +117,7 @@ Three mechanisms, all cheap, no tooling:
    spec.
 2. **Anchor grep** — every backticked anchor in every Components table
    must resolve in `index.html`. One Bash call:
-   `grep -o '`[^`]*`' design/*.md` → check each against the file.
+   `grep -o '`[^`]*`' design/*.md` (skip `hld.md`) → check each against the file.
 3. **Curation pass 6** (AGENTS.md §7, "Design drift") — on "curate": run
    the anchor grep, skim each screen's render function against its
    wireframe and interactions, check `spec_state` flags, report a table
