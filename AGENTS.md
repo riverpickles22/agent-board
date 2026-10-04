@@ -79,6 +79,15 @@ contract), and serves data at `/api/board`; full route list in
 
 ## 1. Where data lives
 
+**Shared structure is required.** Every registered project follows
+[`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md): a canonical
+`<project>-context` repo with `design/`, `strategy/`, and `roadmap/`, one live JSON backlog,
+and agent entry points that link to the project briefing. Apply it when
+creating projects, changing their layout, or maintaining their instructions.
+Project vocabulary stays in config; do not create a parallel CSV backlog
+or copy these shared rules into each code repo. Agent-board's own layout
+is the documented tooling exception.
+
 Each project's backlog is a directory of JSON files, registered in
 [`projects.json`](projects.json) (name → absolute path). Resolution order
 when locating a board: `BOARD_DATA_DIR` env var → `projects.json` → a
@@ -98,7 +107,7 @@ view over them; you do not need it running. Edit the JSON directly.
 ```
 
 **The context directory.** The git repo containing the data dir (the
-project's `*-system-design` repo) is the project's *context directory*:
+project's `*-context` repo) is the project's *context directory*:
 architecture, strategy, PRFAQ, design proposals. Every `context_docs`
 path below is **relative to that repo's root**. Its git history is the
 versioning of the system/business story — when a ratified change updates
@@ -448,7 +457,7 @@ the same function (`doctor.js`, shared with no duplication) behind the
 ## 4. Git conventions
 
 Board data is versioned by the **project's own repo** (the
-`*-system-design` repo), not this one.
+`*-context` repo), not this one.
 
 - **Edit freely; commit only on an explicit "save" / "commit" /
   "ratify" from the user.** Uncommitted edits are the working state; the

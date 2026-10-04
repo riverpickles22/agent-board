@@ -60,7 +60,7 @@ check` / `⚑ in review · who` in a review lane, `⛔ gated: X`,
 `⏳ waiting on Y`, `✓ shipped`) · the human has `/` (find any card) and
 `n` (capture an idea) anywhere.
 
-The project's **context directory** is the `*-system-design` repo holding
+The project's **context directory** is the `*-context` repo holding
 the data dir — architecture/strategy/PRFAQ docs live there, and every
 `context_docs` path resolves relative to its root. Read the docs a card
 links before building or enriching it.
@@ -71,6 +71,12 @@ there too when the checkout has been used, but it is gitignored — a fresh
 clone has none until `./board new` writes it.)
 
 ## 2. Locate the project's board
+
+All projects follow `<agent-board>/PROJECT-STRUCTURE.md`: design and strategy
+in the canonical context repo, live JSON in its `roadmap/`, and agent
+entry points linking to one project briefing. Read that contract before
+scaffolding or reorganizing a project. A CSV is a snapshot/export, never a
+second live backlog. Preserve project-specific vocabulary in config.
 
 1. `BOARD_DATA_DIR` env var, if set.
 2. `<agent-board>/projects.json` — match by the repo you're working in

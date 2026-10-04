@@ -296,6 +296,12 @@ Nothing to install. Verify with `node --version` — 18 or higher.
 
 ### 2. Create a board for a project
 
+For this workspace, follow [the shared project structure](PROJECT-STRUCTURE.md):
+keep the live board in `<project>-context/roadmap/`, technical context
+in `design/`, and direction in `strategy/`. `board new` scaffolds the five
+board files only; create the context and agent entry points as that contract
+describes. All registered projects use this convention.
+
 Point it at a directory in the repo whose backlog it holds. A design or docs
 repo is a good home; so is a `roadmap/` folder in the code repo itself.
 

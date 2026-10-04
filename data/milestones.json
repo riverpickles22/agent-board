@@ -5,9 +5,10 @@
       {
         "label": "Example doc",
         "path": "docs/architecture.md",
-        "note": "paths are relative to your system-design repo root"
+        "note": "paths are relative to your context repo root"
       }
-    ]
+    ],
+    "updated_at": "2026-10-04T13:22:23.624335+00:00"
   },
   "milestones": [
     {

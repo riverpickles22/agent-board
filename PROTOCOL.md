@@ -16,6 +16,11 @@ closed, or already claimed wastes effort.
 
 ## 2. What the board is — and isn't
 
+All projects use the context and backlog layout in
+[`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md). Design and strategy explain
+the work; the five JSON files in `roadmap/` record its live state. Historical
+CSVs and prose lists are not separate queues to synchronize.
+
 The board is not a second backlog. `epics.json` (and `ideas.json`) *are*
 the backlog — the JSON files under a project's data directory are the
 single source of truth for what the work is. The board app is a thin
@@ -75,9 +80,9 @@ by their own priority, then their epic's rank.
 3. **Claim** it: set `claimed_by` (an agent/session identifier) and
    `claimed_at` (an ISO timestamp) on that card, and write the file back.
    This is the one write that should be atomic — see §5.
-4. **Work** the card. Stories, if used, live in `stories.json` keyed by
-   `epic_id`; break work down there if it's useful, but the board itself is
-   card-grained. Lane position is live status: make each move at the
+4. **Work** the card. Decompose approved work into stories in `stories.json`,
+   keyed by `epic_id`, before implementation. Build human-approved ready
+   stories one at a time. Lane position is live status: make each move at the
    moment it happens (claim before starting, done when verified), not
    retrospectively at the end of a session — an open board page
    live-reloads, so the human is watching the cards move.
@@ -99,11 +104,11 @@ human) might write concurrently:
   so two requests handled by the *same* server instance don't corrupt the
   file — but there's no cross-process locking, so two agents editing the
   same file by hand at the same time (bypassing the server) can still race.
-- **Editing the JSON files directly under version control**: claim safety
-  comes from git. An agent claims a card by committing the change; if two
-  agents claim the same card, the second commit conflicts (or silently
-  overwrites, if commits aren't checked before pushing) — resolve by
-  re-reading and re-selecting rather than assuming your claim held.
+- **Editing JSON directly**: claiming is a working-tree edit, never an
+  automatic commit. Git does not lock concurrent working-tree writes.
+  Re-read before writing, preserve unrelated edits, coordinate writers,
+  and re-read the result to check the claim. On conflict, re-select rather
+  than assume ownership. Commit only when the user explicitly requests it.
 - **An open browser page is not a writer to fear**: the server watches
   the data dir and pushes changes over SSE (`/api/events`), so a page
   that's open while an agent edits the files re-renders from fresh state
@@ -128,7 +133,8 @@ human) might write concurrently:
 
 - **Whether a gate is open** — that's `config.json`'s `open_gates`, set by
   a human, read but not decided by an agent following this protocol.
-- **Story-level tracking** — optional, and out of the selection rule
-  entirely; the rule operates on `epics.json` only.
+- **Whether a story is ready** — the human records that decision with
+  `ready: true`. Story selection is defined in §3; decomposition and the
+  build loop are required by `AGENTS.md` §§5–6.
 - **Automatic conflict resolution** — see §5. Re-select on conflict; don't
   assume.

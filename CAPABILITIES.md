@@ -1,6 +1,6 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-08-15.
+*The medium-altitude view, for humans and agents. As of 2026-10-04.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
@@ -12,6 +12,13 @@ depth lives). This document is the capability inventory; that one is the
 contract.
 
 ## What it is
+
+All workspace projects follow [one project structure](PROJECT-STRUCTURE.md):
+technical context in `design/`, direction in `strategy/`, and the sole live
+JSON backlog in `roadmap/` inside the project's canonical context repo.
+Agent entry points link to that repo's briefing. The shared contract governs
+new projects and migrations; the CLI scaffolds board data and validates its
+schema, but does not enforce directory layout.
 
 A local, zero-dependency kanban system shared by multiple projects. Each
 project's backlog is plain JSON files in that project's own repo; **git is
