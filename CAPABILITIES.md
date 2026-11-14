@@ -1,6 +1,6 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-10-04.
+*The medium-altitude view, for humans and agents. As of 2026-11-14.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
@@ -45,7 +45,12 @@ rather than being rewritten: a back-burner card is a title, a
 one-sentence outcome and a bet; front burner adds why-now, **Opens**
 (the inverse of dependencies, making architectural leverage visible)
 and what it waits on; a review card leads with **Decision needed**; a
-ready card states constraints and its acceptance boundary. Then
+ready card states constraints and its acceptance boundary. A review
+idea's deep dive carries a **decision bar** under its question —
+**Pursue**, **Keep shaping**, **Reject** (a reason required), with an
+optional one-line answer that lands in the idea's log — and then opens
+the next idea waiting for a decision; `j`/`k` or the arrow keys step
+through a stage without deciding. Then
 **⇥ Promote to Board** creates the execution epic — the one recorded
 moment an idea becomes committed work — and it **requires a validation
 plan**: an idea cannot cross into execution until it says how the change
@@ -82,15 +87,15 @@ ideas-view copy and the epic copy, everything on the board exports for
 a second opinion at its own grain: the funnel, one idea, one groomed
 unit of work.
 
-**Milestones** — the narrative. Per milestone: summary, user outcome,
-gate/exit criteria, ROI, context docs, and **deliverables that roll up to
-epic chips with live done-counts** (click a chip to jump to the card in
-the board). Optional architecture block showing subsystems as
-new/changed/existing. ←/→ keys step through milestones.
-
 **Board** — committed work, and it answers four questions: *what
 can an agent start now, what is running, what needs a human, what is
-blocked.* One **work queue** answers "what now": `Ready to pick up · N`,
+blocked.* Selecting a milestone in the filter opens a **milestone
+panel** above the lanes: its user outcome, gate/exit criteria, context
+docs, and **deliverables that roll up to epic chips with live
+done-counts** (click a chip to jump to the card). It also says when
+cards carry the milestone but sit under no deliverable. This replaced
+the separate Milestones page; old `#/milestones` links open the Board
+filtered to that milestone. One **work queue** answers "what now": `Ready to pick up · N`,
 or `Agent working` naming the owner and how long ago they claimed it,
 or why nothing is available. Claims show their age and turn amber past
 48 hours, with a one-click release wherever they appear — a dead claim
@@ -128,6 +133,15 @@ content, decisions in a rail, and the card's computed state in the
 header — and **what it leads with follows the lane**, so a queued card
 opens on what stops an agent starting it, a card in review opens on the
 criteria as a checklist, and a finished one opens on what it delivered.
+In review and done it opens first on the builder's **review note** —
+what changed, what was verified, what waits on you — rendered as
+markdown and editable in place (the hover peek and the epic's markdown
+copy carry it too), and a story in the review lane has one primary
+button, **Accept → {done lane}**, plus a link to its epic's test plan.
+**Every card has a URL**: `#/board/<id>` (under a project,
+`/<name>/#/board/<id>`) opens that epic or story, the address bar
+follows the card you open so Back closes it, and the ids in the
+pending-changes panel, the briefing and History are links to the card.
 Each epic's modal renders its `context_docs` as
 read-only chips that copy their path on click — the reading list is
 visible where the human reviews the card, while editing stays
@@ -163,9 +177,13 @@ another. Pinning a single board — `./board <name> --only` — keeps every rout
 unprefixed.
 
 The read side is also a **CLI**: `./board status` (orientation — needs-you
-first, in-flight claims and staleness, pickable count, health),
-`./board next` (the pickable queue, the same ranked list the Ready strip
-shows, computed by the same shared module), `./board new` (scaffold and
+first, in-flight claims and staleness, a "Waiting on you" count of
+everything that needs the human, pickable count and why it is zero,
+health), `./board next` (the pickable queue, the same ranked list the
+Ready strip shows, computed by the same shared module, with the rest of
+the first lane's exclusions counted by reason), `./board show <id>` (one
+epic, story or idea with its parent context — read one card instead of
+the whole file), `./board new` (scaffold and
 register a fresh project from the server's own defaults), `./board help`
 (discovery, with an agent orientation block), `--json` on the read
 commands. Agents orient and pick from the terminal; the board stays the
@@ -175,19 +193,25 @@ A **board doctor** checks the data against the contract this document
 describes — ids that don't resolve, a story pointing at a missing epic, a
 deliverable linking a dead epic, an epic archived before its stories
 finished, a dependency cycle, vocabulary that drifted from config, claims
-going stale, promoted ideas still sitting in the funnel. `./board doctor
+going stale, promoted ideas still sitting in the funnel, `needs` left on
+finished cards, claims that disagree with lane position, lanes over their
+WIP limit, review ideas with no decision, reasoning fields outside their
+vocabulary, epics that carry a milestone no deliverable links — and, from the CLI, context docs that no longer exist. `./board doctor
 <project>` prints them grouped by severity and exits non-zero **only on
 errors**, so CI can gate on real breakage while advice never fails a
 build; the same checks run in the UI behind a quiet `⚕` chip, where each
 finding clicks through to the card. It never repairs anything — reporting
 is the whole job, the same stance gates take.
 
-**History** — the record. The data dir's git log as a timeline page:
+**History** — the record. A calendar of the last year sits on top —
+one cell per day, shaded by how many saves landed, hover for the date
+and count, click a day to jump to its entries — so the rhythm of the
+work is visible before the list. Below it, the data dir's git log as a timeline page:
 every ratification with date, message, and files touched; expanding an
 entry shows that commit's card-level changes. And before the commit,
 the header's **pending badge** counts uncommitted board changes — click
 it for the **ratify review panel**: every pending change as a readable
-statement ("B1 moved Backlog → Done", "ideas reordered"), grouped by
+statement ("B1 moved Ready → Done", "ideas reordered"), grouped by
 resource, live-updating as agents work. The panel reviews; the human
 ratifies (say "save", or commit the data dir) — commit-=-ratify made
 visible at both ends. Opening the board after time away starts with a
@@ -248,9 +272,24 @@ repo or curl; agents get the same text at `/llms.txt`.
   it leaves the active board for the Shipped view but still counts for
   milestone roll-ups and dependencies. Only settable once the epic and
   every one of its stories are done; clearing it is the human's call.
+  Closing an epic includes checking the project's architecture map
+  against what the epic built, recorded as an `Architecture:` line in
+  its notes.
 - **Multi-project** — `projects.json` registers name → data dir; one
   codebase serves every project you register, agent-board's own dogfood
   backlog included.
+- **Waiting on you** — one derived count of what only a person can move
+  (open needs, cards in review, ideas awaiting a decision or a
+  promotion, stories awaiting the ready flag), the same number
+  `./board status` prints: it prefixes the browser tab's title, puts a
+  dot on the favicon, and sits in the header, where a click lists every
+  item with a link to it. No notifications, no sound.
+- **Saves that cannot lose work** — every read hands back a revision
+  per file and every UI save sends it; a save made on stale state (an
+  agent edited the file while a modal was open) is refused, and the page
+  merges its own changes onto the fresh file and writes again, saying so.
+  Files are written atomically (a temp file, then a rename), so a reader
+  never sees half a file.
 - **Live reload** — the server watches the data dir and pushes change
   events to every open page, which refetches and re-renders. Agent edits
   to the JSON appear in an open browser within a second; no manual

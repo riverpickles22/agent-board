@@ -1,13 +1,19 @@
 /* Writes one resource file to a project's data directory — pretty-printed
  * with a trailing newline (clean git diffs) and a warning on mangled text
- * (U+FFFD), exactly as server.js's PUT handler writes it. Kept here so
- * mcp-server.js's write tools save in the same byte-for-byte style as a
- * write from the running server or the UI, without requiring server.js to
- * be running.
+ * (U+FFFD). Shared by server.js's PUT handler and mcp-server.js's write
+ * tools, so every write lands in the same byte-for-byte style whether or not
+ * server.js is running.
+ *
+ * Atomic: the JSON goes to a temp file beside the target and is renamed over
+ * it, so a reader (an agent, the file watcher, the next GET) sees the old
+ * file or the new one, never a half-written one. Returns the new revision
+ * (the same hash read-data.js computes) so a caller can hand it back.
  */
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { FILES } = require("./defaults.js");
+const { revisionOf } = require("./read-data.js");
 
 function writeData(key, value, dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -19,7 +25,19 @@ function writeData(key, value, dir) {
   if (json.includes("�")) {
     console.warn(`[warn] ${key}: replacement characters (U+FFFD) in data being written — text was mangled upstream, not by this write`);
   }
-  fs.writeFileSync(path.join(dir, FILES[key]), json);
+  const file = path.join(dir, FILES[key]);
+  // Same directory, so the rename never crosses a filesystem. The name is not
+  // in the watcher's list of data files, so the temp file never fires a reload.
+  const tmp = path.join(dir, "." + FILES[key] + "." + process.pid + "." + crypto.randomBytes(4).toString("hex") + ".tmp");
+  const buf = Buffer.from(json, "utf8");
+  try {
+    fs.writeFileSync(tmp, buf);
+    fs.renameSync(tmp, file);
+  } catch (e) {
+    try { fs.unlinkSync(tmp); } catch (_) {}
+    throw e;
+  }
+  return revisionOf(buf);
 }
 
 module.exports = { writeData };

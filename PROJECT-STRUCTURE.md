@@ -82,7 +82,9 @@ of governing the work is the failure.
 `Proposed`, `Draft`, or `Historical`, with the date it was last checked
 against reality. A design document that describes unbuilt behaviour marks
 that section proposed, per-section when the document mixes both;
-cross-check the code before writing `Current`. `design/` and `strategy/`
+cross-check the code before writing `Current`. The architecture map
+(`design/hld.md`) is re-checked each time an epic closes, by the agent
+that built it (AGENTS.md §6 step 8), so its date moves with the work. `design/` and `strategy/`
 each carry a README indexing their documents with that status, so a reader
 learns whether a file still holds without opening it.
 

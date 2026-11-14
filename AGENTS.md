@@ -60,8 +60,8 @@ on request (§4).
 
 **The surfaces** a human sees (you never need them, but they explain
 what your edits look like): **Ideas** (inbox + deep dives) ·
-**Milestones** (narrative + roll-ups) · **Board** (lanes, Next-up and
-Ready-queue strips, Shipped archive) · **History** (git log as a
+**Board** (lanes, Next-up and Ready-queue strips, Shipped archive, and
+a milestone's outcome and deliverable roll-up when one is selected) · **History** (git log as a
 timeline) · **Docs** (renders `CAPABILITIES.md`). Full inventory:
 [`CAPABILITIES.md`](CAPABILITIES.md).
 
@@ -122,7 +122,7 @@ real — they are what makes "read the context before building" possible.
 
 **Config** — all vocabularies are per-project; never hardcode them:
 ```json
-{ "lanes": ["Backlog","In Progress","Done"],
+{ "lanes": ["Ready","In Progress","Review","Done"],
   "priorities": ["Now","Next","Later","Someday"],
   "themes": ["T1 …"], "milestones": ["M0 …"],
   "open_gates": [], "wip_limits": {},
@@ -132,9 +132,9 @@ real — they are what makes "read the context before building" possible.
 ```
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
-`default_page` names a tab (`ideas` / `milestones` / `board` /
-`history` / `docs`); `execution` also resolves to `board`, so configs
-written during that rename keep working.
+`default_page` names a tab (`ideas` / `board` / `history` / `docs`);
+`execution` and `milestones` also resolve to `board`, so configs written
+when those were page names keep working.
 
 `view` is the project's saved view: `title` names the board in the UI
 header and browser tab (when you report which board you're operating on,
@@ -154,7 +154,7 @@ default view") — never as a side effect of other edits; the UI's
   "systems": ["api-server", "web-ui"],
   "context_docs": [ {"label": "…", "path": "architecture/….md", "note": "§5"} ],
   "test_plan": "how this change gets validated — what to run, what to look at",
-  "gate": "none", "deps": ["other-epic-ids"], "column": "Backlog",
+  "gate": "none", "deps": ["other-epic-ids"], "column": "Ready",
   "claimed_by": null, "claimed_at": null,
   "needs": null,
   "archived_at": null, "updated_at": null }
@@ -176,8 +176,9 @@ person answers.
 `theme` and `milestone` must come from config vocab (empty string allowed).
 `archived_at` (ISO date, absent/null = active) is the **ship-and-close**
 stamp: an agent may set it only when the epic *and every one of its
-stories* sit in the done lane — done cards stay on the board until the
-whole epic closes. Archived epics leave the active board for its
+stories* sit in the done lane, and its `notes` carry an `Architecture:`
+line (below) — done cards stay on the board until the whole epic
+closes. Archived epics leave the active board for its
 Shipped view but still count for milestone roll-ups and dependency
 checks; clearing `archived_at` (unarchive) is the human's call.
 `gate` other than `"none"` means the epic is closed until that gate appears
@@ -192,6 +193,18 @@ alters how a user or system flow works, write a paragraph starting
 `Workflow impact:` into the epic's `notes` — what flow changes, before →
 after. Grooming and curation add it; builders read it.
 
+**Architecture (a notes convention, not a field):** when an epic's work
+is built, the builder checks the project's architecture map — the
+context repo's `design/hld.md` — and any diagram the epic's
+`context_docs` link against what the epic changed (§6 step 8), then
+records the outcome as one line starting `Architecture:` in the epic's
+`notes`. Either what was updated, or `no change` and why:
+`Architecture: hld.md — diagram gains the If-Match check between page
+and server; parts table updated for read-data.js and write-data.js;
+status line 2026-11-14.` ·
+`Architecture: no change — UI copy only; no part, path or flow moved.`
+`doctor` warns on a finished, un-archived epic without the line.
+
 **Story**:
 ```json
 { "id": "F1-1", "epic_id": "F1", "name": "…", "description": "…",
@@ -199,11 +212,17 @@ after. Grooming and curation add it; builders read it.
   "acceptance_criteria": ["testable statement", "…"],
   "how_to_test": ["Open …", "Do …", "You should see …"],
   "context": "repos, paths, docs the builder should read",
+  "notes": "markdown: the review note — what changed, what verified, what waits on you",
   "systems": ["api-server"],
-  "ready": false, "column": "Backlog", "priority": "Now",
+  "ready": false, "column": "Ready", "priority": "Now",
   "claimed_by": null, "claimed_at": null, "needs": null, "updated_at": null }
 ```
 `needs` works exactly as on epics (above) — the honest way to stop.
+`notes` is free markdown, optional; it is where a builder leaves the
+**review note** when moving a story to the review or done lane (§6,
+PROTOCOL.md). The story modal renders it as markdown and, in those
+lanes, leads with it — so write it for the human reading it there, and
+append rather than replace what earlier sessions wrote.
 `kind` ∈ `feature | test | integration | chore | docs`. Story ids are
 `<epic_id>-<n>`. **`ready` is the definition-of-ready flag: only the human
 sets it to true.** A story you drafted while grooming always lands
@@ -224,10 +243,14 @@ sets it to true.** A story you drafted while grooming always lands
   } ] }
 ```
 `id` is the *short* form of a config milestone vocab entry (`M1`,
-`Phase 2`). `user_outcome`, `roi`, and `architecture` are optional — the
-Milestones page renders them only when present. Deliverable `epics` ids
-must exist in `epics.json`; the page rolls up done-counts from them, so
-keep the links current when scope changes.
+`Phase 2`) — equal to it, or its leading words. `user_outcome`, `roi`,
+and `architecture` are optional. The Board shows a milestone's
+`user_outcome`, `gate`, context docs and deliverables in a panel when
+that milestone is selected in the filter; `overview`, `roi` and
+`architecture` are for agents and are not rendered. Deliverable `epics`
+ids must exist in `epics.json`; the panel rolls up done-counts from
+them, and an epic that carries the milestone but sits under no
+deliverable is not counted — keep the links current when scope changes.
 
 **Idea**:
 ```json
@@ -262,7 +285,8 @@ honest, not padded), the agent moves it to `ready for review` itself and
 records a dated `log` entry saying what made it decision-ready. It is
 the one status transition an agent makes on its own initiative;
 `ready to implement` (the human's thumbs-up) and `rejected` are the
-human's call.
+human's call — in the UI, the decision bar on a review idea's deep dive
+(Pursue / Keep shaping / Reject, each logged) is where the human makes it.
 
 **Ideas are a funnel, not a second board.** *Ideas* answers "what might
 this become"; the *Board* answers "what are we building". The stages
@@ -423,15 +447,25 @@ checkout — and they run the **same shared modules the UI renders**
 (`queue.js`, `doctor.js`), so the two can never disagree:
 
 - `./board status <project>` — orientation: `needs` items first (they
-  outrank everything), in-flight claims with age and staleness, the
-  pickable count, lane counts, doctor health.
+  outrank everything), in-flight claims with age and staleness, a
+  **Waiting on you** line (open `needs`, review-lane cards, ideas ready
+  for review, ready-to-implement ideas never promoted, first-lane stories
+  awaiting `ready` — derived by `BoardQueue.waitingOnYou()`, never
+  stored), the pickable count and why it is zero, lane counts, doctor
+  health.
 - `./board next <project>` — the pickable queue, ranked exactly as §3 of
-  PROTOCOL.md and the UI's Ready strip rank it, with exclusion reasons.
+  PROTOCOL.md and the UI's Ready strip rank it, with exclusion reasons
+  counted (not ready, claimed, gated, waiting on deps, epic not groomed).
+  An unknown or missing priority ranks after every known one.
+- `./board show <id> <project>` — one card instead of a whole file: a
+  story with its epic's name, test_plan, context_docs, gate and deps
+  state and its siblings' lanes; an epic with its stories; or an idea.
+  An unknown id exits 1 and names the id and project.
 - `./board new <name> <dir>` — scaffold a fresh project (the five files,
   from the same defaults the server uses) and register it in
   projects.json; adopts an existing data dir without overwriting.
 - `./board help` — every command, plus the agent orientation block.
-- `next`/`status` take `--json`.
+- `next`/`status`/`show` take `--json`.
 
 The CLI reads; **writes stay direct JSON edits under this contract**.
 Nothing here claims, moves, or saves for you.
@@ -443,6 +477,17 @@ document states — ids unique and resolving, vocabulary from config, lanes
 that exist, `archived_at` only once every story is done, the dependency
 guard, cycles, orphaned stories, dangling deliverable links, promoted
 ideas that never closed, ready stories with no criteria, stale claims.
+It also warns on `needs` left on a done or archived card or not shaped
+`{kind, reason}`, a done story with `ready: false`, an in-progress card
+with no claim, a claimed card still in the first lane, a lane over its
+`wip_limits` (or a limit naming no lane), a `ready for review` idea with
+no `decision`, `conviction`/`effort`/`impact` outside their values, a
+finished un-archived epic with no `Architecture:` line in its notes, a
+`view` default naming no vocab entry, an unknown priority, and (CLI only,
+it needs the filesystem) a live epic's or milestone's `context_docs` path
+that does not exist under the context repo root. It warns, once per
+milestone, when live epics carry a milestone that has deliverables but
+no deliverable links them.
 
 **Errors** are contract violations that break something real, and the
 command exits 1 so CI can gate on them. **Warnings** are advisory and
@@ -522,6 +567,18 @@ When the user says to build a story (e.g. "begin O1-2"):
    claim if blocked), stamp `updated_at`. A card in review without test
    steps is a card the human cannot check.
 7. Committing: code repo per its rules (ask), board repo on "save".
+8. **Closing an epic: check the architecture map.** When you move the
+   epic's last story to the review or done lane — and in any case
+   before anyone sets `archived_at` — compare the context repo's
+   architecture map (`design/hld.md`, every project has one) and any
+   diagram the epic's `context_docs` link with what the epic built.
+   Where they no longer match, update the diagram, the parts table and
+   the status line's checked date, and mark anything described but not
+   yet built as proposed (PROJECT-STRUCTURE.md). Then write the
+   epic's `Architecture:` line (§2) — what changed, or `no change` and
+   why — and name the doc edit in your report. The edit is uncommitted
+   working state like everything else: it is committed on "save", on
+   its own, in the context repo.
 
 An epic is "begin"-able too: work its ready stories in dependency/priority
 order, one at a time, reporting between stories.
@@ -582,7 +639,11 @@ yes.
    built? Do strategy/business claims still hold (whatever the project's
    context directory keeps — `strategy/`, the PRFAQ, `roadmap.md`)?
    Report findings; draft proposed doc edits **as proposals only — never
-   silently edit strategy or architecture docs.** Each ratified doc
+   silently edit strategy or architecture docs.** The one standing
+   exception is §6 step 8: the builder closing an epic updates the
+   architecture map for what that epic built, and reports it in the
+   epic's `Architecture:` line and the session report — never silently.
+   This pass is the backstop for drift no epic caught. Each ratified doc
    update is its own commit in the context directory, so `git log` on
    those files is the record of how the plan evolved during development.
 6. **Design drift.** Check the UX specs ([`design/DESIGN.md`](design/DESIGN.md)

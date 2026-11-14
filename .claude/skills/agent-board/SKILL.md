@@ -28,16 +28,22 @@ answer "what does agent-board do?"), read
 
 - `./board status <project>` — cold-start orientation: who needs a human
   (the `needs` items, which outrank everything), what's in flight and
-  whose claims are stale, what's pickable, lane counts, doctor health.
+  whose claims are stale, a "Waiting on you" count, what's pickable (or
+  why nothing is), lane counts, doctor health.
   **Run this before deciding what to do on a board.**
 - `./board next <project>` — the pickable queue, PROTOCOL §3 executable:
   the same ranked list the UI's Ready strip shows, with why the rest is
-  excluded. Prefer it to re-deriving the selection rule by hand.
+  excluded (counted by reason). Prefer it to re-deriving the selection
+  rule by hand.
+- `./board show <id> <project>` — one story (with its epic's test_plan,
+  context_docs, gate/deps and sibling lanes), one epic (with its
+  stories), or one idea. **Use it instead of reading the whole
+  stories.json** when you need a single card.
 - `./board doctor <project>` — the contract, checked (exit 1 on errors).
   Run it after grooming or curation, before calling a board clean.
 - `./board new <name> <dir>` — scaffold and register a fresh project
   (five default files; adopts existing data without overwriting).
-- `next` and `status` take `--json` for machine-readable output.
+- `next`, `status` and `show` take `--json` for machine-readable output.
 
 The CLI **reads**; it never writes board data. Acting — claiming, moving,
 grooming, editing — is still you editing the JSON files under AGENTS.md.
@@ -52,7 +58,9 @@ and cards (advisory — enforcement is still yours, PROTOCOL §3) ·
 **pending badge + ratify panel** show every uncommitted change as
 card-level statements before the human says "save" · the **History**
 page and **briefing banner** answer "what shipped" and "what changed
-since I last looked" from git · **Remove from board** closes a finished
+since I last looked" from git · the Board's **milestone panel** shows a
+selected milestone's outcome, exit criteria and deliverable roll-up
+(there is no separate Milestones page) · **Remove from board** closes a finished
 epic off the active board into the Shipped view (`archived_at`) —
 propose it during curation when an epic is fully done · story cards
 narrate their own state (`cooking`, `testing` in flight, `⚑ ready to
@@ -152,7 +160,11 @@ the idea card. If the work created a **new value driver** — a capability,
 convention, or workflow future agents should use — fold it into the
 contract docs (AGENTS.md, this skill, PROTOCOL.md, `design/` specs) in
 the same change; medium-or-larger capability changes also update
-`CAPABILITIES.md` (AGENTS.md §6). Full loop: AGENTS.md §6.
+`CAPABILITIES.md` (AGENTS.md §6). When the epic's last story is built,
+check the context repo's `design/hld.md` (and diagrams the epic's
+`context_docs` link) against what it changed, update them where they no
+longer match, and write the epic's `Architecture:` notes line — before
+anyone archives it. Full loop: AGENTS.md §6.
 
 **Design** ("change the UI", "redesign the ideas page", "add X to a
 card"). The UI's source of truth is `<agent-board>/design/*.md`

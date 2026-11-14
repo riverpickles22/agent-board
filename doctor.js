@@ -29,6 +29,12 @@
   const arr = v => Array.isArray(v) ? v : [];
   const str = v => typeof v === "string" ? v.trim() : "";
 
+  // AGENTS.md §2/§6 step 8: closing an epic records the architecture check
+  // as a notes line starting "Architecture:" (a list dash or bold allowed).
+  // The page reads this same test for its Remove-from-board reminder.
+  const ARCH_LINE = /^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Architecture:/m;
+  const hasArchitectureLine = e => ARCH_LINE.test(str(e && e.notes));
+
   /**
    * @param {{config?:object, epics?:array, stories?:array, ideas?:array, milestones?:object}} data
    * @param {{now?:number}} [opts]  now is injectable so results are reproducible
@@ -118,12 +124,33 @@
       });
     });
 
+    // A live epic that carries a milestone the roll-up knows, but that no
+    // deliverable links: the Board's milestone filter shows it and the
+    // milestone's progress does not count it (B44). One warning per
+    // milestone, naming the epics. A milestones.json id is the short form of
+    // its config entry — the same match the UI's msMatches() makes.
+    milestones.forEach(m => {
+      const id = m && str(m.id);
+      if (!id) return;
+      const linked = new Set();
+      arr(m.deliverables).forEach(d => arr(d && d.epics).forEach(eid => linked.add(eid)));
+      if (!linked.size) return;                       // nothing rolled up yet — nothing to drift from
+      const vocab = msVocab.find(v => v === id || String(v).startsWith(id + " "));
+      if (!vocab) return;
+      const loose = epics.filter(e => e && e.id && !e.archived_at && e.milestone === vocab && !linked.has(e.id)).map(e => e.id);
+      if (loose.length) warn("milestone-no-deliverable", loose,
+        (loose.length === 1 ? "epic carries" : loose.length + " epics carry") + " milestone \"" + vocab +
+        "\" but no deliverable in milestones.json links " + (loose.length === 1 ? "it" : "them") +
+        " — the milestone's progress does not count " + (loose.length === 1 ? "it" : "them"));
+    });
+
     /* ---- vocabulary: config is the only source (AGENTS.md §2) ---- */
     const vocab = (x, kind, field, list) => {
       const v = str(x[field]);
       if (v && list.length && !list.includes(v))
         warn("vocab-" + field, [x.id], kind + " " + field + " \"" + v + "\" is not in config." +
-          ({ milestone: "milestones", priority: "priorities", theme: "themes" }[field] || field));
+          ({ milestone: "milestones", priority: "priorities", theme: "themes" }[field] || field) +
+          (field === "priority" && kind !== "idea" ? " — it ranks after every known priority" : ""));
     };
     epics.forEach(e => { if (!e || !e.id) return;
       vocab(e, "epic", "theme", themes); vocab(e, "epic", "milestone", msVocab); vocab(e, "epic", "priority", prios); });
@@ -178,6 +205,12 @@
       if (st.length && st.every(s => s.column === doneLane) && e.column !== doneLane && !str(e.archived_at))
         warn("stories-done-epic-behind", [e.id],
           "every story is " + doneLane + " but the epic card sits in " + e.column);
+      // Finished and not yet archived: the architecture map should have been
+      // checked against what this epic built (AGENTS.md §6 step 8). Archived
+      // epics shipped before the rule and are never flagged.
+      if (!str(e.archived_at) && e.column === doneLane && st.every(s => s.column === doneLane) && !hasArchitectureLine(e))
+        warn("no-architecture-line", [e.id],
+          "epic is finished but its notes carry no \"Architecture:\" line — check design/hld.md against what it built and record the result before archiving (AGENTS.md §6 step 8)");
     });
 
     stories.forEach(s => {
@@ -228,6 +261,73 @@
         warn("rejected-no-reason", [i.id], "idea is rejected with no rejected_reason (AGENTS.md §2)");
     });
 
+    /* ---- rules the contract states (B40-3) ---- */
+    const archivedCard = x => str(x.archived_at) || (x.epic_id && epicById[x.epic_id] && str(epicById[x.epic_id].archived_at));
+    // the in-progress lanes: everything strictly between the first lane and
+    // the review lane (or the done lane, on a board with no review lane)
+    const workLanes = lanes.slice(1, reviewLane ? lanes.length - 2 : lanes.length - 1);
+    [["epic", epics], ["story", stories]].forEach(([kind, list]) => list.forEach(x => {
+      if (!x || !x.id) return;
+      if (x.needs) {
+        if (x.column === doneLane || archivedCard(x))
+          warn("needs-on-closed", [x.id], kind + " carries `needs` but is " +
+            (x.column === doneLane ? "in " + doneLane : "archived") + " — clear it once answered (AGENTS.md §2)");
+        if (typeof x.needs !== "object" || Array.isArray(x.needs) || !str(x.needs.reason))
+          warn("needs-shape", [x.id], kind + " `needs` should be { kind, reason } with a specific question as reason (AGENTS.md §2)");
+      }
+      if (archivedCard(x)) return;
+      if (workLanes.includes(x.column) && !x.claimed_by &&
+          !(kind === "epic" && storiesOf(x.id).some(s => s.claimed_by)))
+        warn("in-progress-unclaimed", [x.id], kind + " is in " + x.column + " with no claim — nobody is recorded as working it (PROTOCOL.md §4)");
+      if (firstLane && x.column === firstLane && x.claimed_by)
+        warn("claimed-in-first-lane", [x.id], kind + " is claimed by " + x.claimed_by + " but still in " + firstLane +
+          " — move it as you start, or release the claim (AGENTS.md §6)");
+    }));
+    stories.forEach(s => {
+      if (s && s.id && doneLane && s.column === doneLane && s.ready === false)
+        warn("done-not-ready", [s.id], "story is in " + doneLane + " but ready is false — only the human sets ready (AGENTS.md §2)");
+    });
+
+    // WIP limits: advisory, read in both grains the UI shows
+    const wip = (cfg.wip_limits && typeof cfg.wip_limits === "object") ? cfg.wip_limits : {};
+    Object.keys(wip).forEach(lane => {
+      if (lanes.length && !lanes.includes(lane)) {
+        warn("wip-unknown-lane", [], "wip_limits names \"" + lane + "\", which is not in config.lanes — the limit applies to nothing");
+        return;
+      }
+      const lim = Number(wip[lane]);
+      if (!isFinite(lim)) return;
+      const liveEpics = epics.filter(e => e && !str(e.archived_at) && e.column === lane);
+      const liveStories = stories.filter(s => s && s.column === lane && !archivedCard(s));
+      if (liveEpics.length > lim || liveStories.length > lim)
+        warn("wip-over-limit", liveEpics.length > lim ? liveEpics.map(e => e.id) : liveStories.map(s => s.id),
+          "lane " + lane + " is over its WIP limit of " + lim + " (" + liveEpics.length + " epics, " + liveStories.length + " stories)");
+    });
+
+    // idea reasoning fields, from their documented vocabularies
+    const IDEA_FIELDS = { conviction: ["speculative", "promising", "clear to pursue"],
+      effort: ["low", "medium", "high"], impact: ["low", "medium", "high"] };
+    ideas.forEach(i => {
+      if (!i || !i.id) return;
+      const st = IDEA_STATUS_LEGACY[str(i.status)] || str(i.status);
+      if (st === "ready for review" && !str(i.decision))
+        warn("review-idea-no-decision", [i.id], "idea is ready for review with no `decision` — say what the reviewer must answer (AGENTS.md §2)");
+      Object.keys(IDEA_FIELDS).forEach(f => {
+        const v = str(i[f]);
+        if (v && !IDEA_FIELDS[f].includes(v.toLowerCase()))
+          warn("idea-" + f, [i.id], "idea " + f + " \"" + v + "\" is not one of " + IDEA_FIELDS[f].join(" / ") + " (or empty)");
+      });
+    });
+
+    // the saved view must name vocabulary the board has
+    const view = (cfg.view && typeof cfg.view === "object") ? cfg.view : {};
+    [["default_milestone", msVocab], ["default_theme", themes]].forEach(([f, list]) => {
+      const v = str(view[f]);
+      if (v && v !== "all" && !list.includes(v))
+        warn("view-" + f.replace("_", "-"), [], "config.view." + f + " \"" + v + "\" is not in config." +
+          (f === "default_milestone" ? "milestones" : "themes") + " — the board falls back to all");
+    });
+
     /* ---- cycles in the epic dependency graph ---- */
     const colour = {};
     const walk = (id, path) => {
@@ -253,5 +353,5 @@
     warnings: findings.filter(f => f.severity === "warning").length,
   });
 
-  return { diagnose, counts, CLAIM_STALE_MS };
+  return { diagnose, counts, hasArchitectureLine, CLAIM_STALE_MS };
 });

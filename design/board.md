@@ -1,7 +1,7 @@
 ---
 screen: execution
 route: "#/board"
-aliases: ["#/execution"]
+aliases: ["#/execution", "#/milestones(/<id>)"]
 spec_state: matches-ui
 ---
 
@@ -12,6 +12,9 @@ milestone / theme / tag, with a dependency guard on every move and a
 **Next up** strip that renders the selection rule (PROTOCOL §3) the
 agent uses — human and agent see the same answer to "what's next".
 Cards open an edit modal that also holds the epic's stories.
+Selecting a milestone in the filter opens a **milestone panel** under the
+filters: that milestone's outcome, exit criteria and deliverables, rolled
+up to epic chips with done counts. It replaced the Milestones page (B44).
 A **View toggle (Epics | Rows)** switches the same board area to story
 swimlanes: one row per epic, the epic's stories as compact cards in the
 lane columns.
@@ -35,6 +38,14 @@ Epics mode (the default):
 ├──────────────────────────────────────────────────────────────────────┤
 │ View(Epics)(Rows)(Current 12)(Shipped 6) Milestone▾ Theme▾ (More…)(⧉ copy)│ filters
 │   ↑ Rows mode: the same chips count stories, not epics                │
+│ ┌──────────────────────────────────────────────────────────────────┐│
+│ │ ▾ {milestone name} ▬▬▬▭▭ 2 of 6 epics done · 4 deliverables      ││  milestone
+│ │   5 cards carry this milestone but sit under no deliverable      ││  panel: only
+│ │ {tagline}                   │ DELIVERABLES                       ││  with a
+│ │ USER OUTCOME {…}            │ Deliverable name   2/3 done ▬▬▭    ││  milestone
+│ │ GATE / EXIT {…}             │ description                        ││  selected;
+│ │ CONTEXT DOCS label path note│ (F1 ✓)(F2)(F9)       epic chips    ││  folds to its
+│ └──────────────────────────────────────────────────────────────────┘│  first line
 │ ┌──────────────────────────────────────────────────────────────────┐│
 │ │ Ready to pick up  3 · 1 in flight    deps satisfied · criteria …  ││  work
 │ │ F1-1  Story name…                    Claude Code · 3m ago         ││  queue
@@ -78,7 +89,8 @@ vertically scrolling, lane strip sticky):
 ```
 
 Card modal (over everything, via the shared shell in `system.md`) — the
-story in a review lane, where the criteria lead:
+story in a review lane, where the agent's review note and then the
+criteria lead:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -86,22 +98,28 @@ story in a review lane, where the criteria lead:
 │ Story name (edits in place)                                  │
 │ This lane asks: What should a reviewer check?                │
 ├───────────────────────────────────┬──────────────────────────┤
-│ CHECK THESE · 5           (edit)  │ BUILT BY                 │
-│  • criterion, wrapping cleanly…   │ agent-3 · 2h ago         │
-│  • criterion…                     │ KIND ▾      PRIORITY ▾   │
-│                                   │ LANE ▾                   │
-│ DESCRIPTION                       │ [ ✓ Ready · unmark ]     │
-│ ┌───────────────────────────────┐ │ EPIC                     │
-│ │ grows to its content, never   │ │ F1 Epic name             │
-│ │ scrolls inside the modal      │ │ 2/6 stories done         │
-│ └───────────────────────────────┘ │ SYSTEMS INVOLVED         │
-│ CONTEXT FOR THE BUILDER           │ [core-api            ]   │
-│ ┌───────────────────────────────┐ │ UPDATED                  │
-│ └───────────────────────────────┘ │ 2026-08-11               │
+│ REVIEW NOTE               (edit)  │ BUILT BY                 │
+│ What changed — markdown, clamped  │ agent-3 · 2h ago         │
+│ with a fade when long…            │ KIND ▾      PRIORITY ▾   │
+│ show the whole note               │ LANE ▾                   │
+│ CHECK THESE · 5           (edit)  │ [ ✓ Ready · unmark ]     │
+│  • criterion, wrapping cleanly…   │ EPIC                     │
+│  • criterion…                     │ F1 Epic name             │
+│ DESCRIPTION                       │ 2/6 stories done         │
+│ ┌───────────────────────────────┐ │ 🧪 epic test plan        │
+│ │ grows to its content          │ │ SYSTEMS INVOLVED         │
+│ └───────────────────────────────┘ │ [core-api            ]   │
+│ CONTEXT FOR THE BUILDER           │ UPDATED                  │
+│ ┌───────────────────────────────┐ │ 2026-08-11               │
+│ └───────────────────────────────┘ │                          │
 ├───────────────────────────────────┴──────────────────────────┤
-│ [Save] [Back to epic]                            [Delete]    │ pinned
+│ [Accept → {last lane}] [Save] [Back to epic]       [Delete]  │ pinned
 └──────────────────────────────────────────────────────────────┘
 ```
+
+Outside the review lane there is no Accept and Save is the primary. A
+story with no notes shows no note block, only `+ add a note` at the end
+of the column.
 
 In the **first lane** the same modal leads with the description, and the
 rail opens with *"Before an agent can pick this up"* instead of the claim:
@@ -124,7 +142,15 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 | View toggle | `.chip.mode` | Epics \| Rows, current mode `aria-pressed` | first chips in `#filters`; switches the board area's rendering mode and remembers the choice per browser (`rememberBoardMode()`) |
 | Shipped toggle | `.chip[data-arch]` | (Current N)(Shipped N) chips after the view toggle — the Ideas page's archive pattern applied to epics, each chip counting the cards **the current mode draws**: epics in Epics mode, their stories in Rows mode, so the number always names what you are looking at (tooltips say which). Whether the pair renders at all stays epic-level — a shipped epic with no stories still has a view to switch to | flips `boardArchive` (in-memory, defaults to current); the Shipped chip renders only when archived epics exist (or while viewing them). Shipped view shows `archived_at` epics in both modes, read-only: cards not draggable, next-up + ready strips hidden, counts read "N shipped". Milestone/theme/tag filters apply within each view |
 | Filter header | `renderFilters()` `#filters` | **one row**: view toggle · Current/Shipped · `Milestone ▾` · `Theme ▾` · `More filters` | the board prioritises execution over taxonomy, so vocabulary collapses to selects (`.fsel`) and the rest hides behind the disclosure (`moreFilters`, `.frow2`): tag chips and ★ set-as-default. A dot on the button marks an active tag filter. Chip rows returned one row per vocab entry — three rows before you reached the work |
-| Work queue | `renderWorkQueue()` `#workq` `queue.js` `.rq-chip` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. In-flight stories compress to **chips** — id, holder, age, staleness, and the ↩ release — because the lanes directly below already show those cards in full; awareness earns a chip, not a row. Pickable stories keep full rows: they are the strip's actual answer, the begin menu. The whole strip **folds to its header line** (`workqFolded`, remembered per project per browser like the board mode; `▸/▾`, click or Enter/Space) | the pickable/in-flight/next-up **rules live in `queue.js`**, shared verbatim with `./board next` and `./board status` (the doctor's pattern), so the strip and the CLI cannot disagree; the render code only re-shapes the module's result. Replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
+| Milestone panel | `renderMsPanel()` `#ms-panel` `.mspanel` | the selected milestone's roll-up, between the filters and the work queue | shown only when the milestone filter names a milestone that has a `milestones.json` entry (`msEntryFor()`); hidden on "All milestones", for a config milestone with no entry, and on a board with no milestones. Read-only — milestones are edited via file/skill only (AGENTS.md §2) |
+| Panel head | `.msp-head` `#msp-toggle` | ▸/▾ · milestone name · progress bar · "N of M epics done · D deliverables" · the gap notes | the folded panel is this one line. **Two sets meet here**: the filter shows epics whose `milestone` names this one; progress counts the epics the deliverables link, archived ones included. When they differ the head says so — "N cards carry this milestone but sit under no deliverable (K shipped)", and "N linked epics carry another milestone" — each with the ids in its tooltip. A milestone whose deliverables link no epics reads "no deliverables mapped to epics yet" and shows no bar |
+| Panel body | `.msp-body` `.msp-sec` | left: tagline, user outcome (or the summary when there is none), gate / exit, context docs. Right: the deliverables | two columns, one below 1100px; capped at 44vh and scrolls inside, so the lanes always keep room. Optional fields render only when present. The project overview, ROI and architecture summary are **not** shown — they stay in `milestones.json` for agents and the context docs |
+| Deliverable | `.deliv` | name + "done/total done" + mini bar + description + epic chips | counts epics in the done lane |
+| Epic chip | `.chip-epic` | epic id, ✓ + `done` style when done | unknown id → `.missing` (dimmed, inert, titled "no epic with this id on the board") |
+| Progress bar | `progressBar()` `laneBuckets()` `.mbar` | stacked bar — done / in flight / not started; the same bar in miniature on each deliverable (`.mbar.mini`) | buckets by lane **position**, so it speaks the board's colours on any lane vocabulary. Counts **epics**, and archived epics still count: archiving hides, never deletes, and a finished milestone must not read empty |
+| Context docs | `ctxDocs()` `.ctxdoc` | label + mono path + note rows | shared with the epic modal |
+| Milestone id match | `msMatches()` `msVocabFor()` | — | a `milestones.json` id is the short form of its config entry: equal to it, or its leading words ("M0" for "M0 Reliable foundation"). `doctor.js` makes the same match |
+| Work queue | `renderWorkQueue()` `#workq` `queue.js` `.rq-chip` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. In-flight stories compress to **chips** — id, holder, age, staleness, and the ↩ release — because the lanes directly below already show those cards in full; awareness earns a chip, not a row. Pickable stories keep full rows: they are the strip's actual answer, the begin menu. Clicking a row or a chip (anywhere but its ↩) opens that story's modal. The whole strip **folds to its header line** (`workqFolded`, remembered per project per browser like the board mode; `▸/▾`, click or Enter/Space) | the pickable/in-flight/next-up **rules live in `queue.js`**, shared verbatim with `./board next` and `./board status` (the doctor's pattern), so the strip and the CLI cannot disagree; the render code only re-shapes the module's result. Replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
  story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
 | Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position, `reviewLane()`, which is null on a board of three lanes or fewer — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. `reviewLane()` is the single definition of that position: `storyState()` reads the same helper, so the lane's colour and its cards' copy can never disagree about which lane is review. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
 | Claim age | `claimIsStale()` `claimLabel()` `claimTitle()` `.claim.stale` | every claim shows its holder **and how long it has been held**; past 48h on a card outside the done lane **and the review lane** it turns amber with `⚠` and explains itself | a claim is *suspect*, never wrong — a long-running job and an abandoned one are indistinguishable from outside, so nothing is ever auto-cleared. One rule feeds cards, story states and the briefing's stale count, and it is the same reading in `queue.js` and `doctor.js`. On stories the stale reading **outranks the lane's activity verb** where the claimer should be working: "cooking" for three days is not cooking. In the review lane the card waits on the **human**, and the claim only says who built it, so "in review · alice · 3d" is the human's queue, plainly, never amber (B36) |
@@ -152,8 +178,8 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 | Story state chip | `storyState()` `.sstate` | one chip from one rule — lane + `ready` + claim + epic health (the ready-queue rule, extended to display). In priority order: done + unfinished siblings → `✓ done · waiting on <sibling>` (+N); done, epic complete → pooled `✓ shipped` / `✓ plated` / `✓ in the books` (stable per story via id hash — variety without randomness); `reviewLane()` → the work is built and waiting on a look, so the register changes: `⚑ ready to check` (feature, chore) · `⚑ results in` (test) · `⚑ ready to read` (docs) · `⚑ wired — verify` (integration), or `⚑ in review · <who> · <since>` when claimed — a claim here names the *reviewer*, which outranks what is being reviewed; any other middle lane → activity by `kind`: feature `cooking` · test `testing` · chore `tidying up` · docs `writing` · integration `wiring up` (tooltip: real lane + claim); first lane + ready → `✓ ready` when pickable, `⛔ gated: <gate>` / `⏳ waiting on <dep>` when the epic is blocked, `claimed` when claimed; first lane, not ready → dim `needs prep` | color: green ok / amber blocked / amber-review / accent active / dim quiet (`--lane-5`/`--lane-2`/`--st-decide`/accent/`--ink-3`). Review gets its own class (`.rev`) rather than borrowing `.warn`: it sits under the same amber lane header, but nothing is wrong — the chip is a hand-off, not an alarm, and `⚠ needs decision` / `⚠ stale claim` must still outrank it. The same chip renders read-only in the epic modal's story rows beside the lane text — the ready checkbox stays the editor. `✓ ready` never appears outside the first lane |
 | Rows: note | `.rows-note` | "N epics without stories — shown in Epics mode" / rows-empty guidance | renders only when it has something to say |
 | Board copy | `boardMarkdown()` `#copy-board` | a `⧉ copy` chip pushed to the right end of the filter row (`margin-left:auto`, the Ideas-page position) — copies the **visible board** to the clipboard as markdown: a title line naming the view (Current / Shipped) and any active filters, then one `##` per lane in lane order, one `###` per epic with its description, a meta line (priority · status · theme · milestone · tags · systems · deps · gate), and its stories as one compact line each (`` `id` `` · name · kind · lane · ready) | the Ideas-page copy convention at the board's own grain, so a whole board pastes into another tool in one click. Copies what the filters and Current/Shipped toggle actually show, exactly as the Ideas copy exports the visible view; **mode-independent** — Epics and Rows show the same cards, so both export the same markdown. Story detail stays one line: full acceptance criteria and how-to-test remain the epic-level `⧉` a click away, so the board export reads as an overview instead of a dump. Toast reports epic + story counts |
-| Test plan panel | `openPlan()` `planPanel()` `.rowplan` `#plan-scrim` | a `🧪 plan` button in every rows-mode row header (and on the folded row, beside `⧉`) that opens a panel showing **only** the epic's test plan: its id and name, the plan in full with its own line breaks kept, a `⧉ copy` and an `open the card` link. Read-only; Escape or the scrim closes it | the test plan is read while *verifying*, which is a different sitting from grooming — and the epic modal shows it among a dozen other fields, three scrolls down, next to inputs you did not come to touch. The hover peek already showed it, clamped to 200 characters, which is a sentence of a plan that runs to pages. So the affordance comes to the row, the way ⌂ Remove from board and ✓ mark all ready did: the row header is where an epic is actually looked at. Absent when `test_plan` is empty — the board never offers a no-op (`✓ mark all ready`'s rule). Deliberately **not** an editor: editing stays in the card, so a panel opened to check something can never be the thing that loses an edit |
-| Epic copy | `epicMarkdown()` `copyEpic()` `.rowcopy` `#m-copy` | one click — row header or epic modal — puts the whole epic on the clipboard as markdown: description, notes, test plan, meta line, then **every story** with kind/lane/ready, description, acceptance criteria, numbered how-to-test steps and context; ids in backticks so answers can reference cards back | the Ideas page's copy-as-markdown convention at the epic level: a groomed unit of work pastes into another tool without opening each story. Toast confirms, matching the Ideas convention |
+| Test plan panel | `openPlan()` `planPanel()` `.rowplan` `#plan-scrim` | a `🧪 plan` button in every rows-mode row header (and on the folded row, beside `⧉`), and `🧪 epic test plan` in the story modal (`#s-plan`), that opens a panel showing **only** the epic's test plan: its id and name, the plan in full with its own line breaks kept, a `⧉ copy` and an `open the card` link. Read-only; Escape or the scrim closes it | the test plan is read while *verifying*, which is a different sitting from grooming — and the epic modal shows it among a dozen other fields, three scrolls down, next to inputs you did not come to touch. The hover peek already showed it, clamped to 200 characters, which is a sentence of a plan that runs to pages. So the affordance comes to the row, the way ⌂ Remove from board and ✓ mark all ready did: the row header is where an epic is actually looked at. Absent when `test_plan` is empty — the board never offers a no-op (`✓ mark all ready`'s rule). Deliberately **not** an editor: editing stays in the card, so a panel opened to check something can never be the thing that loses an edit |
+| Epic copy | `epicMarkdown()` `copyEpic()` `.rowcopy` `#m-copy` | one click — row header or epic modal — puts the whole epic on the clipboard as markdown: description, notes, test plan, meta line, then **every story** with kind/lane/ready, description, acceptance criteria, numbered how-to-test steps, context and its notes (the review note); ids in backticks so answers can reference cards back | the Ideas page's copy-as-markdown convention at the epic level: a groomed unit of work pastes into another tool without opening each story. Toast confirms, matching the Ideas convention |
 | Card modal | `.modal.wide` `modalHead()` `.mgrid`/`.mcol`/`.mrail` `autoGrow()` | both the epic and story modals: a sticky header (id · state chip · where it sits · the lane's question) over a two-column body — **prose left, decisions right** — with a pinned action bar | the old 560px single column made every field the same width, so `Systems involved` got a full-width input while the acceptance criteria — the reason you opened the card — scrolled inside a 70px box. Content now takes the wide column and **sizes to itself** (`autoGrow()`: no scrollbar inside a scrollbar), while everything that is a one-word decision (kind, lane, priority, milestone, theme, gate, claim) moves to the rail. The name renders as the title and edits in place. The Ideas modal keeps the narrow form — it edits an idea's core fields, not a work card |
 | Lane focus | `laneFocus()` `.mh-ask` | the modal leads with what **this lane** asks: first lane *"Can an agent start this?"*, middle *"Who has this, and how far along?"*, `reviewLane()` *"What should a reviewer check?"*, done *"What shipped?"* | a card is a different question in each lane, so opening it should surface a different thing. In review and done the criteria lead the column and change their heading (*Check these* / *What this delivered*) — they are the checklist and the record; elsewhere the description leads. The rail reorders to match: queued shows **what stops a start** first, in flight and review show the claim first (*Built by* in review), done shows the epic and which siblings still block the ship. Positional like every other lane rule, so a project's own lane names work unchanged. **Nothing is ever hidden, only ordered** — every field stays editable from every lane |
 | Test plan | `#f-testplan` | the epic's `test_plan` — *how this change gets validated* — a full-width block under Notes | arrives filled on a promoted epic (carried from the idea's `validation`, which promotion requires) and is editable after. Deliberately **prose in the left column, not a rail field**: it is read while grooming and while verifying, not a one-word decision. Distinct from a story's `acceptance_criteria` — the criteria say what must be true, the plan says what you run to find out |
@@ -163,10 +189,13 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 | Mark all ready | `#s-all-ready` `.rowrdy` `unreadyStories()` `markEpicReady()` | `✓ mark all ready · N` in two places — at the right of the epic modal's Stories label, and in each active rows-mode row header after the roll-up — where N is the stories **not ready and not in the done lane** | both surfaces call `markEpicReady()`, one write path, so the row and the modal cannot flip different sets. The row header is where a groomed epic is actually looked at, so approving it should not need the modal. Not on folded rows or in the Shipped view (read-only). | a groomed epic is usually approved as a whole, and ticking six boxes one at a time was the chore. Shipped stories are left alone: a done story is finished, not ready. Absent when N = 0, so it never offers a no-op. One way only — unmarking stays per story, because pulling readiness back is a judgment about a specific card |
 | Story modal | `renderStoryModal()` | the card modal for a story: description, criteria and builder context left; kind/priority/lane/ready, claim, epic and systems in the rail | **Save closes the modal** (toast confirms) — it used to reopen the epic, which read as a second save still owed; "Back to epic" is the explicit way there. **Ready is a one-click button** (`#s-ready` `.rdy-btn`), not a checkbox + Save: `Mark ready` / `✓ Ready · unmark` saves the whole form with `ready` flipped and closes, so pending edits in the other fields are kept rather than dropped. Both buttons share `saveStory()`, one write path. The header carries the story's own `stateChip()`, so the computed state (`⚑ ready to check`, `⚠ stale claim`) is visible where you edit it. The Epic block names its parent, its done-count, and any gate or unmet dependency **inherited** from it — a story is blocked by its epic far more often than by itself |
 | How to test | `.htlist` `#s-ht-field` `#s-ht-edit` | the story's `how_to_test` as a **numbered** list under the criteria, with the same `edit` link → one-step-per-line textarea; in a review lane the claim block adds "no test steps yet" when empty | the criteria say what must be true; these say what *you* do to see it — open this, do that, expect this — written for the person who did not build it. Numbered because they are done in order. Leads with the criteria in review and done (`criteriaFirst`), where the lane's question is "how do I check this?". Same read-list/edit split as the criteria, and `saveModal` reads the textarea only if it exists |
+| Review note | `#s-notes-field` `.mdnote` `#s-notes-edit` `#s-notes-add` `#s-notes-more` `mdToHtml()` | the story's `notes` — the agent's review note: what changed, what was verified, what waits on you — rendered as markdown (paragraphs, `-` and `1.` lists, code, bold, links). Labelled *Review note* in the review and done lanes, where it **leads the column** ahead of the criteria; *Notes*, after the builder context, elsewhere. Long notes clamp at a fixed height with a fade and a `show the whole note` link; `edit` swaps in the raw markdown textarea | agents write the report a reviewer needs into `notes` (PROTOCOL.md, AGENTS.md §6) and the UI used to show nothing of it — the reviewer read criteria while the evidence sat in the JSON. A story with no notes shows **no empty block**, only a quiet `+ add a note` at the end of the column. `saveStory()` reads the textarea only if it was opened, and writes `notes` only if it changed, so a story that never had notes does not grow an empty field. `mdToHtml()` renders a script URL (`javascript:`, `data:`) as plain text, since the note is agent-written. The hover peek shows the note's start (under the description in review and done), and `epicMarkdown()` copies each story's notes |
+| Accept | `#s-accept` `saveStory()` `reviewLane()` `doneLane()` | `Accept → {last lane}` as the **primary** button, first in the action bar, on a story in the review lane; Save steps down to a plain button there | accepting was the Lane select, the done lane, Save. Shown only when `reviewLane()` exists (a board of four lanes or more) and the story sits in it. It saves the whole form like Save — pending edits are kept — with `column` set to the done lane, stamps `updated_at`, closes the modal and toasts `<id> accepted — moved {review} → {done}`. The claim is **left as it is**: whether accepting clears it is an open decision on the epic. The lane names are config's |
+| Epic test plan link | `#s-plan` `openPlan()` | `🧪 epic test plan` in the story modal's Epic block, when the epic has a `test_plan` | opens the test-plan panel over the story modal — verifying a story is when the plan is needed, and it lives on the epic. Escape closes the panel first and leaves the card open. Absent when the plan is empty |
 | Criteria list | `.aclist` `#s-ac-field` `#s-ac-edit` | acceptance criteria render as a **bulleted list**, with an `edit` link that swaps in the raw one-per-line textarea | a textarea cannot show where one criterion ends and the next begins once they wrap, and wrapping is the normal case — five long criteria read as one paragraph. The list is the default reading; editing is one click. `saveModal`'s story path reads the textarea **only if it exists**, so saving a card whose criteria were never opened preserves them exactly |
 | Start blockers | the rail's *"Before an agent can pick this up"* block | on a first-lane story: every reason it is not pickable — `needs prep`, no criteria, already claimed, epic gated, epic waiting on deps — or `✓ nothing is in the way` | the ready-queue rule (PROTOCOL §3) spelled out on the card it governs, instead of leaving the human to infer it from the queue's absence. Same inputs as `storyState()` and the work queue, so the three cannot disagree |
 | Save epic | `saveModal()` | validation → create/update | duplicate-id and empty-name errors in `.m-err` |
-| Remove from board | `toggleArchiveEpic()` `canRemove()` `removeTitle()` `#m-arch` `.rowarch` | "⌂ Remove from board" in the edit modal **and** on the folded row — shown when `canRemove(e)` and it isn't archived yet. `canRemove()`: every story in the done lane, or, for a story-less epic, its own card there | one action closes the whole thread. It stamps `archived_at` (AGENTS.md §2), and first **moves the epic card to the done lane** if it lags — the stories being done makes the card's lane a formality, so the button finishes it rather than making the human drag it. That move still passes `checkMove()`: an unmet dependency refuses the whole removal with the drag's own toast, and nothing is written. It then **closes the idea behind the epic** (`ideaBehind()` — `promoted_to` points here) to `done` with a dated log line, because an idea promoted by an agent editing JSON never runs `promoteIdea()` and otherwise sits in the funnel forever looking like open discovery. Epics and ideas persist separately (`persist()` + `persistResource("ideas", …)`), and `removeTitle()` states every one of these consequences in the button's tooltip before the click. In the Shipped view the button reads "Unarchive" and clears the stamp; the idea stays `done` — it became work, and that doesn't un-happen. Archived epics still feed milestone roll-ups and dependency checks — archiving hides, never deletes |
+| Remove from board | `toggleArchiveEpic()` `canRemove()` `removeTitle()` `#m-arch` `.rowarch` | "⌂ Remove from board" in the edit modal **and** on the folded row — shown when `canRemove(e)` and it isn't archived yet. `canRemove()`: every story in the done lane, or, for a story-less epic, its own card there | one action closes the whole thread. It stamps `archived_at` (AGENTS.md §2), and first **moves the epic card to the done lane** if it lags — the stories being done makes the card's lane a formality, so the button finishes it rather than making the human drag it. That move still passes `checkMove()`: an unmet dependency refuses the whole removal with the drag's own toast, and nothing is written. It then **closes the idea behind the epic** (`ideaBehind()` — `promoted_to` points here) to `done` with a dated log line, because an idea promoted by an agent editing JSON never runs `promoteIdea()` and otherwise sits in the funnel forever looking like open discovery. Epics and ideas persist separately (`persist()` + `persistResource("ideas", …)`), and `removeTitle()` states every one of these consequences in the button's tooltip before the click. When the epic's notes carry no line starting `Architecture:` (AGENTS.md §6 step 8, tested by `archRecorded()` → `BoardDoctor.hasArchitectureLine`), the modal's action bar shows `#m-archnote` (`.archmiss.block`) saying the check is not recorded and what line to add, the folded row adds `.archmiss` "⚠ no Architecture: line", the tooltip (`ARCH_MISSING`) says so, and the removal toast ends "Its architecture check was never recorded." It never blocks: archiving is the human's call. In the Shipped view the button reads "Unarchive" and clears the stamp; the idea stays `done` — it became work, and that doesn't un-happen. Archived epics still feed milestone roll-ups and dependency checks — archiving hides, never deletes |
 | Delete epic | `deleteEpic()` | confirm listing dependents + story cascade | deletes epic + its stories |
 
 ## Interactions
@@ -221,9 +250,31 @@ theme, status, tags, systems, deps, gate and claim in the rail.
   closes, toast names the new state.
 - Story Save → `saveStory(s.ready)`, modal closes, toast; no hop to the
   epic modal.
+- Accept (review lane only) → `saveStory(s.ready, doneLane())`: the
+  form's edits with `column` = the done lane and `updated_at`,
+  `persistResource("stories", …)`, modal closes, toast names the move.
+  The claim is untouched.
+- `🧪 epic test plan` in the story modal → `openPlan(epicId)` over the
+  card; writes nothing. Escape closes the panel, then a second Escape the
+  card.
+- Review note `edit` / `+ add a note` → the markdown textarea in place;
+  the next Save or Accept writes `notes` if it changed.
+- Opening any epic or story card puts its address in the hash —
+  `#/board/<id>` (system.md, Card URLs) — so Back closes it.
 - Epic save → `persistResource("epics", …)`; story save/delete →
   `persistResource("stories", …)`; epic delete may write both.
 - Story/epic delete → `window.confirm` first ("recoverable via git").
+- Milestone panel head click → fold or unfold; the choice is remembered
+  in this browser per board (`loadMsFold()` / `rememberMsFold()`,
+  `localStorage`). Folded is the default. Writes nothing.
+- Epic chip click in the panel → `goToEpic(id)`: sets the filters to the
+  epic's milestone, follows it into Shipped when it is archived, scrolls
+  to the card and flashes it. Writes nothing.
+- `#/milestones/<id>` (the retired page's link) → `route()` sets the
+  milestone filter to the matching config entry, unfolds the panel for
+  that visit, and rewrites the hash to `#/board`. `#/milestones` alone,
+  or an id that matches nothing, just opens the Board. A config whose
+  `view.default_page` is `milestones` opens the Board (`PAGE_ALIASES`).
 
 ## States
 
@@ -277,6 +328,11 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 
 ## Data
 
+The milestone panel reads `state.milestones` = `{ overview, milestones[] }`
+(array-form legacy data normalized in `applyBoard()`); roll-ups read
+`state.epics` via `epicsOfMilestone()` (the union of deliverable `epics`
+ids) and `doneLane()`. `overview`, `roi` and `architecture` are loaded and
+saved untouched but never rendered.
 The Next-up strip was the first UI reader of `config.open_gates` and
 `config.wip_limits` (previously protocol-only); lane headers now read
 `wip_limits` too (B1-1), rendering the same board-wide numbers

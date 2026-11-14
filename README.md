@@ -12,7 +12,7 @@ agent at a board it can read, and it will tell you what to work on next, shape
 a rough idea until it's decidable, break the approved ones into stories, and
 build the ones you mark ready — moving the cards as it goes.
 
-![The Board view: epics as swimlanes, stories moving Backlog → In Progress → Done](image.png)
+![The Board view: epics as swimlanes, stories moving Ready → In Progress → Review → Done](image.png)
 
 ---
 
@@ -164,11 +164,17 @@ Stories carry **How to test this yourself** — numbered steps in plain words,
 written for whoever didn't build it. `doctor` flags a story sitting in review
 without them.
 
-### The other three tabs
+### Milestone progress, on the Board
+
+Pick a milestone in the Board's filter and a panel opens under it: the user
+outcome, exit criteria, and deliverables that roll up to epic chips with live
+done-counts. It folds to one line, and it says when cards carry the milestone
+but sit under no deliverable.
+
+### The other two tabs
 
 | Tab | Answers |
 |---|---|
-| **Milestones** | What are we trying to finish, and when? Summary, user outcome, exit criteria, and deliverables that roll up to epic chips with live done-counts. <kbd>←</kbd>/<kbd>→</kbd> step through them |
 | **History** | What changed, and when? The data directory's git log as a timeline |
 | **Docs** | The capability tour, rendered in the UI |
 
@@ -417,14 +423,14 @@ Every vocabulary is per-project — the app hardcodes none of it. Edit
 
 | Key | Type | Default | What it does |
 |---|---|---|---|
-| `lanes` | string[] | `Backlog, In Progress, Review, Done` | Your columns. **First is the todo lane, last is the done lane** — the dependency rules key off position, not name |
+| `lanes` | string[] | `Ready, In Progress, Review, Done` | Your columns. **First is the todo lane, last is the done lane** — the dependency rules key off position, not name |
 | `priorities` | string[] | `Now, Next, Later, Someday` | Priority tiers, highest first. The top half is "front burner" in the Ideas funnel |
 | `themes` | string[] | `[]` | Groupings for epics and ideas |
 | `milestones` | string[] | `[]` | Milestone names epics can belong to |
 | `open_gates` | string[] | `[]` | Gates you have opened. A gated epic stays closed until its gate is listed here — only you add one |
 | `wip_limits` | object | `{}` | Per-lane card limits, e.g. `{"In Progress": 3}` |
 | `view.title` | string | `"Board"` | Board name in the header and browser tab |
-| `view.default_page` | string | `"board"` | Tab to open on: `ideas`, `milestones`, `board`, `history`, `docs` |
+| `view.default_page` | string | `"board"` | Tab to open on: `ideas`, `board`, `history`, `docs` (`milestones` opens the Board) |
 | `view.default_milestone` | string | `"all"` | Milestone filter applied on open |
 | `view.default_theme` | string | `"all"` | Theme filter applied on open |
 | `view.default_board_mode` | string | `"epics"` | `epics` or `rows` |

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agent-board</title>
+<!-- Drawn by drawFavicon() once the board loads: lanes, plus a dot while
+     something waits on the human. "data:," until then stops a favicon.ico 404. -->
+<link rel="icon" id="favicon" href="data:,">
 <!-- The same checks ./board doctor runs. Plain script, no build step: the
      file defines window.BoardDoctor in a browser and module.exports in node,
      so one function serves both and cannot drift between them. -->
@@ -268,6 +271,10 @@
   .swim.done-fold{opacity:.72}
   .swim.done-fold .swim-h{border-bottom:0}
   .rowarch{margin-left:10px;font-size:11px;padding:2px 9px}
+  .archmiss{margin-left:8px;font-size:11px;color:var(--st-blocked);white-space:nowrap}
+  .archmiss.block{display:block;flex:1 0 100%;margin:0;padding:8px 12px;border-radius:8px;white-space:normal;font-size:12.5px;line-height:1.5;
+    border:1px solid color-mix(in srgb,var(--st-blocked) 40%,transparent);background:color-mix(in srgb,var(--st-blocked) 8%,transparent);color:var(--ink-2)}
+  .archmiss.block code{font-family:var(--mono);font-size:12px}
   .eroll{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);
     font-variant-numeric:tabular-nums;white-space:nowrap}
   .eroll .bar{display:inline-block;width:56px;height:4px;border-radius:3px;background:var(--line);overflow:hidden}
@@ -338,14 +345,23 @@
   .vhead h2{font-size:21px;margin:0 0 5px;letter-spacing:-.015em}
   .vhead p{color:var(--ink-2);font-size:15px;margin:0;line-height:1.55}
 
-  /* ---- milestones ---- */
-  .ov-block{margin:0 0 26px;padding:18px 22px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-  .ov-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:28px;align-items:start}
-  .ms-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px;align-items:start;margin-top:4px}
-  .ms-grid>div>.ms-section:first-child{margin-top:12px}
-  @media (max-width:1100px){.ov-grid,.ms-grid{grid-template-columns:1fr}}
-  .ov-block h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin:0 0 8px;font-weight:600}
-  .ov-block p{margin:0;font-size:15.5px;line-height:1.65;color:var(--ink);max-width:78ch}
+  /* ---- milestone panel (on the Board) + the roll-up pieces it uses ---- */
+  .mspanel{flex:0 0 auto;margin:8px 22px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .msp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:9px 14px;background:none;border:0;
+    font-family:var(--sans);color:inherit;text-align:left;cursor:pointer;border-radius:10px}
+  .msp-head:hover .nm{color:var(--accent)}
+  .msp-head .car{flex:0 0 auto;width:10px;font-size:11px;color:var(--ink-3)}
+  .msp-head .nm{font-size:14px;font-weight:600;color:var(--ink)}
+  .msp-head .mbar{flex:0 0 auto;width:160px}
+  .msp-head .ct{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .msp-head .gap{font-size:12.5px;color:var(--ink-2)}
+  .msp-body{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:6px 28px;padding:2px 14px 14px;
+    max-height:44vh;overflow-y:auto;border-top:1px solid var(--line-2)}
+  @media (max-width:1100px){.msp-body{grid-template-columns:1fr}}
+  .msp-sec{margin-top:12px}
+  .msp-sec>h3{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin:0 0 6px;font-weight:600}
+  .msp-sec>p{margin:0;color:var(--ink);font-size:14px;line-height:1.55;max-width:72ch}
+  .msp-sec .none{color:var(--ink-3)}
   .ctxdocs{margin-top:12px;display:flex;flex-direction:column;gap:6px}
   .ctxdoc{display:flex;align-items:baseline;gap:9px;font-size:13.5px;flex-wrap:wrap}
   .ctxdoc .cl{font-weight:600;color:var(--ink);flex:0 0 auto}
@@ -353,21 +369,6 @@
   .ctxdoc .cn{color:var(--ink-3)}
   #m-ctxdocs .ctxdoc{cursor:copy;border-radius:6px;padding:2px 4px;margin:-2px -4px}
   #m-ctxdocs .ctxdoc:hover{background:var(--accent-soft)}
-  .ms-nav{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-  .ms-tab{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 15px;border-radius:10px;border:1px solid var(--line);
-    background:var(--panel);color:var(--ink-2);cursor:pointer}
-  .ms-tab .mt-id{font-family:var(--mono);color:var(--accent);margin-right:8px}
-  .ms-tab[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
-  .ms-body{max-width:none}
-  .ms-body>h2{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
-  .ms-tagline{font-size:16px;color:var(--accent);margin:0 0 4px;font-weight:500}
-  .ms-section{margin-top:22px}
-  .ms-section>h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin:0 0 8px;font-weight:600}
-  .ms-section>p{margin:0;color:var(--ink);font-size:15.5px;line-height:1.65;max-width:78ch}
-  .ms-meta{display:grid;grid-template-columns:1fr;gap:12px;margin-top:20px} /* gate/exit and ROI stack full-width, gate first */
-  .ms-meta .box{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}
-  .ms-meta .box .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:5px;font-weight:600}
-  .ms-meta .box .v{font-size:14px;color:var(--ink-2);line-height:1.5}
   .deliv{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:9px;background:var(--panel)}
   .deliv .dn{font-size:15px;font-weight:600;color:var(--ink)}
   .deliv .dd{font-size:14px;color:var(--ink-2);margin:4px 0 7px;line-height:1.45}
@@ -384,13 +385,6 @@
   :root[data-theme="dark"] .chip-epic:hover{color:#1F1F1F}
   .chip-epic.done{color:var(--lane-5);border-color:color-mix(in srgb,var(--lane-5) 40%,transparent);background:color-mix(in srgb,var(--lane-5) 10%,transparent)}
   .chip-epic.missing{opacity:.45;cursor:default}
-  .arch-sub{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2)}
-  .arch-sub .state{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:5px;flex:0 0 auto}
-  .arch-sub .state.new{color:var(--lane-5);border:1px solid color-mix(in srgb,var(--lane-5) 48%,transparent)}
-  .arch-sub .state.changed{color:var(--lane-2);border:1px solid color-mix(in srgb,var(--lane-2) 48%,transparent)}
-  .arch-sub .state.existing{color:var(--ink-3);border:1px solid var(--line)}
-  .arch-sub .an{font-size:14.5px;font-weight:600;color:var(--ink)}
-  .arch-sub .anote{font-size:13.5px;color:var(--ink-3)}
 
   /* ---- ideas ---- */
   .ideas-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:60vh} /* columns stretch (and the row keeps real height) so even empty ones are full drop targets */
@@ -543,6 +537,15 @@
   .idd-block.lead:hover h3, .idd-block.lead:focus-within h3{opacity:1}
   .ilab{display:block;font-size:11.5px;color:var(--ink-3);margin:10px 0 4px}
   .ilab:first-child{margin-top:0}
+  /* The decision bar: the answer line, then the three verdicts — Pursue
+     primary, Reject the danger at the far right, as every actions row has it. */
+  .decide{margin:10px 0 12px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--st-decide) 45%,transparent);
+    border-radius:10px;background:color-mix(in srgb,var(--st-decide) 7%,transparent)}
+  .decide-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .decide .m-err:empty{display:none}
+  .decide .m-err{margin-top:8px}
+  .decide-pos{margin-top:8px;font-size:12px;color:var(--ink-3)}
+  .decide-pos b{font-family:var(--mono);font-weight:600;color:var(--ink-2)}
   .promote-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
   .idd h2 input{font:inherit;font-size:24px;letter-spacing:-.02em;color:var(--ink);width:100%;
     background:var(--card-2);border:1px solid var(--accent);border-radius:8px;padding:2px 8px}
@@ -608,7 +611,7 @@
   .mdoc h3{font-size:14px;margin:18px 0 6px}
   .mdoc p{font-size:15px;line-height:1.65;color:var(--ink);margin:0 0 10px}
   .mdoc em{color:var(--ink-2)}
-  .mdoc ul{margin:0 0 10px;padding-left:22px}
+  .mdoc ul,.mdoc ol{margin:0 0 10px;padding-left:22px}
   .mdoc li{font-size:15px;line-height:1.6;margin-bottom:8px}
   .mdoc code{font-family:var(--mono);font-size:13px;background:var(--card-2);border:1px solid var(--line-2);border-radius:5px;padding:1px 5px}
   .mdoc a{color:var(--accent);text-decoration:none}
@@ -697,6 +700,26 @@
   .htlist{margin:0;padding:0 0 0 22px}
   .htlist li{margin-bottom:7px;font-size:14.5px;line-height:1.55;color:var(--ink);padding-left:2px}
   .htlist li::marker{color:var(--lc,var(--accent));font-family:var(--mono);font-size:12.5px;font-weight:600}
+  /* The review note: an agent's markdown, read at the criteria's size. Long
+     notes clamp with a fade (the criteria below are still the checklist);
+     "show the whole note" lifts it. mdToHtml's docs section cards flatten. */
+  .mdnote{font-size:14.5px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
+  .mdnote.clamp{max-height:340px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent)}
+  .mdnote p{margin:0 0 9px}
+  .mdnote ul,.mdnote ol{margin:0 0 9px;padding-left:20px}
+  .mdnote li{margin-bottom:5px}
+  .mdnote li::marker{color:var(--lc,var(--accent))}
+  .mdnote h1,.mdnote h2,.mdnote h3{font-size:13.5px;font-weight:650;color:var(--ink);margin:12px 0 5px}
+  .mdnote code{font-family:var(--mono);font-size:12.5px;background:var(--card-2);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
+  .mdnote a{color:var(--accent)}
+  .mdnote hr{border:none;border-top:1px solid var(--line-2);margin:12px 0}
+  .mdnote .dsec{border:0;border-radius:0;background:none;padding:0;margin:0}
+  .mdnote .dsec>h2{display:block;color:var(--ink)}
+  .mdnote .dsec>h2::before{display:none}
+  .mdnote .dterm{font-weight:650}
+  .mgrid .field > .eb.ntmore,.mrail .eb.rplan{float:none;padding:0;margin-top:4px;font-size:12.5px;font-weight:500;color:var(--accent);background:none;border:0;cursor:pointer}
+  .mgrid .field > .eb.ntmore:hover,.mrail .eb.rplan:hover{text-decoration:underline}
   .htlist li:last-child{margin-bottom:2px}
   .field > label .eb{float:right;font-size:11.5px;font-weight:500;color:var(--accent);background:none;border:0;
     cursor:pointer;text-transform:none;letter-spacing:0;padding:0}
@@ -772,6 +795,34 @@
   .hline{font-size:13px;color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--line-2);line-height:1.45}
   .hline:last-child{border-bottom:0}
   .hempty{font-size:13.5px;color:var(--ink-3)}
+  /* saves-per-day calendar: one hue, five steps, mixed from --accent so both themes follow */
+  /* list left, calendar in the free space on the right; stacked (calendar first) when there is no room */
+  .hwrap{display:flex;flex-direction:column;gap:18px}
+  .hwrap .hcal{order:-1}
+  @media (min-width:1360px){
+    .hwrap{display:grid;grid-template-columns:minmax(0,860px) minmax(0,800px);gap:22px;align-items:start}
+    .hwrap .hcal{order:0;position:sticky;top:0}
+  }
+  .hcal{max-width:860px;padding:14px 16px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .hcal-sum{font-size:13.5px;color:var(--ink-2);margin:0 0 10px}
+  .hcal-sum b{color:var(--ink)}
+  .hcal-scroll{overflow-x:auto;padding-bottom:2px}
+  .hcal-grid{display:grid;grid-template-rows:14px repeat(7,auto);grid-template-columns:max-content repeat(53,minmax(0,1fr));grid-auto-flow:column;gap:3px;min-width:560px;max-width:780px}
+  .hcal-mon,.hcal-dow{font-size:10.5px;color:var(--ink-3);line-height:11px;white-space:nowrap;align-self:center}
+  .hcal-mon{overflow:visible;align-self:start}
+  .hcal-dow{grid-column:1;padding-right:5px;text-align:right}
+  .hday{width:100%;aspect-ratio:1/1;border-radius:2.5px;background:var(--line-2);border:0;padding:0;display:block}
+  .hday.l1{background:color-mix(in srgb,var(--accent) 32%,var(--panel))}
+  .hday.l2{background:color-mix(in srgb,var(--accent) 55%,var(--panel))}
+  .hday.l3{background:color-mix(in srgb,var(--accent) 78%,var(--panel))}
+  .hday.l4{background:var(--accent)}
+  .hday.has{cursor:pointer}
+  .hday:hover,.hday:focus-visible{outline:1.5px solid var(--ink);outline-offset:1px}
+  .hcal-foot{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:12px;color:var(--ink-3);min-height:16px}
+  .hcal-tip{color:var(--ink-2)}
+  .hcal-key{margin-left:auto;display:flex;align-items:center;gap:3px}
+  .hcal-key .hday{width:11px;cursor:default;outline:0}
+  .hentry.hmark{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 
   /* ---- board briefing (since you last looked) ---- */
   .briefing[hidden]{display:none}   /* the flex display must not defeat the hidden attribute */
@@ -842,6 +893,8 @@
   .pp-group:first-child h4{margin-top:0}
   .pp-group .cnt{font-family:var(--mono);font-weight:500}
   .pp-line{font-size:13px;color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--line-2);line-height:1.45}
+  .idlink{font-family:var(--mono);font-size:.92em;font-weight:600;color:var(--accent);text-decoration:none}
+  .idlink:hover{text-decoration:underline}
   .pp-files{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:14px}
   .pp-empty{font-size:13.5px;color:var(--ink-3);padding:8px 0}
   .pp-foot{padding:12px 18px;border-top:1px solid var(--line-2);font-size:12.5px;color:var(--ink-3)}
@@ -860,6 +913,7 @@
         <span id="counts"></span>
         <button class="themet" id="theme-t" type="button" aria-label="Switch colour theme"></button>
         <span class="save" id="save"><span class="d"></span><span id="save-t">saved</span></span>
+        <button class="dxbadge" id="wait-badge" type="button" title="What waits on you"></button>
         <button class="dxbadge" id="doctor-badge" type="button" title="Board doctor — data checked against the contract"></button>
         <button class="pbadge" id="pending-badge" type="button" title="Uncommitted board changes — click to review what a 'save' would ratify"></button>
       </div>
@@ -875,10 +929,10 @@
 
   <section class="view" id="view-board" hidden>
     <div class="filters" id="filters"></div>
+    <div class="mspanel" id="ms-panel" hidden></div>
     <div class="readyq" id="workq"></div>
     <main class="board" id="board" aria-label="Kanban board"></main>
   </section>
-  <section class="view scroll" id="view-milestones" hidden></section>
   <section class="view scroll" id="view-ideas" hidden></section>
   <section class="view scroll" id="view-history" hidden></section>
   <section class="view scroll" id="view-docs" hidden></section>
@@ -902,6 +956,12 @@
     <div class="pp-body"></div>
     <div class="pp-foot">Reporting only — nothing here is repaired for you. Same checks as <b>./board doctor</b>.</div>
   </aside>
+  <aside class="ppanel" id="wait-panel" aria-label="Waiting on you">
+    <div class="pp-head"><h2>Waiting on you</h2>
+      <button class="pp-x" id="wy-close" type="button" title="Close">✕</button></div>
+    <div class="pp-body"></div>
+    <div class="pp-foot">The same count as <b>./board status</b> — what only a person can move.</div>
+  </aside>
   <aside class="ppanel" id="pending-panel" aria-label="Pending ratification">
     <div class="pp-head"><h2>Pending ratification</h2>
       <button class="pp-x" id="pp-close" type="button" title="Close">✕</button></div>
@@ -919,7 +979,13 @@
 
 <script>
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const opts = (arr,sel) => arr.map(x=>'<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>').join("");
+// A value the vocabulary doesn't list (a story of kind "bug", an idea with
+// conviction "strong") is kept as one extra, selected option rather than
+// silently becoming the first entry on save — the file said it, so the
+// select must be able to say it back. Doctor is what reports it.
+const opts = (arr,sel) => arr.map(x=>'<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>').join("")+
+  (sel != null && sel !== "" && !arr.includes(sel)
+    ? '<option value="'+esc(sel).replace(/"/g,"&quot;")+'" selected>'+esc(sel)+' (not in vocabulary)</option>' : "");
 const today = () => new Date().toISOString().slice(0,10);
 
 let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overview: null, milestones: [] } };
@@ -1307,6 +1373,7 @@ function renderWorkQueue(){
   fold.addEventListener("keydown", ev => { if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggleWorkqFold(); } });
   el.querySelectorAll(".rq-item, .rq-chip").forEach(b => b.addEventListener("click", ev => {
     if(ev.target.closest("[data-rel]")) return;      // the release button owns its click
+    document.getElementById("scrim").classList.add("on");   // the renderer fills the modal; the scrim shows it
     renderStoryModal(b.dataset.eid, b.dataset.sid);
   }));
   el.querySelectorAll("[data-rel]").forEach(b => b.addEventListener("click", ev => {
@@ -1317,18 +1384,19 @@ function renderWorkQueue(){
 // Fill state + vocab + title from a /api/board payload — shared by the
 // initial load() and live refresh().
 function applyBoard(data){
+  const revs = data.revisions;
+  delete data.revisions;
   state = data;
   state.stories = state.stories || [];
   state.ideas = state.ideas || [];
   state.config = state.config || {};
   state.milestones = (state.milestones && !Array.isArray(state.milestones))
     ? state.milestones : { overview: null, milestones: state.milestones || [] };
-  COLUMNS = state.config.lanes && state.config.lanes.length ? state.config.lanes : ["Backlog","In Progress","Review","Done"];
+  COLUMNS = state.config.lanes && state.config.lanes.length ? state.config.lanes : ["Ready","In Progress","Review","Done"];
   PRIOS = state.config.priorities && state.config.priorities.length ? state.config.priorities : ["Now","Next","Later","Someday"];
   THEMES = state.config.themes || [];
   MILESTONES = state.config.milestones || [];
   const view = state.config.view || {};
-  document.title = view.title || "agent-board";
   document.getElementById("board-title").textContent = view.title || "Board";
   // A card in a lane the config doesn't know can't be placed, so it is pulled
   // to the first lane to keep the board usable. That is a *display* rescue,
@@ -1343,6 +1411,10 @@ function applyBoard(data){
   };
   state.epics.forEach(rescue);
   state.stories.forEach(rescue);
+  // What a later save is compared against: the state as loaded, after the
+  // rescue above (so the rescue never reads as the human's edit).
+  rememberBaseline(revs);
+  updateWaiting();   // the tab title is set here, with the count
 }
 async function load(){
   const r = await fetch(api("/api/board"));
@@ -1354,6 +1426,7 @@ async function load(){
   ideaLens = savedLens() || "status";
   loadBurnerFold();
   loadWorkqFold();
+  loadMsFold();
   if(!location.hash && d.page !== HOME_PAGE) location.hash = "#/" + d.page;
   renderFilters();
   render();
@@ -1362,7 +1435,9 @@ async function load(){
   wireTheme();
   wirePeek();
   wireDoctor();
+  wireWaiting();
   route();
+  routeCard(false);   // #/board/<id> on first load opens that card
   wireLiveRefresh();
   wirePending();
   wirePalette();
@@ -1565,6 +1640,7 @@ function render(){
   document.getElementById("stories-note").innerHTML = state.stories.length
     ? "<b>"+state.stories.length+"</b> stories" : "";
   updateFooter(currentRoute().page);
+  renderMsPanel();
   renderWorkQueue();
 }
 
@@ -1703,6 +1779,7 @@ function swimEl(e){
     ? '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
       '<span class="edone">✓ '+done+'/'+st.length+'</span>'+
       '<button class="chip rowarch" data-arch-epic="'+esc(e.id)+'" title="'+esc(removeTitle(e))+'">⌂ Remove from board</button>'+
+      (archRecorded(e) ? "" : '<span class="archmiss" title="'+esc(ARCH_MISSING)+'">⚠ no Architecture: line</span>')+
       (e.test_plan ? '<button class="rowplan" data-plan-epic="'+esc(e.id)+'" title="Read this epic&#39;s test plan">\u{1F9EA} plan</button>' : "")+
       '<button class="rowcopy" data-copy-epic="'+esc(e.id)+'" title="Copy this epic and its stories as markdown">⧉</button>'
     : '<span class="eid">'+esc(e.id)+'</span><span class="en">'+esc(e.name)+'</span>'+
@@ -1865,6 +1942,9 @@ function renderModal(e){
     '</div>'+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions">'+
+      (!create && !e.archived_at && canRemove(e) && !archRecorded(e)
+        ? '<div class="archmiss block" id="m-archnote">⚠ The architecture check is not recorded. Before removing this epic, compare <code>design/hld.md</code> with what it built and add a line to Notes starting <b>Architecture:</b> — what changed, or <i>no change</i> and why (AGENTS.md §6 step 8). Removing it anyway is your call.</div>'
+        : '')+
       '<button class="btn primary" id="m-save">'+(create?"Create":"Save")+'</button>'+
       '<button class="btn" id="m-cancel">Cancel</button>'+
       (create ? '' : '<button class="btn" id="m-copy" title="Copy this epic and its stories as markdown">⧉ Copy</button>')+
@@ -1877,6 +1957,7 @@ function renderModal(e){
       (create?'':'<button class="btn danger" id="m-del">Delete</button>')+
     '</div>';
   document.getElementById("scrim").classList.add("on");
+  if(!create) noteCardOpen(e.id);
   wireAutoGrow(modal);
   document.getElementById("m-save").addEventListener("click", saveModal);
   document.getElementById("m-cancel").addEventListener("click", closeModal);
@@ -1993,6 +2074,10 @@ function pkDeps(card, label){
 }
 function peekStory(s){
   const ep = byId()[s.epic_id];
+  // The note's start: under the description in review and done, where it is
+  // the agent's report; after the test steps elsewhere.
+  const review = laneFocus(s).criteriaFirst;
+  const note = (s.notes||"").trim() ? '<div class="pksec">'+(review ? "Review note" : "Notes")+'</div><p>'+esc(pkClamp(s.notes, 280))+'</p>' : "";
   const foot = [ s.kind && esc(s.kind), s.priority && esc(s.priority),
                  s.claimed_by ? "claimed by "+esc(s.claimed_by) : "unclaimed",
                  s.ready ? "✓ ready" : "not ready" ].filter(Boolean);
@@ -2001,8 +2086,10 @@ function peekStory(s){
       '<h4>'+esc(s.name)+'</h4>'+
       '<div class="pkwhere">'+(ep ? esc(ep.id)+" · "+esc(ep.name)+" · " : "")+esc(s.column)+'</div>'+
       (s.description ? '<p style="margin-top:9px">'+esc(pkClamp(s.description, 320))+'</p>' : "")+
+      (review ? note : "")+
       pkList(s.acceptance_criteria, 4, "Acceptance criteria")+
       pkList(s.how_to_test, 4, "How to test")+
+      (review ? "" : note)+
       (s.context ? '<div class="pksec">Context</div><p>'+esc(pkClamp(s.context, 200))+'</p>' : "")+
       '<div class="pkfoot">'+foot.join(" · ")+'</div>' };
 }
@@ -2151,6 +2238,7 @@ function toggleTheme(){
   document.documentElement.setAttribute("data-theme", next);
   try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
   paintThemeButton();
+  updateWaiting();   // the favicon reads the theme's accent
 }
 function wireTheme(){
   const b = document.getElementById("theme-t"); if(!b) return;
@@ -2305,6 +2393,22 @@ function renderStoryModal(epicId, sid){
   const bCtx =
     '<div class="field"><label for="s-ctx">Context for the builder</label>'+
       '<textarea id="s-ctx" placeholder="Repos, paths, docs to read before starting">'+esc(s.context||"")+'</textarea></div>';
+  // The agent's review note — what changed, what was verified, what waits
+  // on you (PROTOCOL.md, AGENTS.md §6). Read as markdown; in review and done
+  // it is the first thing the human reads, so it leads. A story without one
+  // shows no empty block — only a quiet way to add it, at the end.
+  const hasNotes = !!(s.notes||"").trim();
+  const ntLabel = focus.criteriaFirst ? "Review note" : "Notes";
+  const ntEditor =
+    '<label for="s-notes">'+ntLabel+' <span class="ct">· markdown</span></label>'+
+    '<textarea id="s-notes" placeholder="What changed, what was verified, what waits on a human">'+esc(s.notes||"")+'</textarea>';
+  const bNotes = '<div class="field" id="s-notes-field">'+
+    (hasNotes
+      ? '<label>'+ntLabel+'<button type="button" class="eb" id="s-notes-edit">edit</button></label>'+
+        '<div class="mdnote clamp" id="s-notes-md">'+mdToHtml(s.notes)+'</div>'+
+        '<button type="button" class="eb ntmore" id="s-notes-more" hidden>show the whole note</button>'
+      : '<button type="button" class="addstory" id="s-notes-add">+ add a note</button>')+
+    '</div>';
 
   // Rail blocks, likewise ordered: what stops a start when queued, who holds
   // it once it is moving, what is still outstanding once it is done.
@@ -2344,6 +2448,9 @@ function renderStoryModal(epicId, sid){
         (focus.key==="done" && siblings.length
           ? '<br><span class="dim">the epic ships when '+esc(siblings.join(" "))+' land'+(siblings.length===1?"s":"")+'</span>' : "")+
         (focus.key!=="queued" && !gateOpen(ep) ? '<br><span style="color:var(--lane-2)">⛔ gated: '+esc(ep.gate)+'</span>' : "")+
+        // How the whole change gets checked lives on the epic; verifying a
+        // story is when you need it, so the plan panel opens from here.
+        (ep.test_plan ? '<br><button type="button" class="eb rplan" id="s-plan" title="Read '+esc(ep.id)+'&#39;s test plan without leaving this card">\u{1F9EA} epic test plan</button>' : "")+
       '</div></div>'
     : "";
   const rSystems =
@@ -2357,6 +2464,8 @@ function renderStoryModal(epicId, sid){
     : focus.key==="done"   ? [rEpic, rSettings, rClaim, rSystems, rUpdated]
     :                        [rClaim, rSettings, rEpic, rSystems, rUpdated];
 
+  // reviewLane() is null on a board of three lanes or fewer — no Accept there.
+  const accept = !create && !!reviewLane() && s.column === reviewLane();
   const modal = document.getElementById("modal");
   modal.className = "modal wide";
   modal.style.setProperty("--lc", laneVar(s.column));
@@ -2366,16 +2475,22 @@ function renderStoryModal(epicId, sid){
       where: (create ? "New story · " : "")+"epic <b>"+esc(epicId)+"</b> · "+esc(s.column),
       ask: create ? "" : focus.ask })+
     '<div class="mgrid">'+
-      '<div class="mcol">'+(focus.criteriaFirst ? bAc+bHt+bDesc+bCtx : bDesc+bAc+bHt+bCtx)+'</div>'+
+      '<div class="mcol">'+(focus.criteriaFirst && hasNotes ? bNotes+bAc+bHt+bDesc+bCtx
+                           : focus.criteriaFirst ? bAc+bHt+bDesc+bCtx+bNotes
+                           : bDesc+bAc+bHt+bCtx+bNotes)+'</div>'+
       '<div class="mrail">'+rail.filter(Boolean).join("")+'</div>'+
     '</div>'+
     '<div class="m-err" id="m-err"></div>'+
     '<div class="actions">'+
-      '<button class="btn primary" id="s-save">'+(create?"Create":"Save")+'</button>'+
+      // In the review lane the verdict is the action: one click, done lane
+      // named from config. Save steps down so there is one primary.
+      (accept ? '<button class="btn primary" id="s-accept" title="Saves this card and moves it to '+esc(doneLane())+'. The claim is left as it is.">Accept → '+esc(doneLane())+'</button>' : '')+
+      '<button class="btn'+(accept ? '' : ' primary')+'" id="s-save">'+(create?"Create":"Save")+'</button>'+
       '<button class="btn" id="s-back">Back to epic</button>'+
       (!create && s.claimed_by ? '<button class="btn" id="s-release" title="Clear the claim so this story can be picked up again">↩ Release claim</button>' : '')+
       (create?'':'<button class="btn danger" id="s-del">Delete</button>')+
     '</div>';
+  if(!create) noteCardOpen(s.id);
   wireAutoGrow(modal);
   // The list is the default reading; the raw lines are one click away.
   const htEditBtn = document.getElementById("s-ht-edit");
@@ -2390,11 +2505,31 @@ function renderStoryModal(epicId, sid){
     wireAutoGrow(f);
     f.querySelector("#s-ac").focus();
   });
+  // The note reads clamped when long — the criteria below it are still the
+  // checklist — and opens whole on one click; edit swaps in the raw markdown.
+  const ntMd = document.getElementById("s-notes-md"), ntMore = document.getElementById("s-notes-more");
+  if(ntMd && ntMore){
+    // Measured now (the scrim is already on) and once more after layout — a
+    // rAF never runs in a throttled tab, so a timeout is the second look.
+    const clamped = () => { if(ntMd.classList.contains("clamp") && ntMd.scrollHeight > ntMd.clientHeight + 4) ntMore.hidden = false; };
+    clamped(); setTimeout(clamped, 50);
+    ntMore.addEventListener("click", () => { ntMd.classList.remove("clamp"); ntMore.hidden = true; });
+  }
+  ["s-notes-edit", "s-notes-add"].forEach(bid => {
+    const b = document.getElementById(bid);
+    if(b) b.addEventListener("click", () => {
+      const f = document.getElementById("s-notes-field");
+      f.innerHTML = ntEditor; wireAutoGrow(f); f.querySelector("#s-notes").focus();
+    });
+  });
+  const spl = document.getElementById("s-plan");
+  if(spl) spl.addEventListener("click", () => openPlan(ep.id));
   const srb = document.getElementById("s-release");
   if(srb) srb.addEventListener("click", () => releaseClaim("story", s.id));
-  // Save and the Ready button share one write path; both close the modal
-  // rather than hopping to the epic, which read as a second save still owed.
-  const saveStory = ready => {
+  // Save, the Ready button and Accept share one write path; all close the
+  // modal rather than hopping to the epic, which read as a second save still
+  // owed. `lane` is Accept's: the done lane, instead of the Lane select.
+  const saveStory = (ready, lane) => {
     const g = id => document.getElementById(id);
     const name = g("s-name").value.trim();
     if(!name){ g("m-err").textContent = "Name is required."; g("s-name").focus(); return; }
@@ -2408,15 +2543,22 @@ function renderStoryModal(epicId, sid){
         ? htEl.value.split("\n").map(x=>x.trim()).filter(Boolean)
         : (s.how_to_test||[]),
       context:g("s-ctx").value, systems:g("s-systems").value.split(/\s+/).filter(Boolean),
-      kind:g("s-kind").value, column:g("s-lane").value,
+      kind:g("s-kind").value, column:lane || g("s-lane").value,
       priority:g("s-prio").value, ready, updated_at:new Date().toISOString() };
-    const wasReady = !!s.ready;
+    // Read only if the editor was opened, and written only if it changed —
+    // a story that never had notes does not grow an empty field.
+    const ntEl = g("s-notes");
+    if(ntEl && ntEl.value !== (s.notes||"")) vals.notes = ntEl.value;
+    const wasReady = !!s.ready, wasLane = s.column;
     if(create) state.stories.push(Object.assign(s, vals));
     else Object.assign(s, vals);
     persistResource("stories", state.stories);
     closeModal(); render();
-    showToast(s.id+(ready !== wasReady ? (ready ? " marked ready." : " no longer ready.") : create ? " created." : " saved."));
+    showToast(s.id+(lane && lane !== wasLane ? " accepted — moved "+wasLane+" → "+lane+"."
+      : ready !== wasReady ? (ready ? " marked ready." : " no longer ready.") : create ? " created." : " saved."));
   };
+  const sac = document.getElementById("s-accept");
+  if(sac) sac.addEventListener("click", () => saveStory(!!s.ready, doneLane()));
   document.getElementById("s-save").addEventListener("click", () => saveStory(!!s.ready));
   document.getElementById("s-ready").addEventListener("click", () => saveStory(!s.ready));
   document.getElementById("s-back").addEventListener("click", () => openEdit(epicId));
@@ -2476,11 +2618,19 @@ function canRemove(e){
 function ideaBehind(epicId){ return (state.ideas||[]).find(i => i.promoted_to === epicId) || null; }
 // Say the whole consequence up front: removing can also finish the card's
 // lane and close an idea, and neither should be a surprise after the click.
+// The architecture check (AGENTS.md §6 step 8) recorded on the epic? The
+// test lives in doctor.js so the chip and this reminder cannot disagree.
+function archRecorded(e){
+  return typeof BoardDoctor === "undefined" || !BoardDoctor.hasArchitectureLine || BoardDoctor.hasArchitectureLine(e);
+}
+// No straight double quotes: this goes into title="…" through esc().
+const ARCH_MISSING = "The architecture check is not recorded: no line in Notes starts with Architecture: (AGENTS.md §6 step 8). You can still remove it";
 function removeTitle(e){
   const bits = ["Moves "+e.id+" off the active board into Shipped — milestones and dependencies still count it, and your next save records it in History"];
   if(e.column !== doneLane()) bits.push("Also moves the epic card to "+doneLane()+", since every story is done");
   const i = ideaBehind(e.id);
   if(i && ideaStatus(i) !== "done") bits.push("Also closes its idea "+i.id+" out of the funnel");
+  if(!archRecorded(e)) bits.push(ARCH_MISSING);
   return bits.join(". ");
 }
 
@@ -2518,11 +2668,13 @@ function toggleArchiveEpic(id){
     (closed.log = closed.log || []).push({ at: today(),
       note: "Closed out of the funnel — "+e.id+" finished and left the board." });
   }
+  const noArch = !archRecorded(e);
   closeModal(); renderFilters(); render();
   persist();
   if(closed) persistResource("ideas", state.ideas);
   showToast(e.id+" removed from the board — find it under Shipped."+
-            (closed ? " "+closed.id+" closed out of the funnel too." : ""));
+            (closed ? " "+closed.id+" closed out of the funnel too." : "")+
+            (noArch ? " Its architecture check was never recorded." : ""));
 }
 
 function deleteEpic(id){
@@ -2539,9 +2691,78 @@ function deleteEpic(id){
   closeModal(); render(); persist();
 }
 
-function closeModal(){ document.getElementById("scrim").classList.remove("on"); editingId=null; applyPendingRefresh(); }
+function closeModal(){
+  document.getElementById("scrim").classList.remove("on"); editingId=null;
+  if(cardOpen) leaveCardRoute();
+  applyPendingRefresh();
+}
+/* ---- card URLs: #/board/<epic or story id> ----
+   A card the modal shows has an address, so an agent can print a link and
+   the human can copy one. Opening a card pushes `#/board/<id>` (or replaces
+   it, when one card's modal leads to another), so Back closes it; closing
+   it any other way returns the hash to where it was. The hash router only
+   opens cards on a real hash change or the first load (routeCard), never on
+   the route() a live refresh runs — a refresh must not reopen what you shut. */
+let cardOpen = null;     // id of the epic or story the modal is showing
+let cardPushed = false;  // whether a history entry sits behind it (then close = Back)
+const cardHash = id => "#/board/" + encodeURIComponent(id);
+function noteCardOpen(id){
+  const want = cardHash(id);
+  if(location.hash !== want){
+    const r = currentRoute();
+    if(cardOpen || (r.page === "board" && r.param)) history.replaceState(null, "", want);
+    else { history.pushState(null, "", want); cardPushed = true; }
+  }
+  cardOpen = id;
+}
+function leaveCardRoute(){
+  cardOpen = null;
+  const { page, param } = currentRoute();
+  if(page !== "board" || !param){ cardPushed = false; return; }   // the hash already moved on (Back)
+  if(cardPushed){ cardPushed = false; history.back(); }
+  else history.replaceState(null, "", "#/board");
+}
+// Open whichever card carries this id; false when none does.
+function openCard(id){
+  if(byId()[id]){ openEdit(id); return true; }
+  const s = state.stories.find(x => x.id === id);
+  if(s){ document.getElementById("scrim").classList.add("on"); renderStoryModal(s.epic_id, s.id); return true; }
+  return false;
+}
+function routeCard(fromHashChange){
+  const { page, param } = currentRoute();
+  const want = page === HOME_PAGE ? param : null;
+  if(want === cardOpen) return;
+  if(!want){
+    // Back (or any hash move) away from an open card closes it, without
+    // touching history a second time.
+    if(cardOpen){ cardOpen = null; cardPushed = false; closeModal(); }
+    return;
+  }
+  if(openCard(want)){ if(fromHashChange) cardPushed = true; return; }
+  history.replaceState(null, "", "#/" + HOME_PAGE);
+  showToast(want+" — no epic or story with that id on this board.");
+}
 document.getElementById("scrim").addEventListener("click", ev => { if(ev.target.id==="scrim") closeModal(); });
 document.getElementById("plan-scrim").addEventListener("click", ev => { if(ev.target.id==="plan-scrim") closePlan(); });
+/* ---- ids in change statements are links ----
+   Every statement the server's differ writes (pending panel, briefing,
+   History) and every stale-claim line starts with the id it is about. When
+   a card or idea still carries that id, the id links to it — a card to its
+   #/board/<id> route, an idea to its deep dive; a removed one stays text. */
+function linkIds(text){
+  text = String(text == null ? "" : text);
+  const id = (text.match(/^[^\s']+/) || [])[0];
+  const href = !id ? null
+    : (byId()[id] || state.stories.some(x => x.id === id)) ? cardHash(id)
+    : ideaById(id) ? "#/ideas/" + encodeURIComponent(id) : null;
+  return href ? '<a class="idlink" href="'+href+'">'+esc(id)+'</a>'+esc(text.slice(id.length)) : esc(text);
+}
+// A link followed from a slide-over panel leaves the panel behind.
+document.addEventListener("click", ev => {
+  if(!ev.target.closest || !ev.target.closest(".idlink")) return;
+  document.querySelectorAll(".ppanel.on").forEach(p => p.classList.remove("on"));
+});
 /* ---- board briefing: since you last looked ---- */
 // Covers ratified history only (commits since the per-browser last-seen
 // HEAD); the pending badge covers unratified working state — no overlap.
@@ -2570,9 +2791,9 @@ async function wireBriefing(){
       'Since you last looked: <b>'+d.statements.length+' change'+(d.statements.length===1?'':'s')+'</b>'+
       (stale.length ? ' · <b>'+stale.length+' stale claim'+(stale.length===1?'':'s')+'</b>' : '');
     document.getElementById("brf-body").innerHTML =
-      d.statements.map(s => '<div class="pp-line">'+esc(s.text)+'</div>').join("")+
+      d.statements.map(s => '<div class="pp-line">'+linkIds(s.text)+'</div>').join("")+
       (stale.length ? '<h4>Stale claims (>48h, still being worked)</h4>'+
-        stale.map(t => '<div class="pp-line">'+esc(t)+'</div>').join("") : '');
+        stale.map(t => '<div class="pp-line">'+linkIds(t)+'</div>').join("") : '');
     el.hidden = false;
     document.getElementById("brf-view").onclick = () => {
       const b = document.getElementById("brf-body"); b.hidden = !b.hidden;
@@ -2636,7 +2857,7 @@ function palGo(it){
   if(!it) return;
   closePalette();
   if(it.type === "epic") goToEpic(it.id);
-  else if(it.type === "story") renderStoryModal(it.epic, it.id);
+  else if(it.type === "story"){ document.getElementById("scrim").classList.add("on"); renderStoryModal(it.epic, it.id); }
   else navigate("ideas", it.id);
 }
 function wirePalette(){
@@ -2659,13 +2880,13 @@ document.addEventListener("keydown", ev => {
   const modalOpen = document.getElementById("scrim").classList.contains("on");
   const planOpen = document.getElementById("plan-scrim").classList.contains("on");
   if(ev.key === "Escape"){
-    const pp = document.getElementById("pending-panel");
+    const pp = document.querySelector(".ppanel.on");
     if(paletteOpen) closePalette();
     // The plan panel is the shallowest thing on screen and closes first —
-    // it opens OVER a board, never over the modal, so an Escape meant for it
-    // must not reach past it and shut something the reader was keeping.
+    // it opens over the board or over the story modal it was read from, so
+    // an Escape meant for it must not reach past it and shut the card.
     else if(planOpen) closePlan();
-    else if(pp.classList.contains("on")) pp.classList.remove("on");
+    else if(pp) pp.classList.remove("on");   // pending, doctor or waiting panel
     else closeModal();
     return;
   }
@@ -2673,7 +2894,22 @@ document.addEventListener("keydown", ev => {
   if(ev.metaKey || ev.ctrlKey || ev.altKey) return;
   if(ev.key === "/"){ ev.preventDefault(); openPalette(); }
   else if(ev.key === "n" || ev.key === "N"){ ev.preventDefault(); openIdea(null); }
+  else if(["j","k","ArrowLeft","ArrowRight"].includes(ev.key)) stepIdea(ev);
 });
+// j / → next, k / ← previous: an idea's deep dive steps through the ideas of
+// its own stage, in the order the Ideas page shows them. Inert while typing
+// or with anything open over the page (the guard above), and at either end.
+function stepIdea(ev){
+  const { page, param } = currentRoute();
+  if(page !== "ideas" || !param) return;
+  const i = ideaById(param); if(!i) return;
+  const list = stageOrder(ideaStatus(i));
+  const at = list.findIndex(x => x.id === i.id);
+  const to = list[at + (ev.key === "j" || ev.key === "ArrowRight" ? 1 : -1)];
+  if(!to) return;
+  ev.preventDefault();
+  navigate("ideas", to.id);
+}
 
 /* ---- pending ratification (ratify review panel) ---- */
 // The header badge + slide-over review what a "save" would ratify —
@@ -2707,7 +2943,7 @@ function renderPending(){
   body.innerHTML =
     Object.keys(PENDING_RES_LABEL).filter(k => groups[k]).map(k =>
       '<div class="pp-group"><h4>'+PENDING_RES_LABEL[k]+' <span class="cnt">'+groups[k].length+'</span></h4>'+
-      groups[k].map(s => '<div class="pp-line">'+esc(s.text)+'</div>').join("")+'</div>').join("")+
+      groups[k].map(s => '<div class="pp-line">'+linkIds(s.text)+'</div>').join("")+'</div>').join("")+
     '<div class="pp-files">'+ (d.files||[]).map(esc).join(" · ") +'</div>';
 }
 function wirePending(){
@@ -2732,16 +2968,17 @@ function wirePending(){
    Same function the CLI runs (doctor.js), over the state already in memory —
    no fetch, no endpoint, and it re-runs on every render so a fix you make in
    the modal clears its own finding. */
+// The board as the files say it — applyBoard's display rescue undone, for
+// the shared checks only, never for the state — so the doctor and the
+// waiting count read what the CLI reads from the same files.
+function diskView(){
+  const unrescue = x => rawColumns.has(x.id) ? Object.assign({}, x, { column: rawColumns.get(x.id) }) : x;
+  return { config: state.config, epics: state.epics.map(unrescue), stories: state.stories.map(unrescue),
+           ideas: state.ideas, milestones: state.milestones };
+}
 function runDoctor(){
   if(typeof BoardDoctor === "undefined") return [];
-  // Undo applyBoard's display rescue for the check only — never for the state.
-  const unrescue = x => rawColumns.has(x.id) ? Object.assign({}, x, { column: rawColumns.get(x.id) }) : x;
-  return BoardDoctor.diagnose({
-    config: state.config,
-    epics: state.epics.map(unrescue),
-    stories: state.stories.map(unrescue),
-    ideas: state.ideas, milestones: state.milestones
-  });
+  return BoardDoctor.diagnose(diskView());
 }
 let doctorFindings = [];
 function updateDoctor(){
@@ -2801,6 +3038,75 @@ function wireDoctor(){
   updateDoctor();
 }
 
+/* ---- waiting on you: one derived count, in the tab title, favicon, header ----
+   BoardQueue.waitingOnYou() is the rule (queue.js, shared with ./board
+   status), so the number cannot disagree with the CLI. Recomputed on every
+   applyBoard() (load and live refresh) and every write (persistResource). */
+const WAIT_PARTS = [
+  ["needs", "needs", "card needs your answer", "cards need your answer"],
+  ["review", "reviewCards", "card in review", "cards in review"],
+  ["review-idea", "reviewIdeas", "idea ready for review", "ideas ready for review"],
+  ["unpromoted-idea", "unpromotedIdeas", "idea ready to implement, not promoted", "ideas ready to implement, not promoted"],
+  ["awaiting-ready", "awaitingReady", "story awaiting the ready flag", "stories awaiting the ready flag"],
+];
+let waiting = null;
+function updateWaiting(){
+  if(typeof BoardQueue === "undefined" || !BoardQueue.waitingOnYou) return;
+  waiting = BoardQueue.waitingOnYou(diskView());
+  const n = waiting.total, title = ((state.config||{}).view||{}).title || "agent-board";
+  document.title = (n ? "("+n+") " : "") + title;
+  drawFavicon(n > 0);
+  const b = document.getElementById("wait-badge");
+  if(b){
+    b.classList.add("on");
+    b.classList.toggle("warn", n > 0);
+    b.textContent = n ? "◉ "+n+" waiting on you" : "○ nothing waiting";
+    const parts = WAIT_PARTS.filter(p => waiting[p[1]]).map(p => waiting[p[1]]+" "+(waiting[p[1]]===1 ? p[2] : p[3]));
+    b.title = n ? "Waiting on you — "+parts.join(" · ")+". Click for the list." : "Nothing waits on you — no needs, nothing in review, no decisions due";
+  }
+  if(document.getElementById("wait-panel").classList.contains("on")) renderWaiting();
+}
+// Lanes in the accent, plus an amber dot while something waits. Colours are
+// read from the tokens at draw time, so the icon follows the theme.
+let faviconKey = null;
+function drawFavicon(dot){
+  const css = getComputedStyle(document.documentElement);
+  const acc = css.getPropertyValue("--accent").trim() || "gray";
+  const amb = css.getPropertyValue("--lane-2").trim() || "orange";
+  const key = acc+"|"+amb+"|"+dot;
+  if(key === faviconKey) return;
+  faviconKey = key;
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'+
+    '<rect x="2" y="4" width="8" height="24" rx="2" fill="'+acc+'"/>'+
+    '<rect x="12" y="4" width="8" height="17" rx="2" fill="'+acc+'" opacity=".7"/>'+
+    '<rect x="22" y="4" width="8" height="11" rx="2" fill="'+acc+'" opacity=".45"/>'+
+    (dot ? '<circle cx="24" cy="24" r="7.5" fill="'+amb+'" stroke="white" stroke-width="2"/>' : "")+'</svg>';
+  const link = document.getElementById("favicon");
+  if(link) link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+}
+function renderWaiting(){
+  const body = document.querySelector("#wait-panel .pp-body");
+  if(!waiting || !waiting.total){
+    body.innerHTML = '<div class="dx-clean">✓ Nothing waits on you — no needs, nothing in review, no decisions due.</div>';
+    return;
+  }
+  body.innerHTML = WAIT_PARTS.map(([kind, , one, many]) => {
+    const rows = waiting.items.filter(x => x.kind === kind);
+    if(!rows.length) return "";
+    return '<div class="pp-group"><h4>'+esc(rows.length === 1 ? one : many)+' <span class="cnt">'+rows.length+'</span></h4>'+
+      rows.map(x => '<div class="pp-line">'+linkIds(x.id+" "+x.title)+'</div>').join("")+'</div>';
+  }).join("");
+}
+function wireWaiting(){
+  const badge = document.getElementById("wait-badge"), panel = document.getElementById("wait-panel");
+  badge.addEventListener("click", () => { updateWaiting(); renderWaiting(); panel.classList.add("on"); });
+  document.getElementById("wy-close").addEventListener("click", () => panel.classList.remove("on"));
+  document.addEventListener("click", ev => {
+    if(panel.classList.contains("on") && !panel.contains(ev.target) && !badge.contains(ev.target))
+      panel.classList.remove("on");
+  });
+}
+
 let toastTimer=null;
 function showToast(msg){
   const t=document.getElementById("toast");
@@ -2809,21 +3115,123 @@ function showToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove("on"), 4500);
 }
 
-/* ---- persistence ---- */
+/* ---- persistence ----
+   Every write is conditional. GET /api/board hands back a revision per
+   resource; a PUT sends it in If-Match and the server refuses (409, writes
+   nothing) when the file changed since — an agent edited it while a modal
+   was open. Then the page refetches, re-applies only what the human changed
+   against the baseline it loaded (mergeResource), and writes again. ---- */
+const RESOURCES = ["epics","stories","ideas","config","milestones"];
 const saveTimers = {};   // per-resource, so an epics save can't cancel a stories save
 let savesPending = 0;    // live refresh holds off while our own writes are in flight
+let revisions = {};      // resource -> revision of the disk state `baseline` holds
+let baseline = {};       // resource -> JSON of that state, as this page last loaded or wrote it
+function rememberBaseline(revs){
+  revisions = Object.assign({}, revs || {});
+  for(const r of RESOURCES) baseline[r] = JSON.stringify(state[r]);
+}
+// Pure: (what the page loaded, what the human has now, what disk has now) ->
+// what to write, plus the names both sides changed. Arrays of records merge
+// by id, and a record both sides changed merges field by field; single
+// objects (config, milestones) merge by top-level key. Wherever the human
+// changed something the human's value wins; everything else is disk's.
+// Deletions and new records the human made survive; the human's order
+// applies only if the human reordered.
+const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function mergeKeys(base, mine, fresh){
+  const out = Object.assign({}, (fresh && typeof fresh === "object" && !Array.isArray(fresh)) ? fresh : {});
+  base = base || {};
+  const both = [];
+  for(const k of new Set([...Object.keys(base), ...Object.keys(mine)])){
+    if(sameJSON(mine[k], base[k])) continue;
+    if(!sameJSON(out[k], base[k]) && !sameJSON(out[k], mine[k])) both.push(k);
+    if(k in mine) out[k] = mine[k]; else delete out[k];
+  }
+  return { value: out, both };
+}
+function mergeResource(base, mine, fresh){
+  if(!Array.isArray(mine)) return mergeKeys(base, mine, fresh);
+  base = Array.isArray(base) ? base : []; fresh = Array.isArray(fresh) ? fresh : [];
+  const byId = a => new Map(a.map(x => [x && x.id, x]));
+  const B = byId(base), M = byId(mine), F = byId(fresh);
+  const touched = new Set(mine.filter(x => !B.has(x.id) || !sameJSON(x, B.get(x.id))).map(x => x.id));
+  const deleted = new Set([...B.keys()].filter(id => !M.has(id)));
+  const both = [];
+  const out = fresh.filter(x => !deleted.has(x.id)).map(x => {
+    if(!touched.has(x.id)) return x;
+    if(!B.has(x.id)) return M.get(x.id);                // both created this id: the human's
+    const m = mergeKeys(B.get(x.id), M.get(x.id), x);
+    // updated_at is stamped by every edit, so it alone is not a collision.
+    if(m.both.some(k => k !== "updated_at")) both.push(x.id);
+    return m.value;
+  });
+  // Records the human has that disk lacks (created here, or edited here
+  // while an agent removed them — the edit wins): placed after the record
+  // that precedes them on the page.
+  mine.forEach((x, i) => {
+    if(F.has(x.id) || !touched.has(x.id)) return;      // untouched, and disk dropped it: disk wins
+    if(B.has(x.id)) both.push(x.id);
+    const prev = i ? out.findIndex(y => y.id === mine[i-1].id) : -1;
+    out.splice(prev + 1, 0, x);
+  });
+  // A reorder is the human's only if the shared records changed order here.
+  const order = a => a.filter(x => B.has(x.id) && M.has(x.id)).map(x => x.id).join("\n");
+  if(order(base) !== order(mine)){
+    const pos = new Map(mine.map((x, i) => [x.id, i]));
+    const rest = out.filter(x => !pos.has(x.id));          // disk-only records keep their relative order, after
+    return { value: out.filter(x => pos.has(x.id)).sort((a, b) => pos.get(a.id) - pos.get(b.id)).concat(rest), both };
+  }
+  return { value: out, both };
+}
+function putResource(resource, val){
+  return fetch(api("/api/"+resource), {method:"PUT",
+    headers:{"Content-Type":"application/json", "If-Match": revisions[resource] || ""},
+    body:JSON.stringify(val)});
+}
 function persistResource(resource, val){
   const s = document.getElementById("save"), t = document.getElementById("save-t");
   s.className = "save saving"; t.textContent = "saving…";
+  updateWaiting();   // the state already holds the edit being saved
   if(saveTimers[resource] == null) savesPending++;
   clearTimeout(saveTimers[resource]);
   saveTimers[resource] = setTimeout(async () => {
     try{
-      const r = await fetch(api("/api/"+resource), {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
+      const body = JSON.parse(JSON.stringify(val));
+      let merged = null;
+      let r = await putResource(resource, body);
+      // Stale: merge onto fresh disk state and try again. A few rounds covers
+      // an agent writing again mid-merge; past that, say so rather than loop.
+      for(let round = 0; r.status === 409 && round < 3; round++){
+        const fr = await fetch(api("/api/board"));
+        if(!fr.ok) throw new Error("HTTP "+fr.status);
+        const fresh = await fr.json();
+        merged = mergeResource(JSON.parse(baseline[resource] || "null"), body, fresh[resource]);
+        revisions[resource] = (fresh.revisions || {})[resource];
+        r = await putResource(resource, merged.value);
+        if(r.ok) break;
+      }
+      if(r.status === 409) throw new Error("conflict");
       if(!r.ok) throw new Error("HTTP "+r.status);
-      s.className="save"; t.textContent="saved";
+      const res = await r.json().catch(() => ({}));
+      if(merged){
+        // The page still holds the human's pre-merge state; the refresh this
+        // queues replaces it with what was written. Until then the old
+        // baseline and revision stay, so a second save merges again rather
+        // than overwriting the disk's records with this page's copies.
+        pendingRefresh = true;
+        showToast(merged.both.length
+          ? "Merged with edits made on disk while you worked — your version of "+merged.both.join(", ")+" kept"
+          : "Merged with edits made on disk while you worked — nothing of theirs was lost");
+      } else {
+        revisions[resource] = res.revision;
+        baseline[resource] = JSON.stringify(body);
+      }
+      s.className="save"; t.textContent = merged ? "saved · merged" : "saved";
     }catch(err){
-      s.className="save err"; t.textContent="save failed — is the server running?";
+      s.className="save err";
+      t.textContent = String(err && err.message) === "conflict"
+        ? "save refused — the file keeps changing; reload"
+        : "save failed — is the server running?";
     }finally{
       saveTimers[resource] = null;
       savesPending--;
@@ -2841,8 +3249,22 @@ let pendingRefresh = false, refreshTimer = null;
 function refreshBlocked(){
   return savesPending > 0
       || document.getElementById("scrim").classList.contains("on")
-      || document.body.classList.contains("is-dragging");
+      || document.body.classList.contains("is-dragging")
+      || ideaEditing();
 }
+// The idea deep dive edits in place, outside any modal: an open inline
+// editor, or the brainstorm log input while it has focus or unsent text, is
+// work a re-render would wipe. Saving or abandoning it lets the refresh in.
+function ideaEditing(){
+  const dd = document.querySelector(".idd");
+  if(!dd) return false;
+  if(dd.querySelector("#e-save, #e-title")) return true;
+  // The brainstorm log input and the decision bar's answer line alike.
+  return [...dd.querySelectorAll("#log-in, #dec-answer")]
+    .some(f => document.activeElement === f || f.value.trim() !== "");
+}
+// Leaving a field (the log input blurred empty) may be what unblocks it.
+document.addEventListener("focusout", () => setTimeout(applyPendingRefresh, 0));
 /* ---- live-refresh motion: FLIP across the re-render ----
    Rects are captured before applyBoard() replaces the DOM; after the
    re-render, cards that moved are inverted back to their old spot and
@@ -2905,9 +3327,18 @@ async function refresh(){
     const data = await r.json();
     updatePending();   // any disk change moves the pending set too — even own-write echoes
     // Our own writes echo back through the watcher — skip if nothing differs.
+    const revs = data.revisions;
+    delete data.revisions;
     const current = JSON.stringify({ epics: state.epics, stories: state.stories,
       ideas: state.ideas, config: state.config, milestones: state.milestones });
-    if(JSON.stringify(data) === current) return "current";
+    if(JSON.stringify(data) === current){
+      // Same content: adopt its revisions (a byte-only rewrite on disk would
+      // otherwise send the next save round a needless merge) — but not while
+      // a write is in flight, whose own answer carries the newer revision.
+      if(savesPending === 0) rememberBaseline(revs);
+      return "current";
+    }
+    data.revisions = revs;
     if(refreshBlocked()){ pendingRefresh = true; return "deferred"; }
     const cardsBefore = captureCardPositions();
     applyBoard(data);
@@ -2923,22 +3354,38 @@ function applyPendingRefresh(){
   if(pendingRefresh && !refreshBlocked()){ pendingRefresh = false; refresh(); }
 }
 function wireLiveRefresh(){
-  const es = new EventSource(api("/api/events"));   // auto-reconnects on server restart
-  es.onmessage = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 150); };
+  const soon = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 150); };
+  // A reconnect means the stream was down — a restart, a sleep — and any
+  // change made meanwhile sent no event, so refetch rather than wait for one.
+  // EventSource retries on its own after a dropped stream, but a browser
+  // gives up (readyState CLOSED) when the retry itself is refused, as it is
+  // while the server is restarting — so a closed stream is reopened here.
+  let opened = false;
+  const connect = () => {
+    const es = new EventSource(api("/api/events"));
+    es.onmessage = soon;
+    es.onopen = () => { if(opened) soon(); opened = true; };
+    es.onerror = () => { if(es.readyState === EventSource.CLOSED) setTimeout(connect, 3000); };
+  };
+  connect();
   document.addEventListener("dragend", applyPendingRefresh);
 }
 
 /* ================= routing (hash-based SPA) ================= */
-// Ordered by the flow: ideas (capture) -> milestones (intent) -> board (work),
-// plus docs (what the tool can do — CAPABILITIES.md rendered in the UI).
-const PAGES = ["ideas","milestones","board","history","docs"];
-const PAGE_LABELS = { board:"Board", milestones:"Milestones", ideas:"Ideas", history:"History", docs:"Docs" };
+// Ordered by the flow: ideas (capture) -> board (work), plus history and
+// docs (what the tool can do — CAPABILITIES.md rendered in the UI).
+// Milestones was a page until B44; its roll-up now sits on the Board as a
+// panel under the filters (renderMsPanel), shown when a milestone is selected.
+const PAGES = ["ideas","board","history","docs"];
+const PAGE_LABELS = { board:"Board", ideas:"Ideas", history:"History", docs:"Docs" };
 // This page was briefly renamed "execution" to avoid colliding with the
 // ideas funnel, then renamed back. Both spellings resolve forever — the
 // alias is permanent, not a migration window, because bookmarks and
 // `config.json` files live in other people's repos and a URL that worked
 // once should keep working.
-const PAGE_ALIASES = { execution:"board" };
+// `milestones` joins it for the same reason: a saved `default_page` or a
+// bookmark to the retired page opens the Board (route() reads the id).
+const PAGE_ALIASES = { execution:"board", milestones:"board" };
 const HOME_PAGE = "board";
 function resolvePage(p){ return PAGE_ALIASES[p] || p; }
 function currentRoute(){
@@ -2961,15 +3408,25 @@ function updateFooter(page){
     ? (boardMode==="rows"
       ? '<b>Rows</b>: one swimlane per epic · <b>drag</b> a story across lanes · <b>click a row header</b> to edit the epic'
       : '<b>drag</b> to move · <b>click</b> to edit · <b>+ add card</b> atop a lane · dependencies gate <b>'+esc(doneLane())+'</b>')
-    : page==="milestones"
-    ? 'what each milestone delivers · <b>←/→</b> switch milestones · <b>click an epic chip</b> to jump to it on the board'
     : page==="docs"
     ? 'what this tool can do · source: <b>CAPABILITIES.md</b> · also served at <b>/docs</b> and <b>/llms.txt</b>'
     : page==="history"
     ? 'every save is a commit · <b>click an entry</b> to see its card-level changes · read-only'
+    : currentRoute().param
+    ? '<b>j</b>/<b>k</b> or <b>←/→</b> step through the ideas of this stage · <b>edit</b> on any block changes it in place'
     : '<b>click</b> an idea to deep-dive · <b>drag</b> to reorder or change status/burner · <b>+ new idea</b> to capture one') + keys;
 }
 function route(){
+  // #/milestones(/<id>) was a page of its own. The link still works: it opens
+  // the Board filtered to that milestone with the panel unfolded, and the
+  // hash is rewritten before the card router can read the id as a card.
+  const old = (location.hash || "").replace(/^#\/?/, "").split("/");
+  if(old[0] === "milestones"){
+    let want = null;
+    try { want = old[1] ? msVocabFor(decodeURIComponent(old[1])) : null; } catch(e){}
+    history.replaceState(null, "", "#/" + HOME_PAGE);
+    if(want){ filterMS = want; msPanelOpen = true; renderFilters(); render(); }
+  }
   const { page, param } = currentRoute();
   // An aliased hash is honoured, then quietly rewritten to the canonical
   // one so a copied URL spreads the current name. replaceState, not
@@ -2982,7 +3439,6 @@ function route(){
   const counts = document.getElementById("counts"); if(counts) counts.style.display = page===HOME_PAGE ? "" : "none";
   updateFooter(page);
   if(page==="ideas") renderIdeas(param);
-  else if(page==="milestones") renderMilestones(param);
   else if(page==="history") renderHistory();
   else if(page==="docs") renderDocs();
 }
@@ -2995,13 +3451,15 @@ async function renderHistory(){
   const v = document.getElementById("view-history");
   v.innerHTML = '<div class="vhead"><h2>Ratification history</h2>'+
     '<p>Every save is a commit; every commit is a decision. The data dir’s git log, as a timeline — expand an entry to see its card-level changes.</p></div>'+
-    '<div class="htl"><div class="hempty">loading…</div></div>';
+    '<div class="hwrap"><div class="htl"><div class="hempty">loading…</div></div></div>';
   let d;
   try{ d = await (await fetch(api("/api/history"))).json(); }
   catch(err){ d = { available: false, reason: "could not reach the server", commits: [] }; }
   const tl = v.querySelector(".htl");
   if(!d.available){ tl.innerHTML = '<div class="hempty">'+esc(d.reason||"history unavailable")+'</div>'; return; }
   if(!d.commits.length){ tl.innerHTML = '<div class="hempty">No ratifications yet — the first "save" starts the record.</div>'; return; }
+  tl.insertAdjacentHTML("afterend", historyCalendar(d.activity||[]));
+  wireHistoryCalendar(v);
   tl.innerHTML = d.commits.map(c =>
     '<div class="hentry" data-hash="'+esc(c.hash)+'">'+
       '<div class="hrowline" title="'+esc(c.hash)+'">'+
@@ -3025,9 +3483,65 @@ async function renderHistory(){
       }
       const st = historyDiffCache[hash].statements || [];
       box.innerHTML = st.length
-        ? st.map(s => '<div class="hline">'+esc(s.text)+'</div>').join("")
+        ? st.map(s => '<div class="hline">'+linkIds(s.text)+'</div>').join("")
         : '<div class="hline">no card-level changes in this commit</div>';
     });
+  });
+}
+
+// Saves per day over the last 53 weeks, GitHub-style: weeks are columns
+// (Sunday on top), shade is the quartile among days that had any save.
+// Dates are local calendar days, the same reading git's %cs gives.
+function historyCalendar(activity){
+  const WEEKS = 53, pad = n => String(n).padStart(2,"0");
+  const key = dt => dt.getFullYear()+"-"+pad(dt.getMonth()+1)+"-"+pad(dt.getDate());
+  const by = {}; activity.forEach(a => { by[a.date] = a.count; });
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(today); start.setDate(start.getDate() - today.getDay() - (WEEKS-1)*7);
+  const days = [];
+  for(const dt = new Date(start); dt <= today; dt.setDate(dt.getDate()+1)) days.push({ dt:new Date(dt), k:key(dt), n:by[key(dt)]||0 });
+  const nz = days.map(x=>x.n).filter(Boolean).sort((a,b)=>a-b);
+  const q = f => nz.length ? nz[Math.min(nz.length-1, Math.floor(f*nz.length))] : 0;
+  const cuts = [q(.25), q(.5), q(.75)];
+  const level = n => !n ? 0 : n <= cuts[0] ? 1 : n <= cuts[1] ? 2 : n <= cuts[2] ? 3 : 4;
+  const label = x => x.dt.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:"numeric"})+
+    " · "+(x.n ? x.n+(x.n===1?" save":" saves") : "no saves");
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  // first column: the weekday gutter (blank corner, then Mon / Wed / Fri)
+  let cells = '<span class="hcal-mon"></span>'+["","Mon","","Wed","","Fri",""].map(t=>'<span class="hcal-dow">'+t+'</span>').join("");
+  for(let w = 0; w < WEEKS; w++){
+    const wk = days.slice(w*7, w*7+7);
+    // a month is named over the week that holds its 1st (and over the first column)
+    const first = wk.find(x => x.dt.getDate() === 1);
+    const m = first ? MON[first.dt.getMonth()] : (w === 0 && wk[0].dt.getDate() <= 14 ? MON[wk[0].dt.getMonth()] : "");
+    cells += '<span class="hcal-mon">'+m+'</span>';
+    for(let i = 0; i < 7; i++){
+      const x = wk[i];
+      cells += x
+        ? '<button type="button" class="hday l'+level(x.n)+(x.n?' has':'')+'" data-date="'+x.k+'" data-tip="'+esc(label(x))+'" aria-label="'+esc(label(x))+'"></button>'
+        : '<span></span>';
+    }
+  }
+  const total = nz.reduce((a,b)=>a+b,0);
+  return '<div class="hcal" id="hcal">'+
+    '<p class="hcal-sum"><b>'+total+(total===1?" save":" saves")+'</b> on <b>'+nz.length+(nz.length===1?" day":" days")+'</b> in the last year</p>'+
+    '<div class="hcal-scroll"><div class="hcal-grid">'+cells+'</div></div>'+
+    '<div class="hcal-foot"><span class="hcal-tip" id="hcal-tip" aria-live="polite"></span>'+
+      '<span class="hcal-key">Less '+[0,1,2,3,4].map(l=>'<span class="hday l'+l+'"></span>').join("")+' More</span></div></div>';
+}
+function wireHistoryCalendar(v){
+  const cal = v.querySelector("#hcal"); if(!cal) return;
+  const tip = cal.querySelector("#hcal-tip"), sc = cal.querySelector(".hcal-scroll");
+  sc.scrollLeft = sc.scrollWidth;            // narrow windows open on the recent end
+  const show = e => { const b = e.target.closest("button.hday"); tip.textContent = b ? b.dataset.tip : ""; };
+  cal.addEventListener("mouseover", show); cal.addEventListener("focusin", show);
+  cal.addEventListener("mouseleave", () => { tip.textContent = ""; });
+  cal.addEventListener("click", e => {
+    const b = e.target.closest("button.hday.has"); if(!b) return;
+    const entry = [...v.querySelectorAll(".hentry")].find(en => en.querySelector(".hdate").textContent === b.dataset.date);
+    if(!entry){ tip.textContent = b.dataset.tip+" · older than the 50 entries listed below"; return; }
+    entry.scrollIntoView({ behavior:"smooth", block:"center" });
+    entry.classList.add("hmark"); setTimeout(() => entry.classList.remove("hmark"), 1800);
   });
 }
 
@@ -3038,14 +3552,18 @@ async function renderHistory(){
 function mdToHtml(md){
   const inline = s => s
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    // Story notes are agent-written and render here too: a script URL stays text.
+    .replace(/\[([^\]]+)\]\(([^)"]+)\)/g, (m, t, h) => /^\s*(javascript|data|vbscript):/i.test(h) ? t : '<a href="'+h+'">'+t+'</a>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
   // "**Term** — …" openers become section-tinted lead terms.
   const lead = s => s.replace(/^<b>([^<]+)<\/b>( —|—)/, '<span class="dterm">$1</span>$2');
-  let html = "", para = [], list = [], secN = 0, secOpen = false;
+  let html = "", para = [], list = [], listTag = "ul", secN = 0, secOpen = false;
   const flushP = () => { if(para.length){ html += '<p>'+lead(inline(para.join(" ")))+'</p>'; para = []; } };
-  const flushL = () => { if(list.length){ html += '<ul>'+list.map(x=>'<li>'+lead(inline(x))+'</li>').join("")+'</ul>'; list = []; } };
+  const flushL = () => { if(list.length){ html += '<'+listTag+'>'+list.map(x=>'<li>'+lead(inline(x))+'</li>').join("")+'</'+listTag+'>'; list = []; } };
+  // "1. " items (review notes number their steps) open an <ol>; a switch of
+  // list kind closes the open list first.
+  const item = (tag, txt) => { flushP(); if(list.length && listTag !== tag) flushL(); listTag = tag; list.push(txt); };
   const closeSec = () => { if(secOpen){ html += '</section>'; secOpen = false; } };
   esc(md).split("\n").forEach(ln => {
     if(/^#{1,3} /.test(ln)){ flushP(); flushL(); const lvl = ln.match(/^#+/)[0].length;
@@ -3055,7 +3573,8 @@ function mdToHtml(md){
       if(lvl === 2){ closeSec(); html += '<section class="dsec" style="--sc:var(--lane-'+(secN++ % 6)+')">'; secOpen = true; }
       html += '<h'+lvl+' id="'+id+'">'+inline(txt)+'</h'+lvl+'>'; }
     else if(/^---+\s*$/.test(ln)){ flushP(); flushL(); closeSec(); html += '<hr>'; }
-    else if(/^- /.test(ln)){ flushP(); list.push(ln.slice(2)); }
+    else if(/^- /.test(ln)) item("ul", ln.slice(2));
+    else if(/^\d+\. /.test(ln)) item("ol", ln.replace(/^\d+\. /, ""));
     else if(ln.trim()===""){ flushP(); flushL(); }
     else if(list.length && /^\s/.test(ln)){ list[list.length-1] += " "+ln.trim(); }
     else { flushL(); para.push(ln.trim()); }
@@ -3109,25 +3628,19 @@ async function renderDocs(){
     v.innerHTML = '<div class="mdoc"><p style="color:var(--ink-3)">Could not load /docs — this board server predates the docs route. Restart it (Ctrl+C, then ./board &lt;name&gt;) and reload.</p></div>';
   }
 }
-window.addEventListener("hashchange", route);
+window.addEventListener("hashchange", () => { route(); routeCard(true); });
 
-// ←/→ step through milestones on the Milestones page (ignored while typing
-// in a field or while a modal is open).
-document.addEventListener("keydown", ev => {
-  if(ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
-  if(currentRoute().page !== "milestones") return;
-  if(document.getElementById("scrim").classList.contains("on")) return;
-  const t = ev.target;
-  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
-  const list = state.milestones.milestones || [];
-  if(!list.length) return;
-  const i = Math.max(0, list.findIndex(m => m.id === msSel));
-  const j = ev.key === "ArrowLeft" ? Math.max(0, i - 1) : Math.min(list.length - 1, i + 1);
-  if(j !== i){ ev.preventDefault(); navigate("milestones", list[j].id); }
-});
-
-/* ================= milestones view ================= */
-let msSel = null;
+/* ================= milestone panel (on the Board) ================= */
+// A milestones.json id is the short form of a config vocab entry (AGENTS.md
+// §2): "M0" for "M0 Reliable foundation", "Foundations" for "Foundations — …".
+function msMatches(id, vocab){ return !!id && !!vocab && (id === vocab || vocab.startsWith(id + " ")); }
+function msEntryFor(vocab){ return (state.milestones.milestones || []).find(m => msMatches(m.id, vocab)) || null; }
+function msVocabFor(id){ return MILESTONES.find(v => msMatches(id, v)) || null; }
+// Folded to one line unless the human opened it; remembered per board.
+let msPanelOpen = false;
+function msFoldKey(){ return "agent-board:mspanel:" + (((state.config||{}).view||{}).title || "board"); }
+function loadMsFold(){ try { msPanelOpen = localStorage.getItem(msFoldKey()) === "open"; } catch(e){ msPanelOpen = false; } }
+function rememberMsFold(){ try { localStorage.setItem(msFoldKey(), msPanelOpen ? "open" : "folded"); } catch(e){} }
 function epicsOfMilestone(m){
   const ids = new Set((m.deliverables||[]).flatMap(d => d.epics||[]));
   return state.epics.filter(e => ids.has(e.id));
@@ -3156,82 +3669,71 @@ function progressBar(epics, mini){
     (b.queued ? '<i class="q" style="width:'+pc("queued")+'"></i>' : '')+'</span>';
 }
 
-// The milestone we're "on": earliest (in file order) with mapped epics not all done,
-// else the first one at all.
-function currentMilestone(){
-  const list = state.milestones.milestones || [];
-  for(const m of list){
-    const eps = epicsOfMilestone(m);
-    if(eps.length && eps.some(e => e.column !== doneLane())) return m.id;
-  }
-  return list.length ? list[0].id : null;
-}
 function ctxDocs(docs){
   if(!(docs||[]).length) return "";
   return '<div class="ctxdocs">'+docs.map(d =>
     '<div class="ctxdoc"><span class="cl">'+esc(d.label)+'</span><span class="cp">'+esc(d.path)+'</span>'+
     (d.note?'<span class="cn">'+esc(d.note)+'</span>':"")+'</div>').join("")+'</div>';
 }
-function renderMilestones(param){
-  const v = document.getElementById("view-milestones");
-  const ov = state.milestones.overview;
-  const list = state.milestones.milestones || [];
-  let html = "";
-  if(ov) html += '<div class="ov-block"><div class="ov-grid"><div><h3>The system we\'re building</h3><p>'+esc(ov.summary||"")+'</p></div>'+
-    ((ov.context_docs||[]).length ? '<div><h3>Context docs</h3>'+ctxDocs(ov.context_docs)+'</div>' : "")+'</div></div>';
-  if(!list.length){
-    v.innerHTML = html + '<div class="vhead"><h2>Milestones</h2><p>No milestones yet — add them to <b>milestones.json</b> (schema: agent-board/AGENTS.md), or ask Claude to lay them out from your roadmap.</p></div>';
-    return;
-  }
-  if(param && list.find(m=>m.id===param)) msSel = param;
-  else if(!msSel || !list.find(m=>m.id===msSel)) msSel = currentMilestone();
-  const m = list.find(x=>x.id===msSel) || list[0];
-  html += '<div class="ms-nav">'+list.map(x=>'<button class="ms-tab" data-id="'+esc(x.id)+'" aria-selected="'+(x.id===m.id)+'"><span class="mt-id">'+esc(short(x.id))+'</span>'+esc(x.name)+'</button>').join("")+'</div>';
-  html += '<div class="ms-body"><h2>'+esc(m.name)+'</h2>'+(m.tagline?'<p class="ms-tagline">'+esc(m.tagline)+'</p>':"");
-  // Two columns on wide screens: narrative left, deliverables + architecture right.
-  let left = "", right = "";
-  if(m.summary) left += '<div class="ms-section"><h3>What we seek to accomplish</h3><p>'+esc(m.summary)+'</p></div>';
-  if(m.user_outcome) left += '<div class="ms-section"><h3>User outcome</h3><p>'+esc(m.user_outcome)+'</p></div>';
-  if(m.gate || m.roi){
-    left += '<div class="ms-meta">'+
-      (m.gate?'<div class="box"><div class="k">Gate / exit</div><div class="v">'+esc(m.gate)+'</div></div>':"")+
-      (m.roi?'<div class="box"><div class="k">ROI</div><div class="v">'+esc(m.roi)+'</div></div>':"")+'</div>';
-  }
-  if((m.context_docs||[]).length) left += '<div class="ms-section"><h3>Context docs</h3>'+ctxDocs(m.context_docs)+'</div>';
-  const dels = m.deliverables||[];
-  const msEpics = epicsOfMilestone(m);
-  const msDone = msEpics.filter(e => e.column === doneLane()).length;
-  right += (msEpics.length
-    ? '<div class="ms-section" style="margin-top:0"><h3>Progress</h3>'+
-      progressBar(msEpics)+
-      '<div class="mbar-lab">'+msDone+' of '+msEpics.length+' epic'+(msEpics.length===1?'':'s')+' done</div></div>'
-    : '')+
-    '<div class="ms-section"'+(msEpics.length?'':' style="margin-top:0"')+'><h3>Deliverables → board</h3>'+
-    (dels.length ? dels.map(d => {
-      const eps = (d.epics||[]);
-      const total = eps.length, done = eps.filter(id => (byId()[id]||{}).column === doneLane()).length;
-      const dEpics = eps.map(id => byId()[id]).filter(Boolean);
-      return '<div class="deliv"><div class="dn">'+esc(d.name)+(total?' <span style="font-weight:400;color:var(--ink-3);font-size:12.5px">'+done+'/'+total+' done</span>':"")+
-        progressBar(dEpics, true)+'</div>'+
-        (d.description?'<div class="dd">'+esc(d.description)+'</div>':"")+
-        eps.map(id => {
-          const e = byId()[id];
+// The milestone roll-up, beside the cards it counts. Shown only when the
+// Board's milestone filter names a milestone that has a milestones.json
+// entry. Two sets meet here and can differ: the filter shows epics whose
+// `milestone` names this one; progress counts the epics its deliverables
+// link (archived ones included). When they differ the head line says so.
+function renderMsPanel(){
+  const el = document.getElementById("ms-panel"); if(!el) return;
+  const m = filterMS !== "all" ? msEntryFor(filterMS) : null;
+  if(!m){ el.hidden = true; el.innerHTML = ""; return; }
+  const done = doneLane(), by = byId();
+  const dels = m.deliverables || [];
+  const linked = epicsOfMilestone(m), linkedIds = new Set(linked.map(e => e.id));
+  const nDone = linked.filter(e => e.column === done).length;
+  const loose = state.epics.filter(e => e.milestone === filterMS && !linkedIds.has(e.id));
+  const away = linked.filter(e => e.milestone !== filterMS);
+  const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+  const gaps = [], shipped = loose.filter(e => e.archived_at).length;
+  if(loose.length) gaps.push('<span class="gap" title="'+esc(loose.map(e => e.id).join(", "))+'">'+
+    plural(loose.length, "card")+" "+(loose.length === 1 ? "carries" : "carry")+" this milestone but "+(loose.length === 1 ? "sits" : "sit")+" under no deliverable"+
+    (shipped ? " ("+shipped+" shipped)" : "")+"</span>");
+  if(away.length) gaps.push('<span class="gap" title="'+esc(away.map(e => e.id).join(", "))+'">'+
+    plural(away.length, "linked epic")+" "+(away.length === 1 ? "carries" : "carry")+" another milestone</span>");
+  const head = '<button type="button" class="msp-head" id="msp-toggle" aria-expanded="'+msPanelOpen+'" title="'+(msPanelOpen ? "Fold" : "Show the outcome, exit criteria and deliverables")+'">'+
+    '<span class="car">'+(msPanelOpen ? "▾" : "▸")+'</span><span class="nm">'+esc(m.name || m.id)+'</span>'+
+    progressBar(linked)+
+    '<span class="ct">'+(linked.length
+      ? nDone+" of "+plural(linked.length, "epic")+" done · "+plural(dels.length, "deliverable")
+      : "no deliverables mapped to epics yet")+'</span>'+
+    gaps.join('<span class="ct">·</span>')+'</button>';
+  let body = "";
+  if(msPanelOpen){
+    const sec = (h, inner) => '<div class="msp-sec"><h3>'+h+'</h3>'+inner+'</div>';
+    let left = "";
+    if(m.tagline) left += '<div class="msp-sec"><p>'+esc(m.tagline)+'</p></div>';
+    if(m.user_outcome) left += sec("User outcome", '<p>'+esc(m.user_outcome)+'</p>');
+    else if(m.summary) left += sec("What we seek to accomplish", '<p>'+esc(m.summary)+'</p>');
+    if(m.gate) left += sec("Gate / exit", '<p>'+esc(m.gate)+'</p>');
+    if((m.context_docs || []).length) left += sec("Context docs", ctxDocs(m.context_docs));
+    const right = sec("Deliverables", dels.length ? dels.map(d => {
+      const ids = d.epics || [], eps = ids.map(id => by[id]).filter(Boolean);
+      const dn = ids.filter(id => (by[id] || {}).column === done).length;
+      return '<div class="deliv"><div class="dn">'+esc(d.name)+
+        (ids.length ? ' <span style="font-weight:400;color:var(--ink-3);font-size:12.5px">'+dn+'/'+ids.length+' done</span>' : "")+
+        progressBar(eps, true)+'</div>'+
+        (d.description ? '<div class="dd">'+esc(d.description)+'</div>' : "")+
+        ids.map(id => {
+          const e = by[id];
           if(!e) return '<span class="chip-epic missing" title="no epic with this id on the board">'+esc(id)+'</span>';
-          return '<span class="chip-epic'+(e.column===doneLane()?" done":"")+'" data-id="'+esc(id)+'" title="'+esc(e.name)+'">'+esc(id)+(e.column===doneLane()?" ✓":"")+'</span>';
+          return '<span class="chip-epic'+(e.column === done ? " done" : "")+'" data-id="'+esc(id)+'" title="'+esc(e.name)+'">'+esc(id)+(e.column === done ? " ✓" : "")+'</span>';
         }).join("")+'</div>';
-    }).join("") : '<p style="color:var(--ink-3);font-size:14px">No deliverables mapped to epics yet.</p>')+'</div>';
-  const arch = m.architecture;
-  if(arch && (arch.summary || (arch.subsystems||[]).length)){
-    right += '<div class="ms-section"><h3>System design at end of '+esc(short(m.id))+'</h3>'+
-      (arch.summary?'<p>'+esc(arch.summary)+'</p>':"")+
-      '<div style="margin-top:12px">'+(arch.subsystems||[]).map(s =>
-        '<div class="arch-sub"><span class="state '+esc(s.state||"existing")+'">'+esc(s.state||"")+'</span>'+
-        '<span><span class="an">'+esc(s.name)+'</span>'+(s.note?' <span class="anote">— '+esc(s.note)+'</span>':"")+'</span></div>').join("")+'</div></div>';
+    }).join("") : '<p class="none">No deliverables listed for this milestone.</p>');
+    body = '<div class="msp-body" id="msp-body"><div>'+left+'</div><div>'+right+'</div></div>';
   }
-  html += '<div class="ms-grid"><div>'+left+'</div><div>'+right+'</div></div></div>';
-  v.innerHTML = html;
-  v.querySelectorAll(".ms-tab").forEach(b => b.addEventListener("click", () => navigate("milestones", b.dataset.id)));
-  v.querySelectorAll(".chip-epic[data-id]").forEach(c => c.addEventListener("click", () => goToEpic(c.dataset.id)));
+  const was = document.getElementById("msp-body"), top = was ? was.scrollTop : 0;   // a live refresh keeps your place
+  el.hidden = false;
+  el.innerHTML = head + body;
+  const now = document.getElementById("msp-body"); if(now) now.scrollTop = top;
+  document.getElementById("msp-toggle").addEventListener("click", () => { msPanelOpen = !msPanelOpen; rememberMsFold(); renderMsPanel(); });
+  el.querySelectorAll(".chip-epic[data-id]").forEach(c => c.addEventListener("click", () => goToEpic(c.dataset.id)));
 }
 function goToEpic(id){
   const e = byId()[id]; if(!e) return;
@@ -3596,6 +4098,7 @@ function epicMarkdown(e){
       lines.push("");
     }
     if(s.context) lines.push("Context: "+s.context, "");
+    if((s.notes||"").trim()) lines.push("Notes:", "", s.notes.trim(), "");
   });
   return lines.join("\n");
 }
@@ -3887,6 +4390,61 @@ function promoteIdea(id){
 
 /* ---- idea deep dive ---- */
 function ideaById(id){ return (state.ideas||[]).find(x=>x.id===id); }
+// A stage's ideas in the order the Ideas page's status lens shows them: the
+// array order (the queue), with the Idea column's front burner before its
+// back burner. The decision bar's "next" and j/k both walk this.
+function stageOrder(st){
+  const items = (state.ideas||[]).filter(i => ideaStatus(i) === st);
+  if(st !== "idea") return items;
+  const cut = Math.ceil(PRIOS.length/2);
+  const px = i => { const x = PRIOS.indexOf(i.priority); return x < 0 ? PRIOS.length : x; };
+  return items.filter(i => px(i) < cut).concat(items.filter(i => px(i) >= cut));
+}
+/* ---- the decision bar: answering a review idea where it is asked ----
+   The human's controls (AGENTS.md §2: `ready to implement` and `rejected`
+   are the human's call — this is where the human makes it). One optional
+   line answers the question; it is appended to the log, never rewriting it,
+   and for a rejection it is the required reason. Then on to the next. */
+const DECISIONS = {
+  pursue: { to:"ready to implement", verb:"pursue" },
+  shape:  { to:"idea",               verb:"keep shaping" },
+  reject: { to:"rejected",           verb:"reject" },
+};
+function decisionBar(i){
+  const order = stageOrder("ready for review"), at = order.findIndex(x => x.id === i.id);
+  return '<div class="decide" id="idd-decide">'+
+    '<input type="text" id="dec-answer" placeholder="Your answer, in a line — optional, required to reject; it goes in the log" aria-label="Your answer">'+
+    '<div class="decide-row">'+
+      '<button type="button" class="btn primary" data-decide="pursue" title="Move to Ready to implement — intent is settled">Pursue</button>'+
+      '<button type="button" class="btn" data-decide="shape" title="Back to Idea — the question is not ready to answer">Keep shaping</button>'+
+      '<button type="button" class="btn danger" data-decide="reject" title="Reject — the answer above is the reason, and it is required">Reject</button>'+
+    '</div><div class="m-err" id="dec-err"></div>'+
+    '<div class="decide-pos">'+(at + 1)+' of '+order.length+' ready for review · <b>j</b> / <b>k</b> or <b>←</b> / <b>→</b> to step without deciding</div></div>';
+}
+function decideIdea(id, kind){
+  const i = ideaById(id), d = DECISIONS[kind];
+  if(!i || !d) return;
+  const inp = document.getElementById("dec-answer");
+  const ans = inp ? inp.value.trim() : "";
+  if(kind === "reject" && !ans){
+    document.getElementById("dec-err").textContent = "Say why in the line above — a rejection keeps its reason.";
+    if(inp) inp.focus();
+    return;
+  }
+  const order = stageOrder("ready for review"), at = order.findIndex(x => x.id === id);
+  i.status = d.to;
+  if(kind === "reject") i.rejected_reason = ans;
+  (i.log = i.log || []).push({ at: today(),
+    note: "Decided: "+d.verb+" → "+d.to+"."+(ans ? (kind === "reject" ? " Reason: " : " Answer: ")+ans : "") });
+  i.updated_at = today();
+  if(inp) inp.value = "";   // the answer is written; it must not hold the refresh
+  saveIdeas();
+  // Next in the same stage: the one after it, else the first left, else the page.
+  const rest = order.filter(x => x.id !== id);
+  const next = rest[at] || rest[0];
+  showToast(i.id+" → "+(IDEA_STATUS_LABEL[d.to]||d.to)+"."+(next ? " Next in review: "+next.id : " Nothing left in review."));
+  navigate("ideas", next ? next.id : null);
+}
 // The description convention is a plain-language half, then a "Technical
 // shape:" paragraph; the detail page tops its two columns with them.
 function descParts(desc){
@@ -3965,6 +4523,7 @@ function renderIdeaDetail(id){
   left += block("reasoning", "Why now · decision · conviction",
     (i.why_now ? '<p><b>Why now:</b> '+esc(i.why_now)+'</p>' : '<p class="empty">No "why now" yet — what makes this timely rather than merely good?</p>')+
     (i.decision ? '<p><b>Decision needed:</b> '+esc(i.decision)+'</p>' : '')+
+    (ideaStatus(i) === "ready for review" ? decisionBar(i) : '')+
     (i.conviction ? '<p><b>Conviction:</b> '+esc(i.conviction)+' <span class="empty">(separate from stage)</span></p>' : '')+
     (i.constraints ? '<p><b>Constraints:</b> '+esc(i.constraints)+'</p>' : '')+
     (i.acceptance ? '<p><b>Acceptance boundary:</b> '+esc(i.acceptance)+'</p>' : '')+
@@ -4086,6 +4645,7 @@ function renderIdeaDetail(id){
     saveIdeas(); renderIdeaDetail(id);
   }
   document.getElementById("sec-add").addEventListener("click", () => editSection(-1));
+  v.querySelectorAll("[data-decide]").forEach(b => b.addEventListener("click", () => decideIdea(i.id, b.dataset.decide)));
   const pb = document.getElementById("i-promote");
   if(pb) pb.addEventListener("click", () => promoteIdea(i.id));
   v.querySelectorAll("[data-editsec]").forEach(b => b.addEventListener("click", () => editSection(+b.dataset.editsec)));
@@ -4170,6 +4730,9 @@ function renderIdeaDetail(id){
     if(del) del.addEventListener("click", () => { i.sections.splice(ix,1); i.updated_at = today(); saveIdeas(); renderIdeaDetail(id); });
     wrap.querySelector("#e-st").focus();
   }
+  // A re-render is how every editor here closes (save or cancel), so it is
+  // also when a refresh held off by ideaEditing() can land.
+  setTimeout(applyPendingRefresh, 0);
 }
 
 // Product conviction — how sure we are it's worth doing. Deliberately

@@ -15,8 +15,7 @@ design/
 ├── DESIGN.md        # this index: placement, spec format, workflow, drift rules
 ├── hld.md           # architecture map of the code (not a screen spec)
 ├── system.md        # token names/roles + shared chrome (header, modal, toast…)
-├── board.md         # #/board — kanban over epics
-├── milestones.md    # #/milestones(/<id>) — narrative + deliverables roll-up
+├── board.md         # #/board — kanban over epics, milestone panel
 ├── ideas.md         # #/ideas — status columns + capture
 ├── idea-detail.md   # #/ideas/<id> — the deep dive
 ├── history.md       # #/history — ratification history (git log as a page)

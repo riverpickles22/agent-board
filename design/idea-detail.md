@@ -23,6 +23,13 @@ until a decision lands.
 │ {plain description, ≤72ch}           ┌ TECHNICAL SHAPE (recessed) ┐  │
 │ (business/why half, top of the      │ {technical description}    │  │
 │  left column)                        └────────────────────────────┘  │
+│ ┌ WHY NOW · DECISION · CONVICTION ┐                                  │
+│ │ Decision needed: {decision}      │  (decision bar: ready for review │
+│ │ ┌ [Your answer, in a line…    ]┐ │   only)                          │
+│ │ │ [Pursue] [Keep shaping] [Rej]│ │                                  │
+│ │ │ 2 of 5 ready for review · j/k│ │                                  │
+│ │ └──────────────────────────────┘ │                                  │
+│ └──────────────────────────────────┘                                  │
 │ ┌ CONTEXT — WHAT IS THIS  ─────────┐ ┌ DECISION LENS ═════════════╗  │
 │ │ {context}                (edit)  │ ║ Effort [—|low|med|high]    ║  │
 │ └──────────────────────────────────┘ ║ Impact [—|low|med|high]    ║  │
@@ -59,6 +66,8 @@ log is a borderless journal, everything else is the standard panel.)
 | Edit core | `#idd-edit` | button → `openIdea(id)` | same modal as the Ideas page |
 | Copy | `#idd-copy` `ideaMarkdown()` | "⧉ copy" beside Edit core — the idea's full case (description, meta, reasoning, context, pros/cons, compounding, sections, log) to the clipboard as markdown | for running the idea past another tool ("what are we missing?"); same conventions as the epic/ideas exports — id in backticks so answers can reference the card |
 | Validation plan | the reasoning block's `Validation plan:` line | `validation` — how we would know this works | shown beside constraints and the acceptance boundary; from `ready to implement` an empty one renders as an explicit gap (`#idd-valid-gap`), because that is the stage where it blocks promotion. Edited in the core modal with the other reasoning fields |
+| Decision bar | `decisionBar()` `#idd-decide` `.decide` `#dec-answer` `decideIdea()` `DECISIONS` | on a `ready for review` idea only, under *Decision needed*: a one-line answer field, then **Pursue** (primary → `ready to implement`), **Keep shaping** (→ `idea`) and **Reject** (danger, far right → `rejected`), and a line saying where this idea sits in the stage (`2 of 5 ready for review`) and naming the keys | answering a review idea used to be Edit core (sixteen fields), the Status select, Save. These are the **human's** controls — the UI is the human's surface, so they may set `ready to implement` and `rejected`; nothing changes about what an agent may set. The answer is optional for Pursue and Keep shaping and **required** for Reject, where it becomes `rejected_reason` (refused with a message and focus back in the field otherwise). Every decision appends one dated `log` entry — `Decided: pursue → ready to implement. Answer: …` — never rewriting one. Existing fields only. Shown with or without a `decision` text: the stage is what asks for a decision. The bar is tinted with `--st-decide`, the review stage's colour |
+| Stage stepping | `stepIdea()` `stageOrder()` | `j` / `→` next, `k` / `←` previous idea **in the same status**, in the order the Ideas page's status lens shows them (array order; the Idea column's front burner before its back burner) | for walking a stage without deciding. Inert while any input, textarea or select has focus, while a modal, the palette or the plan panel is open, and at either end of the stage. The footer names the keys on this page |
 | Context block | `.idd-block` | `context` or empty-state prompt | inline edit via `inlineEdit("context")` |
 | Pros / cons | `.procon` | two lists, markers in `--lane-5`/`--lane-4` | edited as one-per-line textareas |
 | Rejected block | — (`data-k="reject"`) | `rejected_reason` | only when rejected or a reason exists |
@@ -82,10 +91,27 @@ log is a borderless journal, everything else is the standard panel.)
 - Dep link click (`data-goidea`) → `navigate("ideas", id)`; writes
   nothing.
 - Log add: Enter in the input or the Add button; empty input is ignored.
+- Decision bar (ready for review) → `decideIdea(id, kind)`: sets
+  `status` (Pursue → `ready to implement`, Keep shaping → `idea`, Reject
+  → `rejected` with `rejected_reason` = the answer, refused when empty),
+  appends a dated `log` entry carrying the answer, stamps `updated_at`,
+  `persistResource("ideas", …)` via `saveIdeas()`, toasts, then opens the
+  next `ready for review` idea in stage order (the one after it, else the
+  first left) — or the Ideas page when none is left.
+- `j`/`→` and `k`/`←` → `stepIdea()` → `navigate("ideas", <neighbour>)`
+  within the idea's own status; writes nothing.
 - Copy (`#idd-copy`) → `ideaMarkdown(i)` to the clipboard + toast; writes
   nothing.
 - Section delete lives inside the section editor (Delete section).
 - Cancel on any inline editor → re-render, nothing written.
+- Live refresh holds off while this page is mid-edit (`ideaEditing()`):
+  any inline editor open (title, prose blocks, reasoning, pros/cons,
+  sections), or the log input or the decision bar's answer line focused
+  or holding unsent text. A change on
+  disk meanwhile is queued, and applies once the editor saves or cancels
+  or the log input is left empty; a save made on that stale state is
+  merged onto disk's (system.md, persistence), so the agent's edit and
+  the human's both land.
 
 - Click the title → inline rename (Enter commits, Escape cancels, blur
   commits). Click any block's **edit** → that block becomes its editor.

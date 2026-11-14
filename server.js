@@ -31,10 +31,11 @@ const HOST = "127.0.0.1";
  * Claude skill and every existing bookmark already depend on.
  */
 const PINNED = process.env.BOARD_DATA_DIR ? path.resolve(process.env.BOARD_DATA_DIR) : null;
+const REGISTRY = path.join(ROOT, "projects.json");
 function loadProjects() {
   if (PINNED) return null;
   try {
-    const reg = JSON.parse(fs.readFileSync(path.join(ROOT, "projects.json"), "utf8"));
+    const reg = JSON.parse(fs.readFileSync(REGISTRY, "utf8"));
     const out = {};
     for (const [name, dir] of Object.entries(reg)) {
       if (/^[a-z0-9][a-z0-9._-]*$/i.test(name)) out[name] = path.resolve(dir);
@@ -42,41 +43,47 @@ function loadProjects() {
     return Object.keys(out).length ? out : null;
   } catch (e) { return null; }
 }
-const PROJECTS = loadProjects();
+let PROJECTS = loadProjects();
+// Whether the server runs one board or many is decided at start; which boards
+// the registry names is not. `./board new` adds a project to projects.json
+// while a server is running, so every request checks the file's stamp and
+// re-reads it when it changed. A registry caught half-written (or emptied)
+// keeps the last good list rather than dropping every board.
 const MULTI = PROJECTS !== null;
+const registryStamp = () => { try { const st = fs.statSync(REGISTRY); return st.mtimeMs + ":" + st.size; } catch (e) { return "none"; } };
+let projectsStamp = registryStamp();
+function refreshProjects() {
+  if (!MULTI) return;
+  const stamp = registryStamp();
+  if (stamp === projectsStamp) return;
+  projectsStamp = stamp;
+  const next = loadProjects();
+  if (!next) return;
+  PROJECTS = next;
+  DEFAULT_PROJECT = defaultProject();
+}
 // Single-project fallback keeps the historical default of ./data.
 const DATA = PINNED || path.join(ROOT, "data");
 // `./board <name>` serves everything but says which board you asked for, so
 // bare / lands there instead of on whichever project is first in the file.
 const OPEN = process.env.BOARD_OPEN || null;
-const DEFAULT_PROJECT = MULTI
+const defaultProject = () => (MULTI
   ? (OPEN && PROJECTS[OPEN] ? OPEN : Object.keys(PROJECTS)[0])
-  : null;
+  : null);
+let DEFAULT_PROJECT = defaultProject();
 const dirFor = (project) => (MULTI ? PROJECTS[project] : DATA);
 
 // Resource names, files, and fresh-board defaults live in defaults.js,
 // shared with the `./board new` scaffold — one source for what a project is.
 const { FILES, OBJECT_RESOURCES, DEFAULTS } = require("./defaults.js");
 
-function readData(key, dir) {
-  const file = path.join(dir || DATA, FILES[key]);
-  if (!fs.existsSync(file)) return DEFAULTS[key];
-  return JSON.parse(fs.readFileSync(file, "utf8"));
-}
-function writeData(key, value, dir) {
-  dir = dir || DATA;
-  fs.mkdirSync(dir, { recursive: true });
-  // Pretty-printed with a trailing newline so git diffs stay clean and reviewable.
-  const json = JSON.stringify(value, null, 2) + "\n";
-  // U+FFFD is what a broken decode leaves behind. No card should ever hold one,
-  // so its presence means text was mangled somewhere upstream. Warn rather than
-  // refuse: losing an edit is worse than keeping a damaged character, and the
-  // line below is what makes the damage findable instead of silent.
-  if (json.includes("\uFFFD")) {
-    console.warn(`[warn] ${key}: replacement characters (U+FFFD) in data being written — text was mangled upstream, not by this write`);
-  }
-  fs.writeFileSync(path.join(dir, FILES[key]), json);
-}
+// Reads and writes go through the same modules the CLI and the MCP server
+// use: one wrapped-shape rule, one byte-for-byte write style, one revision.
+// Writes are atomic (temp file + rename) — see write-data.js.
+const { read: readShared, readRevised, revisionNow } = require("./read-data.js");
+const { writeData: writeShared } = require("./write-data.js");
+const readData = (key, dir) => readShared(key, dir || DATA);
+const writeData = (key, value, dir) => writeShared(key, value, dir || DATA);
 
 function sendJSON(res, code, obj) {
   const body = JSON.stringify(obj);
@@ -177,7 +184,7 @@ function workingSnapshot(dir) {
 }
 
 // Card-level change statements between two snapshots — what a human
-// reviews at ratify speed ("B1 moved Backlog → Done"), not raw diffs.
+// reviews at ratify speed ("B1 moved Ready → Done"), not raw diffs.
 // Array order is queue state, so a pure reorder is one statement, not N
 // edits; a card that both moved and changed gets one combined statement.
 const LANE_FIELD = { epics: "column", stories: "column", ideas: "status" };
@@ -260,6 +267,7 @@ function routeOf(rawUrl) {
 }
 
 const server = http.createServer(async (req, res) => {
+  refreshProjects();
   const { project, url } = routeOf(req.url);
   const dir = dirFor(project);
   try {
@@ -347,7 +355,13 @@ const server = http.createServer(async (req, res) => {
         filesBy[lines[0]] = lines.slice(1).map((f) => path.basename(f));
       });
       commits.forEach((c) => { c.files = filesBy[c.hash] || []; });
-      return sendJSON(res, 200, { available: true, commits });
+      // Saves per day for the calendar above the list: a year of rhythm,
+      // not capped at 50 like the entries. Dates only, so it stays small.
+      const days = await git(["log", "--since=54 weeks ago", "--format=%cs", "--", ...Object.values(FILES)], dir);
+      const perDay = {};
+      (days || "").split("\n").map((l) => l.trim()).filter(Boolean).forEach((d) => { perDay[d] = (perDay[d] || 0) + 1; });
+      const activity = Object.keys(perDay).sort().map((date) => ({ date, count: perDay[date] }));
+      return sendJSON(res, 200, { available: true, commits, activity });
     }
     // Briefing: everything that changed between an earlier commit (the
     // client's last-seen marker) and HEAD, plus the current HEAD hash so
@@ -373,17 +387,26 @@ const server = http.createServer(async (req, res) => {
       const oldSnap = hasParent ? await snapshotAt(hash + "^", dir) : JSON.parse(JSON.stringify(DEFAULTS));
       return sendJSON(res, 200, { hash, statements: summarizeChanges(oldSnap, await snapshotAt(hash, dir)) });
     }
+    // Each resource carries its revision (a hash of the file's bytes), read in
+    // the same pass as its value. A write must name the revision it was based
+    // on — see the PUT below.
     if (req.method === "GET" && url === "/api/board") {
-      return sendJSON(res, 200, {
-        epics: readData("epics", dir),
-        stories: readData("stories", dir),
-        ideas: readData("ideas", dir),
-        config: readData("config", dir),
-        milestones: readData("milestones", dir),
-      });
+      const out = { revisions: {} };
+      for (const key of ["epics", "stories", "ideas", "config", "milestones"]) {
+        const { value, revision } = readRevised(key, dir);
+        out[key] = value;
+        out.revisions[key] = revision;
+      }
+      return sendJSON(res, 200, out);
     }
-    // Whole-array (or whole-object) writes: the single-user client owns
-    // state and sends the full value back.
+    // Whole-array (or whole-object) writes with a precondition: the client
+    // sends the full value plus, in If-Match, the revision it was based on. If
+    // the file changed since (an agent edited it while a modal was open), the
+    // write is refused with 409 and nothing is written — the page then merges
+    // the human's changes onto fresh state and tries again. A PUT that names
+    // no revision is refused the same way: a tab still running the old page
+    // cannot know what it would overwrite. Check and write are synchronous, so
+    // no other request on this server can land between them.
     if (req.method === "PUT" && url.startsWith("/api/")) {
       const key = url.slice("/api/".length);
       if (FILES[key]) {
@@ -391,8 +414,16 @@ const server = http.createServer(async (req, res) => {
         const expectArray = !OBJECT_RESOURCES.has(key);
         if (expectArray && !Array.isArray(body)) return sendJSON(res, 400, { error: "expected a JSON array" });
         if (!expectArray && (typeof body !== "object" || body === null)) return sendJSON(res, 400, { error: "expected a JSON object" });
-        writeData(key, body, dir);
-        return sendJSON(res, 200, { ok: true, count: expectArray ? body.length : undefined });
+        const based = String(req.headers["if-match"] || "").replace(/^W\//, "").replace(/"/g, "").trim();
+        const current = revisionNow(key, dir);
+        if (based !== current) {
+          return sendJSON(res, 409, {
+            error: based ? "stale: " + FILES[key] + " changed since this page loaded it" : "a write must send the revision it is based on (If-Match)",
+            revision: current,
+          });
+        }
+        const revision = writeData(key, body, dir);
+        return sendJSON(res, 200, { ok: true, count: expectArray ? body.length : undefined, revision });
       }
     }
     res.writeHead(404, { "Content-Type": "text/plain" });

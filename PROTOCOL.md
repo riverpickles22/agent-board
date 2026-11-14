@@ -39,7 +39,7 @@ A card (`epics.json` entry) is **pickable** when all of these hold:
    done, so this rarely bites — state it anyway, and never report an
    archived card as available work;
 1. its `column` is the first configured lane (`config.json`'s `lanes[0]`,
-   "Backlog" by default) — not already in progress, not done;
+   "Ready" by default) — not already in progress, not done;
 2. every id in its `deps` is a card whose `column` is the **last**
    configured lane (`lanes[lanes.length-1]`, "Done" by default);
 3. its `gate` is `"none"`, or it appears in `config.json`'s `open_gates`
@@ -99,20 +99,34 @@ by their own priority, then their epic's rank.
 There is no server-side locking. If multiple agents (or an agent and a
 human) might write concurrently:
 
-- **Editing through the running `server.js`**: writes are whole-file
-  overwrites processed one HTTP request at a time by a single Node process,
-  so two requests handled by the *same* server instance don't corrupt the
-  file — but there's no cross-process locking, so two agents editing the
-  same file by hand at the same time (bypassing the server) can still race.
+- **Editing through the running `server.js`**: every write is a
+  whole-file write, and every write is **conditional**. `GET /api/board`
+  returns a `revisions` map (a hash of each file's bytes); a `PUT
+  /api/<resource>` must send the revision it was based on in `If-Match`,
+  and the server answers `409` and writes nothing when the file has
+  changed since — or when no revision is sent at all. A successful `PUT`
+  returns the new revision. Files are written to a temp file and renamed
+  into place, so a reader never sees half a file. There is still no
+  cross-process locking: two agents editing the same file by hand at the
+  same time (bypassing the server) can race.
 - **Editing JSON directly**: claiming is a working-tree edit, never an
   automatic commit. Git does not lock concurrent working-tree writes.
   Re-read before writing, preserve unrelated edits, coordinate writers,
   and re-read the result to check the claim. On conflict, re-select rather
   than assume ownership. Commit only when the user explicitly requests it.
-- **An open browser page is not a writer to fear**: the server watches
-  the data dir and pushes changes over SSE (`/api/events`), so a page
-  that's open while an agent edits the files re-renders from fresh state
-  instead of clobbering the edits with its stale in-memory arrays.
+- **An open browser page is a writer, and it merges rather than
+  overwrites.** The server watches the data dir and pushes changes over
+  SSE (`/api/events`); the page re-renders from fresh state, except while
+  the human is mid-edit (a modal open, a drag, an inline editor on the
+  idea deep dive) — that is when your edits and theirs overlap. Their save
+  then gets a `409`, and the page refetches, re-applies only the records
+  the human changed (by id, field by field, against what it had loaded),
+  and writes again, with a toast saying it merged. Records you changed and
+  the human did not survive; where both of you changed the same field of
+  the same record, **the human's value wins** and the toast names the
+  card. So a direct edit made while a page is open is safe unless the
+  human is editing that very field — re-read after the human saves if it
+  matters.
 - **`mcp-server.js`'s write tools** (`claim`, `move`, `release`,
   `needs-human`, `propose-idea`) do their own direct read-modify-write file
   I/O, the same as an agent editing JSON by hand — no locking, no revision

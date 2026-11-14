@@ -38,6 +38,14 @@
     };
   }
 
+  // A priority's tier. An unknown or missing priority sorts after every
+  // known one — it is a vocabulary slip, never a reason to jump the queue.
+  const tier = (c, p) => { const i = c.prios.indexOf(p); return i < 0 ? c.prios.length : i; };
+
+  const depsUndone = (e, c) => arr(e.deps).some(d => {
+    const dep = c.epicById[d]; return dep && dep.column !== c.done;
+  });
+
   const gateOpen = (e, cfg) => !e.gate || e.gate === "none" || arr(cfg.open_gates).includes(e.gate);
 
   // PROTOCOL §3.5: a pick moves into the first lane's successor; a full
@@ -56,18 +64,29 @@
     const epicIx = new Map(c.epics.map((e, i) => [e.id, i]));
     const picks = [];
     let readyButStuck = 0;
+    // Why each first-lane story under a live epic is not a pick — one reason
+    // per story, so the counts add up (AGENTS.md §8: report why).
+    const excluded = { not_ready: 0, claimed: 0, gated: 0, deps: 0, ungroomed: 0 };
     c.stories.forEach((s, ix) => {
+      const ep = c.epicById[s.epic_id];
+      if (s.column === c.first && ep && !ep.archived_at) {
+        if (s.claimed_by) excluded.claimed++;
+        else if (!s.ready) excluded.not_ready++;
+        else if (!gateOpen(ep, c.cfg)) excluded.gated++;
+        else if (depsUndone(ep, c)) excluded.deps++;
+      }
       if (!s.ready || s.column === c.done) return;          // finished ≠ stuck
       if (s.column !== c.first || s.claimed_by) { readyButStuck++; return; }
-      const ep = c.epicById[s.epic_id];
       if (!ep || ep.archived_at) return;                    // shipped and closed — not pickable
-      if (!gateOpen(ep, c.cfg) || arr(ep.deps).some(d => {
-        const dep = c.epicById[d]; return dep && dep.column !== c.done;
-      })) { readyButStuck++; return; }
-      picks.push({ story: s, epic: ep, ix, p: Math.max(0, c.prios.indexOf(s.priority)), er: epicIx.get(ep.id) });
+      if (!gateOpen(ep, c.cfg) || depsUndone(ep, c)) { readyButStuck++; return; }
+      picks.push({ story: s, epic: ep, ix, p: tier(c, s.priority), er: epicIx.get(ep.id) });
     });
+    // epics committed to the first lane with no stories yet — nothing to pick
+    // until someone grooms them (AGENTS.md §5)
+    const hasStories = new Set(c.stories.map(s => s.epic_id));
+    excluded.ungroomed = c.epics.filter(e => !e.archived_at && e.column === c.first && !hasStories.has(e.id)).length;
     picks.sort((a, b) => a.p - b.p || a.er - b.er || a.ix - b.ix);
-    return { picks, readyButStuck, wip: wipBlocked(c) };
+    return { picks, readyButStuck, wip: wipBlocked(c), excluded };
   }
 
   /* Epic grain — PROTOCOL §3 verbatim, the fallback for a board with no
@@ -79,10 +98,10 @@
     const picks = [];
     c.epics.forEach((e, ix) => {
       if (e.archived_at || e.column !== c.first) return;
-      if (arr(e.deps).some(d => { const dep = c.epicById[d]; return dep && dep.column !== c.done; })) { notes.deps++; return; }
+      if (depsUndone(e, c)) { notes.deps++; return; }
       if (!gateOpen(e, c.cfg)) { notes.gate++; return; }
       if (e.claimed_by) { notes.claim++; return; }
-      picks.push({ epic: e, ix, p: Math.max(0, c.prios.indexOf(e.priority)), u: unblocks(e.id) });
+      picks.push({ epic: e, ix, p: tier(c, e.priority), u: unblocks(e.id) });
     });
     picks.sort((a, b) => a.p - b.p || b.u - a.u || a.ix - b.ix);
     const wip = wipBlocked(c);
@@ -134,12 +153,58 @@
     return [].concat(c.epics, c.stories).filter(x => x && x.id && isStale(x, c.done, now, c.review));
   }
 
+  // Idea statuses renamed over time; read a legacy value as its modern stage
+  // (the union of the UI's and doctor's readings).
+  const IDEA_LEGACY = { considering: "ready for review", shaping: "ready for review",
+    planned: "ready to implement", building: "ready to implement", exploring: "idea" };
+  const ideaStage = i => { const st = String((i && i.status) || "").trim(); return IDEA_LEGACY[st] || st; };
+
+  /* Everything that waits on a person right now — derived, never stored.
+   * needs (open asks), cards in the review lane, ideas ready for review,
+   * ideas cleared to implement but never promoted, and first-lane stories
+   * still waiting on the human's ready flag. A card counted in more than one
+   * part appears once in `total` and `items`. */
+  function waitingOnYou(data) {
+    const c = ctx(data);
+    const ideas = arr(data && data.ideas);
+    const liveEpic = id => { const ep = c.epicById[id]; return !!ep && !ep.archived_at; };
+    const items = [], seen = new Set();
+    const push = (kind, id, title) => {
+      if (!id || seen.has(id)) return;
+      seen.add(id); items.push({ kind, id, title: title || "" });
+    };
+    const titleOf = id => { const x = c.epicById[id] || c.stories.find(s => s.id === id); return x ? x.name : ""; };
+
+    const needs = needsYou(data);
+    needs.forEach(n => push("needs", n.id, titleOf(n.id)));
+
+    const review = c.review ? [].concat(
+      c.epics.filter(e => e.column === c.review && !e.archived_at),
+      c.stories.filter(s => s.column === c.review && liveEpic(s.epic_id))
+    ) : [];
+    review.forEach(x => push("review", x.id, x.name));
+
+    const reviewIdeas = ideas.filter(i => i && ideaStage(i) === "ready for review");
+    reviewIdeas.forEach(i => push("review-idea", i.id, i.title));
+
+    const unpromoted = ideas.filter(i => i && ideaStage(i) === "ready to implement" && !i.promoted_to);
+    unpromoted.forEach(i => push("unpromoted-idea", i.id, i.title));
+
+    const awaiting = c.stories.filter(s => s.column === c.first && !s.ready && liveEpic(s.epic_id));
+    awaiting.forEach(s => push("awaiting-ready", s.id, s.name));
+
+    return { total: items.length, needs: needs.length, reviewCards: review.length,
+      reviewIdeas: reviewIdeas.length, unpromotedIdeas: unpromoted.length,
+      awaitingReady: awaiting.length, items };
+  }
+
   /* Everything ./board status prints, one call. */
   function summary(data, opts) {
     const now = (opts && opts.now) || Date.now();
     const c = ctx(data);
     const live = c.epics.filter(e => !e.archived_at);
     const laneCount = list => Object.fromEntries(c.lanes.map(l => [l, list.filter(x => x.column === l).length]));
+    const pk = pickable(data);
     return {
       lanes: c.lanes,
       epics: { total: live.length, archived: c.epics.length - live.length, byLane: laneCount(live) },
@@ -147,10 +212,12 @@
       needsYou: needsYou(data),
       inFlight: inFlight(data).map(s => ({ id: s.id, name: s.name, column: s.column,
         claimed_by: s.claimed_by, claimed_at: s.claimed_at, stale: isStale(s, c.done, now, c.review) })),
-      pickable: pickable(data).picks.length,
+      pickable: pk.picks.length,
+      excluded: pk.excluded,
+      waitingOnYou: waitingOnYou(data),
       staleClaims: staleClaims(data, { now }).map(x => x.id),
     };
   }
 
-  return { pickable, nextUp, inFlight, needsYou, staleClaims, summary, CLAIM_STALE_MS };
+  return { pickable, nextUp, inFlight, needsYou, waitingOnYou, staleClaims, summary, CLAIM_STALE_MS };
 });

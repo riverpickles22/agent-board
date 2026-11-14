@@ -38,8 +38,42 @@ const data = {
   milestones: read("milestones", { milestones: [] }, false),
 };
 
-const findings = diagnose(data);
+const findings = diagnose(data).concat(contextDocFindings());
+const rank = { error: 0, warning: 1 };
+findings.sort((a, b) => rank[a.severity] - rank[b.severity] || a.code.localeCompare(b.code));
 const { errors, warnings } = counts(findings);
+
+/* context_docs paths are relative to the context repo's root — the git repo
+ * that holds the data dir (AGENTS.md §1). Checking them needs the
+ * filesystem, so this lives here and not in doctor.js, which the browser
+ * loads too. A warning, never an error: a moved doc degrades a card, it does
+ * not break the board. */
+function contextRoot(dir) {
+  let probe = path.resolve(dir);
+  while (probe !== path.dirname(probe)) {
+    if (fs.existsSync(path.join(probe, ".git"))) return probe;
+    probe = path.dirname(probe);
+  }
+  return path.dirname(path.resolve(dir));   // no git: the data dir's parent
+}
+function contextDocFindings() {
+  const root = contextRoot(DIR);
+  const found = [];
+  const check = (owner, docs) => (Array.isArray(docs) ? docs : []).forEach(d => {
+    const raw = typeof d === "string" ? d : (d && d.path);
+    if (typeof raw !== "string" || !raw.trim()) return;
+    const p = raw.trim().replace(/#.*$/, "");
+    if (!p || /^[a-z][a-z0-9+.-]*:\/\//i.test(p)) return;   // URLs are not ours to check
+    const abs = path.isAbsolute(p) ? p : path.join(root, p);
+    if (!fs.existsSync(abs)) found.push({ severity: "warning", code: "context-doc-missing", ids: owner ? [owner] : [],
+      message: "context_docs path \"" + raw + "\" does not exist under " + root });
+  });
+  data.epics.forEach(e => { if (e && e.id && !e.archived_at) check(e.id, e.context_docs); });
+  const ms = data.milestones || {};
+  check("overview", ms.overview && ms.overview.context_docs);
+  (Array.isArray(ms) ? ms : (ms.milestones || [])).forEach(m => { if (m) check(m.id, m.context_docs); });
+  return found;
+}
 
 const tty = process.stdout.isTTY;
 const c = (code, s) => tty ? "[" + code + "m" + s + "[0m" : s;

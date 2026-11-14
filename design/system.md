@@ -86,7 +86,7 @@ unmet dependency is *waiting*, not broken.
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ LOCAL · AGENT-BOARD                                                  │
-│ {view.title}  [Ideas][Milestones][Board]  {counts} ● saved (7 pending)│ header
+│ {view.title} [Ideas][Milestones][Board] {counts} ● saved (◉ 9 waiting) │ header
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │                        active view (#view-*)                         │
@@ -101,15 +101,18 @@ unmet dependency is *waiting*, not broken.
 | Component | Anchor | Shows | Notes |
 |---|---|---|---|
 | Eyebrow | `.eyebrow` | "Local · agent-board" | mono, uppercase, accent |
-| Title | `#board-title` | `config.view.title` (fallback "Board") | also sets `document.title` in `load()` |
-| View tabs | `#tabs` `renderTabs()` | Ideas / Milestones / Board / History / Docs — the flow trio (capture → intent → work) plus the record and the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback is `HOME_PAGE`. `PAGE_ALIASES`/`resolvePage()` keep `#/execution` and `view.default_page: "execution"` resolving after the page was renamed to Board and back, so no project's `config.json` ever needed editing |
+| Title | `#board-title` | `config.view.title` (fallback "Board") | `document.title` is set by `updateWaiting()` (below): the view title, prefixed with the waiting count |
+| Waiting on you | `#wait-badge` `updateWaiting()` `#wait-panel` `renderWaiting()` `WAIT_PARTS` | one derived count of what only a person can move — open `needs`, cards in the review lane, ideas ready for review, ideas ready to implement but not promoted, first-lane stories awaiting the ready flag — in three places: the **tab title** (`(9) {view.title}`, plain at zero), the **favicon** (`drawFavicon()` `#favicon`: an inline-SVG data URI of three lane bars in `--accent`, plus a `--lane-2` dot while the count is above zero), and a header chip beside the doctor's (`◉ 9 waiting on you` amber, `○ nothing waiting` dim). The chip's tooltip names the parts; click opens a slide-over listing every item under its part, each id a link to its card or idea | the rule is `BoardQueue.waitingOnYou()` (`queue.js`), shared with `./board status`, run over `diskView()` (the doctor's un-rescued view) — so the number equals the CLI's on the same files and is never recomputed here. Recomputed in `applyBoard()` (load and every live refresh) and at the start of every `persistResource()`, so a decision or an Accept moves it at once. The favicon reads the token values at draw time and redraws on a theme flip. No Notification API, no sound: the title and the dot are the whole alert |
+| Card URLs | `noteCardOpen()` `leaveCardRoute()` `routeCard()` `openCard()` `cardHash()` | every epic and story card has an address, `#/board/<id>` (under a project prefix, `/<name>/#/board/<id>`). Loading it opens that card's modal; an unknown id opens the board and toasts that no card carries it | opening a card from anywhere (board, palette, doctor, a link) **pushes** its hash, so Back closes it; moving from one card to another inside the modal (Back to epic, a story row) **replaces** it, so one Back still closes. Closing by Escape, ✕, Save or Accept goes back to the entry the card was opened from (`#/board` when opened from the board); a card loaded straight from its URL closes to `#/board`. Cards open only on a real hash change or the first load — never on the `route()` a live refresh runs, so a refresh cannot reopen a card you just shut. `cardOpen` tracks which card the modal shows; create modals have no address |
+| Id links | `linkIds()` `.idlink` | the id that opens each change statement — in the review panel, the briefing (statements and stale claims) and every History entry — as a link: an epic or story to `#/board/<id>`, an idea to `#/ideas/<id>` | only ids a card or idea still carries become links; a removed card's id stays text. Following a link from a slide-over panel closes the panel |
+| View tabs | `#tabs` `renderTabs()` | Ideas / Board / History / Docs — capture, then work, plus the record and the capabilities page | from `PAGES` + `PAGE_LABELS`; `aria-selected` tracks route; bad-hash fallback is `HOME_PAGE`. `PAGE_ALIASES`/`resolvePage()` keep `#/execution` and `view.default_page: "execution"` resolving after the page was renamed to Board and back, so no project's `config.json` ever needed editing |
 | Counts | `#counts` | "N cards · M done", or "X of N shown" when filtered | board page only — hidden elsewhere by `route()` |
-| Save indicator | `#save` `persistResource()` | dot + saved / saving… / save failed | dot color: `--lane-5` / `--lane-2` pulsing / `--lane-4` |
+| Save indicator | `#save` `persistResource()` | dot + saved / saving… / saved · merged / save failed | dot color: `--lane-5` / `--lane-2` pulsing / `--lane-4`. "saved · merged" means the write was refused as stale and landed after `mergeResource()` (below); "save refused — the file keeps changing; reload" after three refused rounds |
 | Pending badge | `#pending-badge` `updatePending()` | "N pending" chip beside the save dot when uncommitted board changes exist (`GET /api/pending`); absent when the tree is clean or the data dir isn't git-tracked | click → the review panel. Refetched on load, after every live `refresh()`, when the tab regains visibility (covers terminal-side commits), and on panel open |
 | Briefing banner | `#briefing` `wireBriefing()` | "Since you last looked: N changes · M stale claims" bar under the header, with **view** (expands to the card-level statements + the stale-claim list) and **dismiss** | shows only when the per-browser last-seen HEAD (`localStorage`, keyed by board title like the mode memory) is older than the current HEAD with actual statements between (`GET /api/since/<hash>`); first visit stores silently; a rewritten-history marker resets silently. Dismiss stores the new HEAD. Stale claim = `claimed_by` set, `claimed_at` older than 48h, card not in the done lane and not in the review lane (there it waits on the human, B36) — computed client-side over epics + stories. Briefing covers **ratified** history (commits); the pending badge covers the unratified working state — the two never overlap |
 | Review panel | `#pending-panel` `renderPending()` | slide-over from the right: "Pending ratification" header, card-level change statements grouped by resource (epics / stories / ideas / config / milestones), files list, footer naming the ritual (say "save" in conversation, or commit the data dir) | read-only — zero write affordances; the panel reviews, the human ratifies. Empty state: "Everything ratified — board matches HEAD." Close: ✕, Escape, or click outside. Statements come from the server's semantic differ (`/api/pending`): moves as `old → new`, edits name their fields, a queue reorder is one statement |
-| View sections | `#view-board` `#view-milestones` `#view-ideas` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
-| Footer hints | `#footer-note` `updateFooter()` | per-page interaction hints | board / milestones / ideas variants |
+| View sections | `#view-board` `#view-ideas` `#view-history` `#view-docs` | one visible per route | `route()` toggles `hidden`; `.view.scroll` variants scroll |
+| Footer hints | `#footer-note` `updateFooter()` | per-page interaction hints | board / ideas / history / docs variants |
 | Stories note | `#stories-note` | "N stories" when any exist | |
 | Data path | `#data-path` | the data dir the server reports | static "./data" today (see Open questions) |
 | Project switcher | `#projsel` `.projsel` `wireProjects()` `PROJECT` `api()` | the current board's name beside the title, listing the registered ones; choosing another opens it on the equivalent page | one server serves every board and the project is the URL's **path prefix** (`/<name>/#/board`), so it is shareable, the server can read it without JavaScript, and the hash router never learns the project exists. `api()` prefixes every request; switching is a navigation, not a fetch. A card id in the hash is dropped when switching — ids are per-project, so carrying one across would land on nothing. Hidden entirely when only one board is served, and a project whose directory is missing renders disabled rather than being silently dropped |
@@ -122,12 +125,12 @@ unmet dependency is *waiting*, not broken.
 | Modal shell | `#scrim` `#modal` | dialog for epic / story / idea editing | `.scrim.on` shows; click-outside and Escape close via `closeModal()`. Two widths: `.modal` (560px) for the Ideas core-fields form, and `.modal.wide` (940px, two columns, sticky header + pinned actions) for the board's cards — see the card modal in `board.md`. Each renderer sets `modal.className`, so the shell never inherits the previous card's shape |
 | Modal fields | `.field` `.field.row2` `.field.mono` | label + input/textarea/select | `.mono` variant for ids, tags, paths. Inside `.modal.wide` a `.field`'s label becomes a small-caps **section heading** and its textarea sizes to its content (`autoGrow()`); `.rdy-t` opts out, staying a checkbox with a sentence |
 | Buttons | `.btn` `.btn.primary` `.btn.danger` | actions row (`.actions`) | danger sits `margin-left:auto` |
-| Toast | `#toast` `showToast()` | transient message, bottom-center | 4.5s, `--lane-4` left border — used for refused moves |
-| Command palette | `#pal-scrim` `#palette` `openPalette()` | top-centered overlay on its own scrim: search input + up to 12 ranked results (type chip · mono id · title) over every epic, story, and idea | opened with `/` anywhere outside form fields and modals; subsequence fuzzy match (`fuzzyScore()` — gaps and late first-hits penalized) over `id + title`, in-memory index rebuilt per keystroke from `state` (always current, no cache). ↑/↓ move the selection, Enter/click jumps: epic → `goToEpic()` (board, flash), story → `renderStoryModal()`, idea → its deep-dive page. Escape or scrim click closes |
+| Toast | `#toast` `showToast()` | transient message, bottom-center | 4.5s, `--lane-4` left border — used for refused moves, and to say a save merged with edits made on disk (naming any card both sides changed) |
+| Command palette | `#pal-scrim` `#palette` `openPalette()` | top-centered overlay on its own scrim: search input + up to 12 ranked results (type chip · mono id · title) over every epic, story, and idea | opened with `/` anywhere outside form fields and modals; subsequence fuzzy match (`fuzzyScore()` — gaps and late first-hits penalized) over `id + title`, in-memory index rebuilt per keystroke from `state` (always current, no cache). ↑/↓ move the selection, Enter/click jumps: epic → `goToEpic()` (board, flash), story → its modal (scrim on, then `renderStoryModal()`), idea → its deep-dive page. Escape or scrim click closes |
 | Quick capture | (global keydown) | `n` outside fields/modals → `openIdea(null)` from any page | capture is the funnel's mouth — no navigation to the Ideas page needed; create still lands in the inbox and jumps to the deep dive |
 | Pills | `.tagpill` `.tagpill.sys` `.st` `.prio` | milestone/theme/tag, systems, status, priority (variants p0–p3) | priority class = index into `config.priorities` (`prioClass()`) |
-| Helpers | `esc()` `short()` `opts()` `laneVar()` | escaping, "M0 Reliable…"→"M0", select options, lane color cycling | used by every screen |
-| Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | a changed board **moves**: cards lift, glide to their new lane/position, and set down; edited-in-place cards pulse the `.flash` ring; new cards fade in | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, or a save is pending (`refreshBlocked()`, applied on `applyPendingRefresh()`) |
+| Helpers | `esc()` `short()` `opts()` `laneVar()` | escaping, "M0 Reliable…"→"M0", select options, lane color cycling | used by every screen. `opts()` keeps a current value the vocabulary doesn't list as one extra selected option, labelled "(not in vocabulary)", so saving a form never silently rewrites it (a story of kind `bug`, an off-vocab theme or conviction) |
+| Live refresh | `wireLiveRefresh()` `refresh()` `applyBoard()` | a changed board **moves**: cards lift, glide to their new lane/position, and set down; edited-in-place cards pulse the `.flash` ring; new cards fade in | SSE from `GET /api/events` (server `fs.watch`es the data dir); refetch is skipped when nothing differs (own-write echo) and deferred while a modal is open, a drag is in flight, a save is pending, or the idea deep dive is mid-edit (`refreshBlocked()` `ideaEditing()`, applied on `applyPendingRefresh()`). The stream is reopened if the browser closes it, and every reconnect refetches, since changes made while it was down sent no event |
 | Refresh motion | `captureCardPositions()` `animateCardMoves()` `.agent-lift` `.agent-new` | FLIP across the re-render: rects captured before `applyBoard()`, re-render unchanged, moved cards inverted to their old spot then transitioned home (~450ms) wearing the lift look (scale 1.04, `--shadow`, ~1° tilt — the `.dragging` family) | applies to `.card`, `.scard`, and `.idea` cards on whichever page is visible; removed cards simply vanish (no ghost animation); `prefers-reduced-motion` falls back to the instant snap (the global media query kills the transitions) |
 
 ## Interactions
@@ -135,15 +138,30 @@ unmet dependency is *waiting*, not broken.
 - Tab click → `navigate(page)` → hash change → `route()` shows the view;
   writes nothing.
 - Escape anywhere / click on scrim backdrop → `closeModal()`; writes
-  nothing. Escape closes surfaces in order: palette → pending panel →
-  modal (one layer per press).
+  nothing. Escape closes surfaces in order: palette → test-plan panel →
+  any slide-over panel (pending, doctor, waiting) → modal (one layer per
+  press). Closing a card returns the hash as described under Card URLs.
+- Browser Back with a card open → `routeCard()` closes it; Forward
+  reopens it. A `#/board/<id>` typed or pasted into the address bar
+  opens that card.
 - `/` (outside fields/modals) → palette; `n` → new-idea modal from any
   page; both inert while typing anywhere or while a modal is open.
   Footer hints name them.
 - All persistence funnels through `persistResource(resource, val)`:
-  150ms debounce per resource (`saveTimers`), `PUT /api/<resource>`,
-  save indicator cycles; failure shows "save failed — is the server
-  running?".
+  150ms debounce per resource (`saveTimers`), `PUT /api/<resource>` with
+  the resource's revision in `If-Match` (`putResource()`), save indicator
+  cycles; failure shows "save failed — is the server running?".
+- A stale save (`409`: the file changed on disk since the page loaded it,
+  typically an agent edit while a modal was open) → refetch
+  `/api/board`, `mergeResource(baseline, mine, fresh)`, PUT again (up to
+  three rounds), toast "Merged with edits made on disk…". The merge starts
+  from disk: for each record the human changed against `baseline`, the
+  human's changed fields are laid over disk's record (the human wins a
+  field both changed, and the toast names that card); records the human
+  deleted stay deleted, records the human created are kept, and the
+  human's order applies only if the human reordered. Config and
+  milestones merge the same way by top-level key. The refresh queued
+  afterwards puts the merged state on the page.
 - Data file changes on disk (agent or hand edits) → server SSE event →
   debounced `refresh()`: refetch `/api/board`, re-apply state + vocab,
   re-render the current page; filters whose vocab vanished reset to
@@ -160,8 +178,10 @@ unmet dependency is *waiting*, not broken.
 
 - Load failure (`load().catch`): board area shows "Could not load the
   board. Start the server with node server.js and reload."
-- Server restart: the `EventSource` auto-reconnects (retry 2s); no page
-  reload needed.
+- Server restart: the `EventSource` reconnects (retry 2s; reopened by
+  `wireLiveRefresh()` if the browser gives up) and refetches on reconnect;
+  no page reload needed. Revisions are content hashes, so they survive the
+  restart.
 - Reduced motion: all animation/transitions disabled via media query.
 - Pending states: clean tree → no badge; dirty → "N pending" chip;
   data dir not git-tracked or no commits yet → no badge (the panel's
@@ -173,7 +193,9 @@ unmet dependency is *waiting*, not broken.
 
 ## Data
 
-`load()` fetches `GET /api/board`, fills `state` +
+`load()` fetches `GET /api/board` (each resource plus its `revisions`
+entry, kept with a JSON `baseline` by `rememberBaseline()` for the
+merge), fills `state` +
 `COLUMNS`/`PRIOS`/`THEMES`/`MILESTONES` from `config` via `applyBoard()`
 (with fallback vocab; unknown epic/story columns normalize to
 `COLUMNS[0]`), applies `config.view` defaults via `viewDefaults()`

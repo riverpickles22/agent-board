@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-/* A stdio MCP server exposing the board's read-side answers as tool calls,
- * for MCP-capable agents (Codex, Cursor, Gemini CLI, …) that don't have a
- * Claude Code Skill to read AGENTS.md and hand-edit JSON. Same two answers
- * board-cli.js gives from a terminal — `status` and `next` — now callable
- * as typed tools instead.
+/* A stdio MCP server exposing the board as tool calls, for MCP-capable
+ * agents (Codex, Cursor, Gemini CLI, …) that don't have a Claude Code Skill
+ * to read AGENTS.md and hand-edit JSON. The two read answers board-cli.js
+ * gives from a terminal — `status` and `next` — plus the protocol's writes
+ * (claim, move, release, needs-human, propose-idea), as typed tools. It is
+ * not a read-only server: the write tools change the data dir's files.
  *
  * Hand-rolled JSON-RPC framing (newline-delimited JSON over stdin/stdout,
  * per the MCP spec) rather than depending on @modelcontextprotocol/sdk:
@@ -70,7 +71,7 @@ function toolNext({ project }) {
   if (!resolved) throw new Error(unresolvedMessage(project));
   const { name, dir } = resolved;
   const data = load(dir);
-  const { picks, readyButStuck, wip } = Q.pickable(data);
+  const { picks, readyButStuck, wip, excluded } = Q.pickable(data);
   const lanes = data.config.lanes || [];
   const workLane = lanes[1] || "the working lane";
   return {
@@ -82,6 +83,7 @@ function toolNext({ project }) {
     })),
     ready_but_stuck: readyButStuck,
     wip_blocked: wip,
+    excluded,
     epic_grain: data.stories.length ? undefined : Q.nextUp(data).picks.map(p => p.epic.id),
     claim_protocol: "AGENTS.md §6: set claimed_by + claimed_at on the story, move it to \"" + workLane + "\", build, verify each acceptance criterion.",
   };
@@ -106,6 +108,18 @@ function findRecord(data, id) {
 const nowISO = () => new Date().toISOString();
 const todayDate = () => new Date().toISOString().slice(0, 10);
 
+// A card's notes are its history — an epic's "Workflow impact:" paragraph, a
+// story's review notes — so a tool's note is appended beneath a dated line,
+// the way hand-written notes are, never assigned over what is there.
+function appendNote(record, note, who) {
+  const text = String(note || "").trim();
+  if (!text) return record.notes;
+  const prior = typeof record.notes === "string" ? record.notes.replace(/\s+$/, "") : "";
+  if (!prior) { record.notes = text; return record.notes; }
+  record.notes = prior + "\n\n--- " + todayDate() + " (" + (who || "via agent-board MCP") + ") ---\n\n" + text;
+  return record.notes;
+}
+
 /* ---- Phase 2: low-risk writes — no pickability/ordering rule to enforce ---- */
 
 function toolRelease({ project, id, notes }) {
@@ -117,9 +131,10 @@ function toolRelease({ project, id, notes }) {
   const found = findRecord(data, id);
   if (!found) throw new Error("Unknown id: " + id);
   const { key, list, record } = found;
+  const who = record.claimed_by;
   record.claimed_by = null;
   record.claimed_at = null;
-  if (typeof notes === "string") record.notes = notes;
+  if (typeof notes === "string") appendNote(record, notes, who);
   record.updated_at = nowISO();
   writeData(key, list, dir);
   return { id, released: true, notes: record.notes };
@@ -267,11 +282,12 @@ function toolMove({ project, id, to_column, notes }) {
   const isRetreat = lanes.indexOf(to_column) < lanes.indexOf(fromColumn);
   if (isRetreat) {
     if (!notes) throw new Error(`Moving ${id} back from "${fromColumn}" to "${to_column}" needs a notes explanation (PROTOCOL.md §4 step 5)`);
+    const who = record.claimed_by;
     record.claimed_by = null;
     record.claimed_at = null;
-    record.notes = notes;
+    appendNote(record, notes, who);
   } else if (typeof notes === "string") {
-    record.notes = notes;
+    appendNote(record, notes, record.claimed_by);
   }
   record.column = to_column;
   record.updated_at = nowISO();
@@ -294,10 +310,10 @@ const TOOLS = [
   },
   {
     name: "release",
-    description: "Release a claim on an epic or story — clears claimed_by/claimed_at. Always safe; use whenever you stop working a card, finished or not (PROTOCOL.md §4 step 7). Optionally record why in notes.",
+    description: "Release a claim on an epic or story — clears claimed_by/claimed_at. Always safe; use whenever you stop working a card, finished or not (PROTOCOL.md §4 step 7). Optionally record why in notes — appended beneath a dated line, never replacing the card's existing notes.",
     inputSchema: {
       type: "object",
-      properties: { ...PROJECT_PROPERTY, id: { type: "string", description: "Epic or story id, e.g. \"F1\" or \"F1-2\"." }, notes: { type: "string", description: "Optional explanation, e.g. why work stopped without finishing." } },
+      properties: { ...PROJECT_PROPERTY, id: { type: "string", description: "Epic or story id, e.g. \"F1\" or \"F1-2\"." }, notes: { type: "string", description: "Optional explanation, e.g. why work stopped without finishing. Appended to existing notes." } },
       required: ["id"],
     },
     handler: toolRelease,
@@ -359,7 +375,7 @@ const TOOLS = [
         ...PROJECT_PROPERTY,
         id: { type: "string", description: "Epic or story id." },
         to_column: { type: "string", description: "Must be one of the project's configured lanes." },
-        notes: { type: "string", description: "Explanation, required when moving back to an earlier lane." },
+        notes: { type: "string", description: "Explanation, required when moving back to an earlier lane. Appended beneath a dated line; existing notes are kept." },
       },
       required: ["id", "to_column"],
     },
@@ -429,7 +445,7 @@ function handleMessage(msg) {
     handleRequest(msg.id, msg.method, msg.params);
   }
   // Notifications (no id) — e.g. notifications/initialized, notifications/cancelled —
-  // carry nothing this read-only server needs to act on; ignore them.
+  // carry nothing this server needs to act on (its writes are all tool calls); ignore them.
 }
 
 let buffered = "";
