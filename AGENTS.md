@@ -179,8 +179,8 @@ person answers.
 `archived_at` (ISO date, absent/null = active) is the **ship-and-close**
 stamp: an agent may set it only when the epic *and every one of its
 stories* sit in the done lane, and its `notes` carry an `Architecture:`
-line (below) — done cards stay on the board until the whole epic
-closes. Archived epics leave the active board for its
+line and a `Code health:` line (below) — done cards stay on the board
+until the whole epic closes. Archived epics leave the active board for its
 Shipped view but still count for milestone roll-ups and dependency
 checks; clearing `archived_at` (unarchive) is the human's call.
 `gate` other than `"none"` means the epic is closed until that gate appears
@@ -206,6 +206,23 @@ and server; parts table updated for read-data.js and write-data.js;
 status line 2026-11-14.` ·
 `Architecture: no change — UI copy only; no part, path or flow moved.`
 `doctor` warns on a finished, un-archived epic without the line.
+
+**Code health (a notes convention, not a field):** when an epic is
+closed, its code is reviewed for debt (§6 step 9) and the outcome is
+one line starting `Code health:` in the epic's `notes` — what was
+found and which cards now carry it, or `clean` and why:
+`Code health: the stale-claim rule was defined in three files —
+drafted B42-1 to give it one home; index.html's work-queue styles
+carry dead selectors — drafted B42-3.` ·
+`Code health: clean — one new function beside its siblings, covered by
+the doctor's tests; nothing duplicated.` A human closing the epic from
+the page leaves `Code health: review queued as <story id> on <date>`
+until an agent builds that review. The queued story lives under the
+board's **standing "Code-health reviews" epic** — the page creates it
+on first need, it stays in the first lane, and it is never archived;
+it is the one epic that holds a queue rather than shipped work.
+`doctor` warns on an epic archived after 2026-11-14 without the line,
+and on a queued line naming a story that does not exist.
 
 **Story**:
 ```json
@@ -484,7 +501,9 @@ It also warns on `needs` left on a done or archived card or not shaped
 with no claim, a claimed card still in the first lane, a lane over its
 `wip_limits` (or a limit naming no lane), a `ready for review` idea with
 no `decision`, `conviction`/`effort`/`impact` outside their values, a
-finished un-archived epic with no `Architecture:` line in its notes, a
+finished un-archived epic with no `Architecture:` line in its notes, an
+epic archived after 2026-11-14 with no `Code health:` line (or a queued
+line naming a missing story), a
 `view` default naming no vocab entry, an unknown priority, and (CLI only,
 it needs the filesystem) a live epic's or milestone's `context_docs` path
 that does not exist under the context repo root. It warns, once per
@@ -581,6 +600,24 @@ When the user says to build a story (e.g. "begin O1-2"):
    why — and name the doc edit in your report. The edit is uncommitted
    working state like everything else: it is committed on "save", on
    its own, in the context repo.
+9. **Closing an epic: review the code it left behind.** At the same
+   moment as step 8, review the structure of the code the epic changed
+   — the files its stories touched and what they call, in whichever
+   code repo they live — for debt: duplicated logic, a rule defined in
+   two places, functions or files that grew too large, dead code, names
+   that no longer say what they do, new code with no tests around it.
+   Write the epic's `Code health:` line (§2): what you found, or `clean`
+   and why. Anything worth fixing becomes a `ready: false` story on the
+   board (under an existing epic it belongs to, or a new cleanup epic),
+   named in the line — **the closing epic does not refactor**; a
+   refactor is new work the human ranks. When a human closes an epic
+   with **Remove from board**, the page cannot review code, so it
+   queues the review instead: a ready chore story, "Code-health review
+   of <id>", under the board's standing "Code-health reviews" epic, and
+   a `Code health: review queued as <story id>` line on the epic.
+   Building that story is this step: replace the queued line with the
+   real `Code health:` line on the archived epic, draft any debt as
+   cards, and move the review story to the done lane.
 
 An epic is "begin"-able too: work its ready stories in dependency/priority
 order, one at a time, reporting between stories.

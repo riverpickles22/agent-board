@@ -168,7 +168,11 @@ the same change; medium-or-larger capability changes also update
 check the context repo's `design/hld.md` (and diagrams the epic's
 `context_docs` link) against what it changed, update them where they no
 longer match, and write the epic's `Architecture:` notes line — before
-anyone archives it. Full loop: AGENTS.md §6.
+anyone archives it. In the same step, review the code the epic changed
+for debt and write its `Code health:` line; draft any debt as
+`ready: false` cards rather than refactoring inside the closing epic. A
+"Code-health review of <id>" story in the work queue is that review,
+queued by a human's Remove from board. Full loop: AGENTS.md §6.
 
 **Design** ("change the UI", "redesign the ideas page", "add X to a
 card"). The UI's source of truth is `<agent-board>/design/*.md`

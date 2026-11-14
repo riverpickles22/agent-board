@@ -1,6 +1,6 @@
 # hld.md — agent-board architecture map
 
-**Status: Current — checked against the code 2026-11-14** (after epics B40, B43 and B44).
+**Status: Current — checked against the code 2026-11-14** (after epics B40–B45).
 
 Where each part of the tool lives and what it owns. Everything here is
 **built** unless marked *proposed*; proposals live as cards in

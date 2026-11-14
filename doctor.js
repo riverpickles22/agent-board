@@ -37,6 +37,20 @@
   const ARCH_LINE = /^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Architecture:/m;
   const hasArchitectureLine = e => ARCH_LINE.test(str(e && e.notes));
 
+  // AGENTS.md §2/§6 step 9: closing an epic records a code-health review as
+  // a "Code health:" line — or, when a human closed it from the page, a
+  // "Code health: review queued as <story id>" line until an agent builds it.
+  const HEALTH_LINE = /^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Code health:/m;
+  const HEALTH_QUEUED = /^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Code health:(?:\*\*)?[ \t]*review queued as[ \t]+([A-Za-z0-9_.-]+)/m;
+  const hasCodeHealthLine = e => HEALTH_LINE.test(str(e && e.notes));
+  const queuedReview = e => { const m = HEALTH_QUEUED.exec(str(e && e.notes)); return m ? m[1] : null; };
+  // The standing epic that holds queued reviews: a queue, not shipped work,
+  // so it stays in the first lane and is never offered for removal.
+  const REVIEWS_TAG = "code-health-reviews";
+  const isReviewsEpic = e => arr(e && e.tags).includes(REVIEWS_TAG);
+  // Epics archived on or before this date shipped before the rule existed.
+  const HEALTH_SINCE = "2026-11-14";
+
   /**
    * @param {{config?:object, epics?:array, stories?:array, ideas?:array, milestones?:object}} data
    * @param {{now?:number}} [opts]  now is injectable so results are reproducible
@@ -204,7 +218,7 @@
         warn("done-while-gated", [e.id], "epic is done but its gate \"" + e.gate + "\" was never opened");
       if (firstLane && e.column === firstLane && !str(e.archived_at) && !st.length)
         warn("needs-grooming", [e.id], "epic is in " + firstLane + " with no stories — committed but not broken down (AGENTS.md §5)");
-      if (st.length && st.every(s => s.column === doneLane) && e.column !== doneLane && !str(e.archived_at))
+      if (st.length && st.every(s => s.column === doneLane) && e.column !== doneLane && !str(e.archived_at) && !isReviewsEpic(e))
         warn("stories-done-epic-behind", [e.id],
           "every story is " + doneLane + " but the epic card sits in " + e.column);
       // Finished and not yet archived: the architecture map should have been
@@ -213,6 +227,15 @@
       if (!str(e.archived_at) && e.column === doneLane && st.every(s => s.column === doneLane) && !hasArchitectureLine(e))
         warn("no-architecture-line", [e.id],
           "epic is finished but its notes carry no \"Architecture:\" line — check design/hld.md against what it built and record the result before archiving (AGENTS.md §6 step 8)");
+      // Closed after the code-health rule landed with neither the review's
+      // line nor a queued one (AGENTS.md §6 step 9).
+      if (str(e.archived_at) && str(e.archived_at).slice(0, 10) > HEALTH_SINCE && !hasCodeHealthLine(e))
+        warn("no-code-health", [e.id],
+          "epic was archived with no \"Code health:\" line in its notes — review the code it changed for debt and record the result (AGENTS.md §6 step 9)");
+      const q = queuedReview(e);
+      if (q && !stories.some(s => s && s.id === q))
+        warn("code-health-queue-missing", [e.id, q],
+          "notes say the code-health review was queued as " + q + ", but no story " + q + " exists");
     });
 
     stories.forEach(s => {
@@ -355,5 +378,5 @@
     warnings: findings.filter(f => f.severity === "warning").length,
   });
 
-  return { diagnose, counts, hasArchitectureLine };
+  return { diagnose, counts, hasArchitectureLine, hasCodeHealthLine, queuedReview, isReviewsEpic, REVIEWS_TAG };
 });

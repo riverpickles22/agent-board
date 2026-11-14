@@ -2600,6 +2600,7 @@ function saveModal(){
 // falls back to its own card's lane. One rule, read by the row fold and
 // the modal button alike.
 function canRemove(e){
+  if(isReviewsEpic(e)) return false;   // a standing queue, never shipped work
   const st = storiesOf(e.id);
   return st.length ? st.every(s => s.column === doneLane()) : e.column === doneLane();
 }
@@ -2614,12 +2615,66 @@ function archRecorded(e){
 }
 // No straight double quotes: this goes into title="…" through esc().
 const ARCH_MISSING = "The architecture check is not recorded: no line in Notes starts with Architecture: (AGENTS.md §6 step 8). You can still remove it";
+// The code-health review (AGENTS.md §6 step 9): recorded on the epic, or
+// queued. Same tests as the doctor's, so the two cannot disagree. Without
+// doctor.js loaded nothing is queued — never a guess.
+function healthRecorded(e){
+  return typeof BoardDoctor === "undefined" || !BoardDoctor.hasCodeHealthLine || BoardDoctor.hasCodeHealthLine(e);
+}
+function isReviewsEpic(e){
+  return typeof BoardDoctor !== "undefined" && !!BoardDoctor.isReviewsEpic && BoardDoctor.isReviewsEpic(e);
+}
+// A new epic id in the board's own style: the prefix most of its ids use,
+// one past the highest number (B44 → B45). "CH1" on a board with none.
+function nextEpicId(){
+  const ids = new Set(state.epics.map(e => e.id)), by = {};
+  state.epics.forEach(e => { const m = /^([A-Za-z]+)(\d+)$/.exec(e.id||""); if(m){ const b = by[m[1]] = by[m[1]] || {n:0, max:0}; b.n++; b.max = Math.max(b.max, +m[2]); } });
+  const top = Object.keys(by).sort((a,b) => by[b].n - by[a].n)[0];
+  let pre = top || "CH", n = top ? by[top].max + 1 : 1;
+  while(ids.has(pre+n)) n++;
+  return pre+n;
+}
+// The board's standing "Code-health reviews" epic, made on first need.
+function reviewsEpic(){
+  let r = state.epics.find(isReviewsEpic);
+  if(r) return r;
+  r = Object.assign(blankEpic(COLUMNS[0]), {
+    id: nextEpicId(), name: "Code-health reviews", theme: "", milestone: "",
+    description: "The queue of code-health reviews owed on epics a human closed with Remove from board. Each story is one review: read the code the closed epic changed, write its Code health: line, and draft any debt as new cards (AGENTS.md §6 step 9).",
+    notes: "Standing epic, created by the board on "+today()+" when "+"a human first removed an epic with no code-health review. It stays in "+COLUMNS[0]+" and is never removed from the board; it holds a queue, not shipped work.",
+    test_plan: "Each review story is done when the closed epic's notes carry a real Code health: line in place of the queued one, and every debt it names is a card on the board.",
+    tags: [BoardDoctor.REVIEWS_TAG], status: "standing", updated_at: new Date().toISOString() });
+  state.epics.push(r);
+  return r;
+}
+// Queue the review a human's Remove from board cannot do itself.
+function queueHealthReview(e){
+  const r = reviewsEpic(), own = storiesOf(r.id).map(s => s.id), ids = new Set(state.stories.map(s => s.id));
+  let n = own.length + 1; while(ids.has(r.id+"-"+n)) n++;
+  const sid = r.id+"-"+n, st = storiesOf(e.id), now = new Date().toISOString();
+  state.stories.push({ id: sid, epic_id: r.id,
+    name: "Code-health review of "+e.id+": "+e.name,
+    description: "A person closed "+e.id+" with Remove from board on "+today()+". Review the structure of the code its stories changed for debt — duplicated logic, a rule defined in two places, functions or files that grew too large, dead code, names that no longer fit, new code without tests — and record the outcome on "+e.id+" (AGENTS.md §6 step 9). Do not refactor here: debt becomes new cards for the human to rank.",
+    kind: "chore",
+    acceptance_criteria: [
+      "The files "+e.id+"'s stories changed (their notes and the commits naming them) have been read for debt.",
+      e.id+"'s queued Code health: line is replaced by one saying what was found and which cards carry it, or clean and why.",
+      "Every debt worth fixing is a ready: false story on the board; none was fixed in this review." ],
+    how_to_test: [],
+    context: "Closed epic "+e.id+(st.length ? " — stories "+st.map(s => s.id).join(", ") : "")+". Its notes and its stories' notes name the files and commits; read the code repo's own AGENTS.md or CLAUDE.md first.",
+    notes: "", systems: (e.systems||[]).slice(),
+    ready: true, column: COLUMNS[0], priority: PRIOS.includes(e.priority) ? e.priority : PRIOS[0],
+    claimed_by: null, claimed_at: null, needs: null, updated_at: now });
+  e.notes = ((e.notes||"").replace(/\s+$/, "") + "\n\nCode health: review queued as "+sid+" on "+today()+".").replace(/^\s+/, "");
+  return sid;
+}
 function removeTitle(e){
   const bits = ["Moves "+e.id+" off the active board into Shipped — milestones and dependencies still count it, and your next save records it in History"];
   if(e.column !== doneLane()) bits.push("Also moves the epic card to "+doneLane()+", since every story is done");
   const i = ideaBehind(e.id);
   if(i && ideaStatus(i) !== "done") bits.push("Also closes its idea "+i.id+" out of the funnel");
   if(!archRecorded(e)) bits.push(ARCH_MISSING);
+  if(!healthRecorded(e)) bits.push("Also queues a code-health review of its code as a ready story, for the next agent session to pick up");
   return bits.join(". ");
 }
 
@@ -2658,11 +2713,16 @@ function toggleArchiveEpic(id){
       note: "Closed out of the funnel — "+e.id+" finished and left the board." });
   }
   const noArch = !archRecorded(e);
+  // Nobody reviewed the code this epic left behind; the page cannot, so it
+  // queues the review for an agent (AGENTS.md §6 step 9).
+  const queued = healthRecorded(e) ? null : queueHealthReview(e);
   closeModal(); renderFilters(); render();
   persist();
+  if(queued) persistResource("stories", state.stories);
   if(closed) persistResource("ideas", state.ideas);
   showToast(e.id+" removed from the board — find it under Shipped."+
             (closed ? " "+closed.id+" closed out of the funnel too." : "")+
+            (queued ? " A code-health review is queued as "+queued+" for the next agent." : "")+
             (noArch ? " Its architecture check was never recorded." : ""));
 }
 
