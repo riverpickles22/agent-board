@@ -23,7 +23,7 @@ const DEFAULTS = {
   stories: [],
   ideas: [],
   config: {
-    lanes: ["Backlog", "In Progress", "Review", "Done"],
+    lanes: ["Ready", "In Progress", "Review", "Done"],
     priorities: ["Now", "Next", "Later", "Someday"],
     themes: [],
     milestones: [],

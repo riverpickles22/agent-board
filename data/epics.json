@@ -13,7 +13,7 @@
     ],
     "gate": "none",
     "deps": [],
-    "column": "Backlog",
+    "column": "Ready",
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": null
@@ -34,7 +34,7 @@
     "deps": [
       "EX1"
     ],
-    "column": "Backlog",
+    "column": "Ready",
     "claimed_by": null,
     "claimed_at": null,
     "updated_at": null

@@ -11,7 +11,7 @@
     ],
     "context": "repos/paths/docs an agent should read before building this",
     "ready": false,
-    "column": "Backlog",
+    "column": "Ready",
     "priority": "Now",
     "claimed_by": null,
     "claimed_at": null,
