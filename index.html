@@ -112,15 +112,17 @@
   :root[data-theme="dark"] .chip[aria-pressed="true"]{color:#1F1F1F}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#1F1F1F}}
 
-  /* ---- next up (the selection rule, rendered) ---- */
-  .nextup{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding:0 22px}
-  .nextup .pick{display:inline-flex;align-items:baseline;gap:8px;font-size:13.5px;padding:6px 12px;border-radius:9px;
-    border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));background:var(--accent-soft);cursor:pointer;transition:all .12s ease}
-  .nextup .pick:hover{border-color:var(--accent)}
-  .nextup .pick .pid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent)}
-  .nextup .pick .pnm{color:var(--ink);font-weight:500;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .nextup .pick .pwhy{font-size:11.5px;color:var(--ink-3);white-space:nowrap}
-  .nextup .none{font-size:13px;color:var(--ink-3)}
+  /* ---- epic-grain picks: the work queue's fallback on a board with no
+     stories (PROTOCOL §3 at epic grain). These were scoped to the old
+     .nextup strip, which no longer renders, so the fallback drew bare
+     browser buttons until B42-3 scoped them to the queue itself. ---- */
+  .readyq .pick{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--sans);font-size:13.5px;padding:6px 12px;border-radius:9px;
+    border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));background:var(--accent-soft);color:inherit;cursor:pointer;transition:all .12s ease}
+  .readyq .pick:hover{border-color:var(--accent)}
+  .readyq .pick .pid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--accent)}
+  .readyq .pick .pnm{color:var(--ink);font-weight:500;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .readyq .pick .pwhy{font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+  .readyq .none{font-size:13px;color:var(--ink-3)}
   /* the agent work queue reads as a block, not an aside */
   .readyq{margin:8px 22px 0;padding:10px 14px;border:1px solid var(--line);border-radius:10px;
     background:var(--panel);display:block}
@@ -178,14 +180,6 @@
   .rq-item .rid{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);flex:0 0 auto}
   .rq-item .rnm{font-size:13.5px;color:var(--ink)}
   .rq-item .rq-why{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);white-space:nowrap}
-  .readyq-old{margin-top:6px}
-  .readyq .repic{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-3);margin-right:-1px}
-  .readyq .rpick{display:inline-flex;align-items:baseline;gap:7px;font-size:13px;padding:5px 11px;border-radius:9px;
-    border:1px solid var(--line);background:var(--card);cursor:pointer}
-  .readyq .rpick:hover{border-color:var(--accent)}
-  .readyq .rpick .rk{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
-  .readyq .rpick .rid{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
-  .readyq .rpick .rnm{color:var(--ink);font-weight:500;max-width:24ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .board{flex:1 1 auto;display:flex;gap:12px;padding:16px 22px 20px;overflow-x:auto;overflow-y:hidden;align-items:stretch}
   .col{flex:1 1 0;min-width:170px;display:flex;flex-direction:column;background:var(--panel);
@@ -1269,13 +1263,8 @@ function sinceLabel(iso){
 // an abandoned one look identical from outside, so the board flags it and a
 // human decides. Nothing here ever clears a claim by itself. Not in the
 // review lane: there the card waits on the human and the claim only says
-// who built it (B36) — same reading as queue.js isStale().
-const CLAIM_STALE_MS = 48*3600*1000;
-function claimIsStale(x){
-  if(!x || !x.claimed_by || x.column === doneLane() || (reviewLane() && x.column === reviewLane())) return false;
-  const at = Date.parse(x.claimed_at || "");
-  return !isNaN(at) && at < Date.now() - CLAIM_STALE_MS;
-}
+// who built it (B36). The rule itself is queue.js's isStale() (B42-1).
+function claimIsStale(x){ return BoardQueue.isStale(x, doneLane(), Date.now(), reviewLane()); }
 function claimLabel(x){
   const age = sinceLabel(x.claimed_at);
   return "claimed: "+x.claimed_by+(age ? " · "+age : "");

@@ -51,7 +51,7 @@ those files directly; none of them is required for the others to work.
 | `server.js` | Local HTTP server on 127.0.0.1. Serves `index.html`, `queue.js` and `doctor.js` to the page; `/api/board` (all five files plus their revisions); `PUT /api/<resource>`, which requires `If-Match` and answers `409` without writing when the file changed since the page read it; `/api/events` (SSE on data-dir changes); `/api/pending` (uncommitted changes as card-level statements); `/api/history` (git log of the data dir, with saves per day for the History calendar) and `/api/history/<hash>`; `/api/since/<hash>` (the briefing); `/llms.txt`, `/docs`, `/AGENTS.md`, `/PROTOCOL.md`. Multi-project mode prefixes routes by project and re-reads `projects.json` when it changes. |
 | `index.html` | The whole UI: one vanilla HTML/JS file, no build step. Screens are specified in `design/*.md`. Saves are conditional: on a `409` it refetches, merges by record and field against what it loaded (the human's value wins a same-field conflict) and retries. Cards have URLs (`#/board/<id>`). |
 | `queue.js` | Pure selection rule (PROTOCOL §3), the story ready queue with a reason for each excluded story, stale claims, and `waitingOnYou()` (everything that waits on a person, derived). Loaded by the UI and required by the CLIs, so both compute the same answer. |
-| `doctor.js` | Pure invariant checks over the five resources, errors and warnings. Shared by the UI and every CLI. |
+| `doctor.js` | Pure invariant checks over the five resources, errors and warnings. Shared by the UI and every CLI. Reads the stale-claim rule from `queue.js` (the page's `BoardQueue`, or `require` in node). |
 | `doctor-cli.js` | Terminal front end for `doctor.js`; adds the one check that needs the filesystem (`context_docs` paths that do not exist). Exits 1 only on errors. |
 | `board-cli.js` | Terminal `next`, `status`, `show` (one card with its epic, siblings and deps) and the `new` scaffold; `--json` on the read commands. Never edits existing board data. |
 | `mcp-server.js` | Stdio MCP server: status/next plus claim, move, release, needs-human and propose-idea tools, for agents without the Claude Code skill. Move and release append to `notes` under a dated header. Writes go through `write-data.js` (atomic) but are not revision-checked — the same race profile as a hand edit (PROTOCOL §5). |
@@ -60,7 +60,7 @@ those files directly; none of them is required for the others to work.
 | `defaults.js` | The five resource files and their empty defaults. |
 | `data/` | Example defaults a new project is scaffolded from — not a live board. |
 | `roadmap/` | This checkout's own live board (gitignored). |
-| `.claude/skills/agent-board/` | The Claude Code skill that operates boards by editing JSON directly. |
+| `.claude/skills/agent-board/` | The agent skill that operates boards by editing JSON directly — the one source file. `./board` links it into `~/.claude/skills/`; `.agents/skills/agent-board/SKILL.md` is a tracked link to the same file, which is where Codex looks. |
 
 ## Invariants
 
@@ -70,9 +70,8 @@ those files directly; none of them is required for the others to work.
   is the human ratifying the working state; the tool never commits.
 - **Zero dependencies.** Node 18+ standard library only.
 - **One rule, one module.** Selection lives in `queue.js` and invariants in
-  `doctor.js`, shared by every front end. One known exception: the 48-hour
-  stale-claim rule is also written in `index.html` and `doctor.js`
-  (*proposed* fix: B42-1).
+  `doctor.js`, shared by every front end. The 48-hour stale-claim rule is
+  `queue.js`'s `isStale()`; the page and `doctor.js` call it (B42-1).
 - **Writes through the server cannot silently lose work.** Every `PUT` is
   conditional on the revision the page read; direct file edits and MCP
   writes are not, and PROTOCOL §5 says how to live with that.

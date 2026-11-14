@@ -21,7 +21,9 @@
   else root.BoardDoctor = api;
 })(typeof self !== "undefined" ? self : this, function () {
 
-  const CLAIM_STALE_MS = 48 * 60 * 60 * 1000;
+  // The stale-claim rule is queue.js's (B42-1): the browser has loaded it as
+  // BoardQueue by the time diagnose() runs; node requires it.
+  const queue = () => (typeof BoardQueue !== "undefined" ? BoardQueue : require("./queue.js"));
   const IDEA_STATUSES = ["idea", "ready for review", "ready to implement", "done", "rejected"];
   // The funnel renamed two stages once; a legacy value is not a data error.
   const IDEA_STATUS_LEGACY = { "exploring": "idea", "shaping": "ready for review" };
@@ -232,7 +234,7 @@
       const at = Date.parse(x.claimed_at || "");
       if (isNaN(at)) { warn("claim-undated", [x.id], "claimed by " + x.claimed_by + " with no valid claimed_at"); return; }
       const days = Math.floor((now - at) / 86400000);
-      if (now - at > CLAIM_STALE_MS)
+      if (queue().isStale(x, doneLane, now, reviewLane))
         warn("claim-stale", [x.id], "claimed by " + x.claimed_by + " " + days + "d ago and still in " + x.column + " (a claim in the review lane is the human's wait and is not checked)");
     });
 
@@ -353,5 +355,5 @@
     warnings: findings.filter(f => f.severity === "warning").length,
   });
 
-  return { diagnose, counts, hasArchitectureLine, CLAIM_STALE_MS };
+  return { diagnose, counts, hasArchitectureLine };
 });

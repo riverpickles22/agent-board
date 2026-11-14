@@ -138,6 +138,8 @@
     ).filter(Boolean);
   }
 
+  // THE stale-claim rule — the page (claimIsStale) and doctor.js call this,
+  // and nothing else defines it (B42-1).
   // Stale means "the claimer should be working here and has not been seen
   // for 48h". In the done lane nobody is waited on; in the review lane the
   // card waits on the HUMAN, and the claim only says who built it (B36) —
@@ -219,5 +221,5 @@
     };
   }
 
-  return { pickable, nextUp, inFlight, needsYou, waitingOnYou, staleClaims, summary, CLAIM_STALE_MS };
+  return { pickable, nextUp, inFlight, needsYou, waitingOnYou, staleClaims, summary, isStale, CLAIM_STALE_MS };
 });

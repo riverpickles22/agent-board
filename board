@@ -319,6 +319,9 @@ How it works:
   - Sessions find the right project via projects.json (matched against the
     repo you're in), or BOARD_DATA_DIR if you set it.
   - Link a new project by adding it to projects.json — name -> data dir.
+  - One skill file: .claude/skills/agent-board/SKILL.md in this checkout.
+    Codex reads .agents/skills/agent-board/SKILL.md, a tracked link to that
+    same file, so both tools follow one source. Edit only the .claude copy.
   - Plain `board` opens your default project; `board default <name>` changes
     it, and `board <name>` opens any project without touching the default.
 EOT

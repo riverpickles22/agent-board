@@ -145,10 +145,11 @@ pending-changes panel, the briefing and History are links to the card.
 Each epic's modal renders its `context_docs` as
 read-only chips that copy their path on click — the reading list is
 visible where the human reviews the card, while editing stays
-file/skill-only. A **Ready queue** strip under Next up is the story
-grain of the same rule — every story a human could hand to an agent
-right now (`ready: true`, first lane, unclaimed, epic ungated with deps
-done), grouped by epic: the "begin X" menu, visible. Story cards
+file/skill-only. The **work queue** under the filters is that same rule at
+story grain — every story a human could hand to an agent right now
+(`ready: true`, first lane, unclaimed, epic ungated with deps done), in
+rank order: the "begin X" menu, visible. On a board with no stories yet
+it falls back to the epic-grain picks. Story cards
 narrate their own state from one rule — `⚙ cooking` / `testing` /
 `tidying up` / `writing` / `wiring up` by kind while in flight,
 `⚑ ready to check` / `results in` / `ready to read` / `wired — verify`
@@ -261,7 +262,7 @@ repo or curl; agents get the same text at `/llms.txt`.
   gates, WIP limits all live in each project's `config.json`; nothing is
   hardcoded (lane semantics are positional: first = todo, last = done).
 - **Gates and WIP limits** — a gate is opened by a human in config, never
-  by an agent; both feed the selection rule and the Next-up strip.
+  by an agent; both feed the selection rule and the work queue.
 - **UX-spec framework** — every screen is described in `design/*.md`;
   drift is detectable by flag (`spec_state`), anchor grep, and curation.
 - **Zero-step setup and updates** — any `./board` run self-installs the

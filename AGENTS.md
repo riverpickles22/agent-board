@@ -49,7 +49,9 @@ trust in the board:
 5. **Commit only on an explicit "save"/"ratify"**, and never mix board
    data commits with code or UI commits (§4).
 
-**What you can do** (the workflows, all in the skill; depth in the
+**What you can do** (the workflows, all in the skill —
+`.claude/skills/agent-board/SKILL.md`, the one copy; Codex reads it
+through the tracked link `.agents/skills/agent-board/SKILL.md` — depth in the
 sections here): **Operate** — what's next, move/claim (PROTOCOL §3) ·
 **Groom** — brainstorm into epic + stories (§5) · **Develop an idea** —
 fill the deep dive, hand off at `ready for review` (§2, §5) · **Build** —
@@ -60,7 +62,7 @@ on request (§4).
 
 **The surfaces** a human sees (you never need them, but they explain
 what your edits look like): **Ideas** (inbox + deep dives) ·
-**Board** (lanes, Next-up and Ready-queue strips, Shipped archive, and
+**Board** (lanes, the work queue, Shipped archive, and
 a milestone's outcome and deliverable roll-up when one is selected) · **History** (git log as a
 timeline) · **Docs** (renders `CAPABILITIES.md`). Full inventory:
 [`CAPABILITIES.md`](CAPABILITIES.md).

@@ -45,15 +45,18 @@ answer "what does agent-board do?"), read
   (five default files; adopts existing data without overwriting).
 - `next`, `status` and `show` take `--json` for machine-readable output.
 
+Every card has a URL on a running board: `/<project>/#/board/<id>`
+opens it. Give the human that link when you point them at a card.
+
 The CLI **reads**; it never writes board data. Acting — claiming, moving,
 grooming, editing — is still you editing the JSON files under AGENTS.md.
 `<project>` is a projects.json name or a data-dir path; with
 `BOARD_DATA_DIR` set you can omit it.
 
 **What the board can do for you today** (so you can offer it, not
-rediscover it): the **Next-up strip** and **Ready queue** render the
-selection rule for epics and stories, so the human sees the same "what's
-next" you compute · **WIP limits and closed gates are visible** on lanes
+rediscover it): the Board's **work queue** renders the selection rule
+(stories, or epics on a board with no stories), so the human sees the
+same "what's next" you compute · **WIP limits and closed gates are visible** on lanes
 and cards (advisory — enforcement is still yours, PROTOCOL §3) ·
 **pending badge + ratify panel** show every uncommitted change as
 card-level statements before the human says "save" · the **History**
@@ -148,7 +151,8 @@ it ships.
 
 **Build** ("begin O1-2" / "begin epic O1"). Verify `ready` (the user
 saying it's ready in-conversation counts — record it), claim, read the
-story + epic + `context` + the target repo's own CLAUDE/AGENTS conventions,
+story + epic + `context` + the target repo's own agent instructions (its
+`AGENTS.md`, or `CLAUDE.md` where the repo keeps one),
 implement in the code repo, write the tests the acceptance criteria call
 for, run the project's checks, verify each criterion and report, move the
 card. **Move cards in real time**: in-progress lane before you write

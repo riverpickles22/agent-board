@@ -9,7 +9,7 @@ spec_state: matches-ui
 
 Drag-and-drop kanban of epics across the configured lanes, filterable by
 milestone / theme / tag, with a dependency guard on every move and a
-**Next up** strip that renders the selection rule (PROTOCOL §3) the
+**work queue** that renders the selection rule (PROTOCOL §3) the
 agent uses — human and agent see the same answer to "what's next".
 Cards open an edit modal that also holds the epic's stories.
 Selecting a milestone in the filter opens a **milestone panel** under the
@@ -66,7 +66,7 @@ Epics mode (the default):
 ├──────────────────┴──────────────────┴────────────────────────────────┤
 ```
 
-Rows mode (same filters + next-up above; the board area becomes swimlanes,
+Rows mode (same filters + work queue above; the board area becomes swimlanes,
 vertically scrolling, lane strip sticky):
 
 ```
@@ -151,9 +151,9 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 | Context docs | `ctxDocs()` `.ctxdoc` | label + mono path + note rows | shared with the epic modal |
 | Milestone id match | `msMatches()` `msVocabFor()` | — | a `milestones.json` id is the short form of its config entry: equal to it, or its leading words ("M0" for "M0 Reliable foundation"). `doctor.js` makes the same match |
 | Work queue | `renderWorkQueue()` `#workq` `queue.js` `.rq-chip` | **one strip, one answer.** Header reports the single most actionable state: `Ready to pick up · N` (with `· N in flight` when work is also running), `Agent working · N` when everything ready is claimed, or `Nothing ready` naming why. In-flight stories compress to **chips** — id, holder, age, staleness, and the ↩ release — because the lanes directly below already show those cards in full; awareness earns a chip, not a row. Pickable stories keep full rows: they are the strip's actual answer, the begin menu. Clicking a row or a chip (anywhere but its ↩) opens that story's modal. The whole strip **folds to its header line** (`workqFolded`, remembered per project per browser like the board mode; `▸/▾`, click or Enter/Space) | the pickable/in-flight/next-up **rules live in `queue.js`**, shared verbatim with `./board next` and `./board status` (the doctor's pattern), so the strip and the CLI cannot disagree; the render code only re-shapes the module's result. Replaces the old separate Next-up and Ready strips, which answered the same question at different grains and could print "nothing pickable" directly above three ready stories. Story grain is primary because stories are what agents claim; `nextUp()`'s epic grain survives as the fallback for a board with epics but no stories yet. Board-wide — ignores the filters |
- story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide like Next up (ignores filters). No stories on the board → strip absent; stories exist but none pickable → one-line reason in Next up's empty language. Click → the story modal |
+ story-grain PROTOCOL §3: `ready: true` + story in the first lane + unclaimed + epic gate open + epic deps done; ranked story priority → epic rank (file order) → story file order, epic groups ordered by their best story. Board-wide (ignores filters). No stories on the board → the epic-grain fallback: `Next up · N` with up to five epic picks (`.pick`, ranked by `nextUp()` — priority, unblock count, file order), or `Nothing ready` with the reason; no epics at all → strip absent. Stories exist but none pickable → one-line reason (`.none`). Click → the story modal |
 | Column | `render()` `.col` | swatch + lane name + shown count — or, when the lane has a `wip_limits` entry, `total/limit` (`.ct.wlim`) | top border + header tint from `--lc` = `laneVar(col)`, which is **positional and semantic**: first lane gray (`--st-idle`), last green (`--st-ready`), the one before it amber (`--st-blocked`) once a board has four or more lanes — the review position, `reviewLane()`, which is null on a board of three lanes or fewer — and everything between accent. Never keyed to lane *names*, so each project's vocabulary works unchanged. `reviewLane()` is the single definition of that position: `storyState()` reads the same helper, so the lane's colour and its cards' copy can never disagree about which lane is review. The WIP count is **board-wide** (total epics in the lane — the number PROTOCOL §3's `wipBlocked()` compares), not the filtered count; over limit → `.over` in `--lane-4` with an explanatory title. Advise-only: limits never block a drop — that stays the agent protocol's job |
-| Claim age | `claimIsStale()` `claimLabel()` `claimTitle()` `.claim.stale` | every claim shows its holder **and how long it has been held**; past 48h on a card outside the done lane **and the review lane** it turns amber with `⚠` and explains itself | a claim is *suspect*, never wrong — a long-running job and an abandoned one are indistinguishable from outside, so nothing is ever auto-cleared. One rule feeds cards, story states and the briefing's stale count, and it is the same reading in `queue.js` and `doctor.js`. On stories the stale reading **outranks the lane's activity verb** where the claimer should be working: "cooking" for three days is not cooking. In the review lane the card waits on the **human**, and the claim only says who built it, so "in review · alice · 3d" is the human's queue, plainly, never amber (B36) |
+| Claim age | `claimIsStale()` `claimLabel()` `claimTitle()` `.claim.stale` | every claim shows its holder **and how long it has been held**; past 48h on a card outside the done lane **and the review lane** it turns amber with `⚠` and explains itself | a claim is *suspect*, never wrong — a long-running job and an abandoned one are indistinguishable from outside, so nothing is ever auto-cleared. One rule feeds cards, story states and the briefing's stale count: `queue.js`'s `isStale()`, which `claimIsStale()` and `doctor.js` call rather than restate (B42-1). On stories the stale reading **outranks the lane's activity verb** where the claimer should be working: "cooking" for three days is not cooking. In the review lane the card waits on the **human**, and the claim only says who built it, so "in review · alice · 3d" is the human's queue, plainly, never amber (B36) |
 | Release claim | `releaseClaim()` `#m-release` `#s-release` `.rq-rel` | "↩ Release claim" in the epic and story modals, and a `↩` on each in-flight row of the work queue | clears `claimed_by`/`claimed_at` in one write and re-renders; lane and readiness are untouched. PROTOCOL §3 treats "already claimed" as unpickable, so a dead claim silently shrinks the queue — this is how it is given back. When nothing is pickable because of claims, the queue's reason says how many are stale |
 | Needs-you state | `needsBit()` `needsLine()` `.needs-you` | amber `⚠ needs decision` (or the record's own `kind`) with the **reason on the card**, plus an amber left edge — on stories and epics alike | the one state asking for a *person*, so it outranks every other in `storyState()`. Deliberately distinct from a dependency: a dependency clears when other work lands, this clears only when you answer. Set from the `needs` field (AGENTS.md §2), accepts `{kind, reason}` or a bare string; never shown on done cards |
 | Needs grooming | `needsGrooming()` | amber `⚠ needs grooming` on a first-lane epic with **no stories** | the promotion gap made visible: an idea promoted from the funnel arrives committed but not broken down, and would otherwise sit in the first lane looking ready |
@@ -223,12 +223,11 @@ theme, status, tags, systems, deps, gate and claim in the rail.
   the board; `⧉` inside it copies the plan alone to the clipboard and
   toasts; `open the card` closes it and calls `openEdit(epicId)`. Escape,
   the scrim, or the × closes it. Reads only; writes no board data.
-- Next-up chip click → `goToEpic(id)` (filter to its milestone, scroll +
-  flash the card); writes nothing. The strip re-renders with every
-  `render()`, so it always reflects current lanes/claims.
-- Ready-queue chip click → `renderStoryModal(epicId, sid)` — straight to
-  the story a "begin X" would target; writes nothing. Re-renders with
-  every `render()` like Next up.
+- Work-queue row click → `renderStoryModal(epicId, sid)` — straight to
+  the story a "begin X" would target; writes nothing. On a board with no
+  stories, an epic pick (`.pick`) → `goToEpic(id)` (filter to its
+  milestone, scroll + flash the card). The queue re-renders with every
+  `render()`, so it always reflects current lanes and claims.
 - Click card / Enter on focused card → `openEdit(id)`; writes nothing.
 - Click a context-docs chip in the modal →
   `navigator.clipboard.writeText(path)` + toast; writes nothing to the
@@ -279,7 +278,7 @@ theme, status, tags, systems, deps, gate and claim in the rail.
 ## States
 
 - Empty board: lanes render with count 0 and "+ add card" only; the
-  Next-up strip hides entirely (no epics = nothing to say).
+  work queue hides entirely (no epics = nothing to say).
 - Epics exist but none pickable (and no stories yet): the queue shows "Nothing ready" with
   the reason breakdown (N blocked by deps · N gated closed · N claimed),
   the WIP-limit case, or "the {first lane} lane is empty" — an empty
@@ -333,7 +332,7 @@ The milestone panel reads `state.milestones` = `{ overview, milestones[] }`
 `state.epics` via `epicsOfMilestone()` (the union of deliverable `epics`
 ids) and `doneLane()`. `overview`, `roi` and `architecture` are loaded and
 saved untouched but never rendered.
-The Next-up strip was the first UI reader of `config.open_gates` and
+The work queue (then the Next-up strip) was the first UI reader of `config.open_gates` and
 `config.wip_limits` (previously protocol-only); lane headers now read
 `wip_limits` too (B1-1), rendering the same board-wide numbers
 `wipBlocked()` compares.
@@ -347,5 +346,5 @@ remembered in this browser (`savedBoardMode()`, `localStorage` keyed by
 project title), else `config.view.default_board_mode`, else "epics"
 (`viewDefaults()`).
 Rows mode shows stories only through their parent epic's `epicShown()` —
-stories carry no filter fields of their own. The Next-up strip stays
-epic-level in both modes.
+stories carry no filter fields of their own. The work queue reads the
+whole board in both modes; the filters do not narrow it.
