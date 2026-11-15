@@ -51,7 +51,27 @@ REG_JS='const fs=require("fs");let reg={};try{reg=JSON.parse(fs.readFileSync(pro
 # Every run self-installs/repairs the skill symlink, so there is no setup
 # step to remember. Because it's a symlink (never a copy), skill updates in
 # this repo are live for new Claude sessions with no action from the user.
+# The subagents the contract dispatches (.claude/agents/*.md — today the
+# architecture reviewer of AGENTS.md §6 step 8) are linked user-level the
+# same way, so a session in any project repo can launch them. A file of the
+# same name that is not our link is left alone.
+ensure_agents() {
+  local f name link
+  for f in "$HERE"/.claude/agents/*.md; do
+    [ -e "$f" ] || continue
+    name="$(basename "$f")"; link="$HOME/.claude/agents/$name"
+    [ -L "$link" ] && [ "$(readlink "$link")" = "$f" ] && continue
+    if [ -L "$link" ] && [ ! -e "$link" ]; then rm "$link"
+    elif [ -e "$link" ]; then echo "note: $link exists and isn't this repo's agent — not touching it" >&2; continue
+    fi
+    mkdir -p "$HOME/.claude/agents"
+    ln -s "$f" "$link"
+    echo "Claude agent installed: $link -> $f"
+  done
+}
+
 ensure_skill() {
+  ensure_agents
   if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
     return 0
   fi
@@ -301,6 +321,7 @@ link_bin() {
 }
 
 setup() {
+  ensure_agents
   if [ -L "$SKILL_LINK" ] && [ "$(readlink "$SKILL_LINK")" = "$SKILL_TARGET" ]; then
     echo "Claude skill already installed: $SKILL_LINK -> $SKILL_TARGET"
   elif [ -e "$SKILL_LINK" ] && [ ! -L "$SKILL_LINK" ]; then
@@ -322,6 +343,8 @@ How it works:
   - One skill file: .claude/skills/agent-board/SKILL.md in this checkout.
     Codex reads .agents/skills/agent-board/SKILL.md, a tracked link to that
     same file, so both tools follow one source. Edit only the .claude copy.
+  - Subagents in .claude/agents/ (the architecture reviewer, on a Fable
+    model) are linked into ~/.claude/agents/ the same way, on every run.
   - Plain `board` opens your default project; `board default <name>` changes
     it, and `board <name>` opens any project without touching the default.
 EOT
@@ -355,6 +378,10 @@ serve() {
 }
 
 # No argument is the whole point of the PATH shim: open the board you meant.
+# Every command, read-only CLI ones included, keeps the agent links current;
+# its one possible line goes to stderr so `--json` output stays clean.
+ensure_agents >&2
+
 if [ $# -eq 0 ]; then
   ensure_skill
   DEFAULT_NAME="$(read_default)"

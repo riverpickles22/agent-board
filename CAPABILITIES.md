@@ -274,12 +274,16 @@ repo or curl; agents get the same text at `/llms.txt`.
   milestone roll-ups and dependencies. Only settable once the epic and
   every one of its stories are done; clearing it is the human's call.
   Closing an epic includes checking the project's architecture map
-  against what the epic built, recorded as an `Architecture:` line in
-  its notes, and reviewing the code it changed for debt, recorded as a
+  against what the epic built — done by an architecture-reviewer
+  subagent on a Fable model where the harness has subagents — recorded
+  as an `Architecture:` line in its notes, and reviewing the code it changed for debt, recorded as a
   `Code health:` line — debt becomes new cards, never a refactor inside
   the closing epic. When a human closes an epic with Remove from board,
-  the page queues that review as a ready story under a standing
-  "Code-health reviews" epic for the next agent to pick up.
+  the page queues that review — and the architecture check, if it was
+  never recorded — as a ready story under a standing "Closing
+  reviews" epic for the next agent to pick up. A finished epic with
+  neither line shows under "Closing reviews owed" in `./board status`,
+  and an agent runs the review then, on the latest changes.
 - **Multi-project** — `projects.json` registers name → data dir; one
   codebase serves every project you register, agent-board's own dogfood
   backlog included.

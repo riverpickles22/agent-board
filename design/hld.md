@@ -1,6 +1,6 @@
 # hld.md — agent-board architecture map
 
-**Status: Current — checked against the code 2026-11-14** (after epics B40–B45).
+**Status: Current — checked against the code 2026-11-14** (after epics B40–B45 and B47).
 
 Where each part of the tool lives and what it owns. Everything here is
 **built** unless marked *proposed*; proposals live as cards in
@@ -47,13 +47,13 @@ those files directly; none of them is required for the others to work.
 
 | Path | Owns |
 |---|---|
-| `board` | Bash launcher: serve, stop (by listening port only), list, and dispatch to the CLIs (`next`, `status`, `show`, `doctor`, `new`). Resolves a project name for `doctor` itself. |
+| `board` | Bash launcher: serve, stop (by listening port only), list, and dispatch to the CLIs (`next`, `status`, `show`, `doctor`, `new`). Resolves a project name for `doctor` itself. On every run, read-only CLI commands included, links each `.claude/agents/*.md` into `~/.claude/agents/` (any message to stderr, so `--json` stays clean); when it serves or lists, and in `setup`, it also links the skill into `~/.claude/skills/`. Leaves alone any same-named file that is not its own link (B47). |
 | `server.js` | Local HTTP server on 127.0.0.1. Serves `index.html`, `queue.js` and `doctor.js` to the page; `/api/board` (all five files plus their revisions); `PUT /api/<resource>`, which requires `If-Match` and answers `409` without writing when the file changed since the page read it; `/api/events` (SSE on data-dir changes); `/api/pending` (uncommitted changes as card-level statements); `/api/history` (git log of the data dir, with saves per day for the History calendar) and `/api/history/<hash>`; `/api/since/<hash>` (the briefing); `/llms.txt`, `/docs`, `/AGENTS.md`, `/PROTOCOL.md`. Multi-project mode prefixes routes by project and re-reads `projects.json` when it changes. |
-| `index.html` | The whole UI: one vanilla HTML/JS file, no build step. Screens are specified in `design/*.md`. Saves are conditional: on a `409` it refetches, merges by record and field against what it loaded (the human's value wins a same-field conflict) and retries. Cards have URLs (`#/board/<id>`). |
+| `index.html` | The whole UI: one vanilla HTML/JS file, no build step. Screens are specified in `design/*.md`. Saves are conditional: on a `409` it refetches, merges by record and field against what it loaded (the human's value wins a same-field conflict) and retries. Cards have URLs (`#/board/<id>`). The one place the page creates work cards itself: Remove from board on an epic whose notes lack an `Architecture:` line, a `Code health:` line, or both adds one ready review story covering whichever is missing under a standing `Closing reviews` epic (tag `closing-reviews`, created on first need) and writes the matching `… review queued as <id>` line(s) on the closed epic, saving `epics.json` and `stories.json` as two separate conditional `PUT`s (B45, B47). |
 | `queue.js` | Pure selection rule (PROTOCOL §3), the story ready queue with a reason for each excluded story, stale claims, and `waitingOnYou()` (everything that waits on a person, derived). Loaded by the UI and required by the CLIs, so both compute the same answer. |
-| `doctor.js` | Pure invariant checks over the five resources, errors and warnings. Shared by the UI and every CLI. Reads the stale-claim rule from `queue.js` (the page's `BoardQueue`, or `require` in node). |
+| `doctor.js` | Pure invariant checks over the five resources, errors and warnings. Shared by the UI and every CLI. Reads the stale-claim rule from `queue.js` (the page's `BoardQueue`, or `require` in node). Also exports the tests for an epic's closing lines (`hasArchitectureLine`, `hasCodeHealthLine`, `queuedReviews`, `isReviewsEpic`), which the page calls rather than restating. Its `no-architecture-line` warning fires once every story of an un-archived epic is in the review or done lane (a story-less epic: its own card done), and on an epic archived after 2026-11-14; a queued line counts as recorded (B47). |
 | `doctor-cli.js` | Terminal front end for `doctor.js`; adds the one check that needs the filesystem (`context_docs` paths that do not exist). Exits 1 only on errors. |
-| `board-cli.js` | Terminal `next`, `status`, `show` (one card with its epic, siblings and deps) and the `new` scaffold; `--json` on the read commands. Never edits existing board data. |
+| `board-cli.js` | Terminal `next`, `status`, `show` (one card with its epic, siblings and deps) and the `new` scaffold; `--json` on the read commands. `status` lists the epics owing a closing review (architecture, code health) by id, taken from `doctor.js`'s findings (`closingOwed` in `--json`) (B47). Never edits existing board data. |
 | `mcp-server.js` | Stdio MCP server: status/next plus claim, move, release, needs-human and propose-idea tools, for agents without the Claude Code skill. Move and release append to `notes` under a dated header. Writes go through `write-data.js` (atomic) but are not revision-checked — the same race profile as a hand edit (PROTOCOL §5). |
 | `resolve.js` | Project lookup for `board-cli.js` and `mcp-server.js`: registered name, literal directory, or `BOARD_DATA_DIR`. `server.js` and the launcher read `projects.json` themselves. |
 | `read-data.js` / `write-data.js` | One read path (defaults, wrapped shapes) and one write format (pretty JSON, trailing newline). A read returns each file's revision (a hash of its bytes); a write is atomic (temp file, then rename) and returns the new revision, which the server's `If-Match` check on UI saves compares against. |
@@ -61,6 +61,7 @@ those files directly; none of them is required for the others to work.
 | `data/` | Example defaults a new project is scaffolded from — not a live board. |
 | `roadmap/` | This checkout's own live board (gitignored). |
 | `.claude/skills/agent-board/` | The agent skill that operates boards by editing JSON directly — the one source file. `./board` links it into `~/.claude/skills/`; `.agents/skills/agent-board/SKILL.md` is a tracked link to the same file, which is where Codex looks. |
+| `.claude/agents/architecture-reviewer.md` | The subagent that does AGENTS.md §6 step 8 when an epic closes, on a Fable model: reads the epic through `./board show` and its commits, updates that project's `design/hld.md` (the only kind of file it may edit, with the diagrams the epic links), returns the epic's `Architecture:` line; the builder writes the line, since it never writes board JSON. `./board` links it into `~/.claude/agents/` (when it serves, lists or runs `setup`) so any project's session can dispatch it; a harness without subagents does the step itself (B47). |
 
 ## Invariants
 
@@ -71,7 +72,9 @@ those files directly; none of them is required for the others to work.
 - **Zero dependencies.** Node 18+ standard library only.
 - **One rule, one module.** Selection lives in `queue.js` and invariants in
   `doctor.js`, shared by every front end. The 48-hour stale-claim rule is
-  `queue.js`'s `isStale()`; the page and `doctor.js` call it (B42-1).
+  `queue.js`'s `isStale()`; the page and `doctor.js` call it (B42-1). What
+  counts as a recorded `Architecture:` or `Code health:` line is
+  `doctor.js`'s; the page's Remove from board asks it (B45), and `./board status` lists the reviews owed from its findings (B47).
 - **Writes through the server cannot silently lose work.** Every `PUT` is
   conditional on the revision the page read; direct file edits and MCP
   writes are not, and PROTOCOL §5 says how to live with that.

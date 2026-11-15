@@ -28,7 +28,8 @@ answer "what does agent-board do?"), read
 
 - `./board status <project>` — cold-start orientation: who needs a human
   (the `needs` items, which outrank everything), what's in flight and
-  whose claims are stale, a "Waiting on you" count, what's pickable (or
+  whose claims are stale, closing reviews owed (do those), a "Waiting
+  on you" count, what's pickable (or
   why nothing is), lane counts, doctor health.
   **Run this before deciding what to do on a board.**
 - `./board next <project>` — the pickable queue, PROTOCOL §3 executable:
@@ -168,7 +169,11 @@ the same change; medium-or-larger capability changes also update
 check the context repo's `design/hld.md` (and diagrams the epic's
 `context_docs` link) against what it changed, update them where they no
 longer match, and write the epic's `Architecture:` notes line — before
-anyone archives it. In the same step, review the code the epic changed
+anyone archives it. Dispatch the `architecture-reviewer` subagent (Fable)
+for that check with just the epic id and board, and write the line it
+returns. A finished epic with no `Architecture:` line — listed under
+"Closing reviews owed" in `./board status` — is owed that review now:
+dispatch it on the latest changes rather than leaving the warning. In the same step, review the code the epic changed
 for debt and write its `Code health:` line; draft any debt as
 `ready: false` cards rather than refactoring inside the closing epic. A
 "Code-health review of <id>" story in the work queue is that review,

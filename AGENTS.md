@@ -205,7 +205,10 @@ records the outcome as one line starting `Architecture:` in the epic's
 and server; parts table updated for read-data.js and write-data.js;
 status line 2026-11-14.` ·
 `Architecture: no change — UI copy only; no part, path or flow moved.`
-`doctor` warns on a finished, un-archived epic without the line.
+A human closing the epic from the page leaves `Architecture: review
+queued as <story id> on <date>` until an agent builds that review.
+`doctor` warns on an epic ready to close out (every story in review or
+done) or archived after 2026-11-14 without the line.
 
 **Code health (a notes convention, not a field):** when an epic is
 closed, its code is reviewed for debt (§6 step 9) and the outcome is
@@ -218,7 +221,7 @@ carry dead selectors — drafted B42-3.` ·
 the doctor's tests; nothing duplicated.` A human closing the epic from
 the page leaves `Code health: review queued as <story id> on <date>`
 until an agent builds that review. The queued story lives under the
-board's **standing "Code-health reviews" epic** — the page creates it
+board's **standing "Closing reviews" epic** — the page creates it
 on first need, it stays in the first lane, and it is never archived;
 it is the one epic that holds a queue rather than shipped work.
 `doctor` warns on an epic archived after 2026-11-14 without the line,
@@ -470,7 +473,9 @@ checkout — and they run the **same shared modules the UI renders**
   **Waiting on you** line (open `needs`, review-lane cards, ideas ready
   for review, ready-to-implement ideas never promoted, first-lane stories
   awaiting `ready` — derived by `BoardQueue.waitingOnYou()`, never
-  stored), the pickable count and why it is zero, lane counts, doctor
+  stored), **Closing reviews owed** (finished epics with no
+  `Architecture:` or `Code health:` line — agent work to do now, §6
+  steps 8–9), the pickable count and why it is zero, lane counts, doctor
   health.
 - `./board next <project>` — the pickable queue, ranked exactly as §3 of
   PROTOCOL.md and the UI's Ready strip rank it, with exclusion reasons
@@ -500,8 +505,9 @@ It also warns on `needs` left on a done or archived card or not shaped
 `{kind, reason}`, a done story with `ready: false`, an in-progress card
 with no claim, a claimed card still in the first lane, a lane over its
 `wip_limits` (or a limit naming no lane), a `ready for review` idea with
-no `decision`, `conviction`/`effort`/`impact` outside their values, a
-finished un-archived epic with no `Architecture:` line in its notes, an
+no `decision`, `conviction`/`effort`/`impact` outside their values, an
+epic ready to close out (every story in review or done) or archived
+after 2026-11-14 with no `Architecture:` line in its notes, an
 epic archived after 2026-11-14 with no `Code health:` line (or a queued
 line naming a missing story), a
 `view` default naming no vocab entry, an unknown priority, and (CLI only,
@@ -597,7 +603,27 @@ When the user says to build a story (e.g. "begin O1-2"):
    the status line's checked date, and mark anything described but not
    yet built as proposed (PROJECT-STRUCTURE.md). Then write the
    epic's `Architecture:` line (§2) — what changed, or `no change` and
-   why — and name the doc edit in your report. The edit is uncommitted
+   why — and name the doc edit in your report. **Where your harness runs
+   subagents, hand this step to the architecture reviewer**
+   (`.claude/agents/architecture-reviewer.md`, pinned to a Fable model,
+   linked user-level by `./board`): dispatch it with only the epic id
+   and the board, write the `Architecture:` line it returns onto the
+   epic, and pass on what it edited and noticed in your report. It
+   never writes board JSON. A harness without subagents does the step
+   itself, as above.
+   **A finished epic with no review is owed one now.** Whenever you meet
+   an epic ready to close out — every story in the review or done lane
+   (a story-less epic: its card in the done lane) — or one archived
+   after 2026-11-14, and its notes carry no `Architecture:` line, run
+   this step then, against the epic's latest commits and working tree,
+   before other work on that epic: `./board status` lists it under
+   "Closing reviews owed" and the doctor warns `no-architecture-line`.
+   That warning is a to-do for you, not a report for the human. When a
+   human closes such an epic with Remove from board, the page queues
+   the check in the same closing-review story as step 9's code-health
+   review and writes `Architecture: review queued as <story id>`;
+   building that story means dispatching the reviewer and replacing
+   the queued line with the one it returns. The edit is uncommitted
    working state like everything else: it is committed on "save", on
    its own, in the context repo.
 9. **Closing an epic: review the code it left behind.** At the same
@@ -613,7 +639,7 @@ When the user says to build a story (e.g. "begin O1-2"):
    refactor is new work the human ranks. When a human closes an epic
    with **Remove from board**, the page cannot review code, so it
    queues the review instead: a ready chore story, "Code-health review
-   of <id>", under the board's standing "Code-health reviews" epic, and
+   of <id>", under the board's standing "Closing reviews" epic, and
    a `Code health: review queued as <story id>` line on the epic.
    Building that story is this step: replace the queued line with the
    real `Code health:` line on the archived epic, draft any debt as

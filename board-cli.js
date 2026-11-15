@@ -123,7 +123,9 @@ function cmdStatus(ref, json) {
   const dx = counts(findings);
   const title = ((data.config.view || {}).title) || name;
 
-  if (json) return out({ project: name, title, ...sum, doctor: dx });
+  const closingOwed = findings.filter(f => f.code === "no-architecture-line" || f.code === "no-code-health")
+    .map(f => ({ id: f.ids[0], review: f.code === "no-architecture-line" ? "architecture" : "code-health" }));
+  if (json) return out({ project: name, title, ...sum, closingOwed, doctor: dx });
 
   console.log(bold(title) + dim(" · " + sum.epics.total + " epics · " + sum.stories.total +
     " stories · " + (data.ideas || []).length + " ideas · lanes: " + sum.lanes.join(" | ")));
@@ -137,6 +139,16 @@ function cmdStatus(ref, json) {
     console.log("\n" + bold("In flight · " + sum.inFlight.length));
     sum.inFlight.forEach(f => console.log("  " + bold(f.id.padEnd(7)) + " " + f.column + dim(" · " + f.claimed_by +
       (since(f.claimed_at) ? " · " + since(f.claimed_at) : "")) + (f.stale ? yellow(" ⚠ stale") : "")));
+  }
+  // Closing reviews owed (AGENTS.md §6 steps 8–9): an agent's work, not the
+  // human's — the doctor's own findings, listed so a cold start acts on them.
+  const owed = {};
+  closingOwed.forEach(c => (owed[c.id] = owed[c.id] || []).push(c.review));
+  const owedIds = Object.keys(owed);
+  if (owedIds.length) {
+    console.log("\n" + yellow(bold("Closing reviews owed · " + owedIds.length)) +
+      dim("  (do these now — dispatch the architecture-reviewer on the latest changes; AGENTS.md §6 steps 8–9)"));
+    owedIds.forEach(id => console.log("  " + bold(id.padEnd(7)) + " " + owed[id].join(" + ")));
   }
   const w = sum.waitingOnYou;
   const pl = (n, one, many) => n + " " + (n === 1 ? one : many);
