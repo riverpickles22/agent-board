@@ -228,9 +228,18 @@ entry shows that commit's card-level changes. And before the commit,
 the header's **pending badge** counts uncommitted board changes — click
 it for the **ratify review panel**: every pending change as a readable
 statement ("B1 moved Ready → Done", "ideas reordered"), grouped by
-resource, live-updating as agents work. The panel reviews; the human
-ratifies (say "save", or commit the data dir) — commit-=-ratify made
-visible at both ends. Opening the board after time away starts with a
+resource, live-updating as agents work. Each statement says **where it
+came from and when** — `page` (a write from a board page) or `disk` (an
+edit to the file by anything else; the server cannot tell which agent) —
+from the server's **change journal** (`journal.jsonl` in the data dir:
+working state, git-ignored, trimmed at each save), and carries
+**↩ revert**, which undoes that one change through the normal
+conditional save and leaves every other unsaved change in place; a
+change that has been overtaken since is refused with a toast, and a
+reorder is undone by dragging. On a board git does not hold, the panel
+lists the journal's recent changes instead, each revertable. The panel
+never ratifies; the human does (say "save", or commit the data dir) —
+commit-=-ratify made visible at both ends. Opening the board after time away starts with a
 **briefing banner** — "Since you last looked: N changes · M stale
 claims" — the ratified history since your last visit as the same
 card-level statements, computed from a per-browser last-seen marker.
@@ -330,7 +339,9 @@ repo or curl; agents get the same text at `/llms.txt`.
 `PUT /api/<epics|stories|ideas|config|milestones>` (whole-file write) ·
 `GET /api/events` (SSE change feed — powers live reload) ·
 `GET /api/pending` (uncommitted changes vs HEAD as card-level
-statements — powers the ratify review panel) ·
+statements, each with its before/after values and its `sources` from the
+change journal — powers the ratify review panel; on a board with no git
+history, the journal's recent entries) ·
 `GET /api/history` + `GET /api/history/<hash>` (the data dir's commit
 log, and one commit's card-level changes — powers the History page) ·
 `GET /api/since/<hash>` (changes between an earlier commit and HEAD —

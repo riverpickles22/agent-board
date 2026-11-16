@@ -143,11 +143,16 @@ function watchData(project) {
   if (!dir) return;
   fs.mkdirSync(dir, { recursive: true });
   let timer = null;
+  knownSnapshot(dir);
   watchers.set(key, fs.watch(dir, (event, filename) => {
     if (filename && !WATCHED.has(filename)) return;
     // fs.watch double-fires on most platforms; debounce into one event.
     clearTimeout(timer);
     timer = setTimeout(() => {
+      // Whatever differs from the last state this server knew is a disk
+      // edit; the echo of a page write differs in nothing (the PUT already
+      // recorded it), so it is journalled once.
+      try { journalChanges(dir, readSnapshot(dir), "disk"); } catch (e) { console.warn("[journal] " + e.message); }
       for (const client of clientsFor(project)) client.write("data: changed\n\n");
     }, 250);
   }));
@@ -244,15 +249,156 @@ function summarizeChanges(oldSnap, newSnap) {
 
 // Uncommitted board changes vs HEAD — what saying "save" would ratify.
 async function pendingChanges(dir) {
+  // With no commit to diff against there are no statements — but the
+  // journal still says what changed here, newest first, each change with
+  // its own before-values so the page can undo it.
+  const unratified = async (reason) =>
+    ({ clean: null, reason, statements: [], files: [], journal: (await readJournal(dir)).slice(-50).reverse() });
   if ((await git(["rev-parse", "--git-dir"], dir)) === null)
-    return { clean: null, reason: "data dir is not inside a git repository", statements: [], files: [] };
+    return unratified("data dir is not inside a git repository");
   if ((await git(["rev-parse", "--verify", "HEAD"], dir)) === null)
-    return { clean: null, reason: "no commits yet — everything is unratified", statements: [], files: [] };
+    return unratified("no commits yet — everything is unratified");
   const status = await git(["status", "--porcelain", "--", ...Object.values(FILES)], dir);
   const files = (status || "").split("\n").filter(Boolean).map((l) => l.slice(3).trim());
-  if (!files.length) return { clean: true, statements: [], files: [] };
-  const statements = summarizeChanges(await snapshotAt("HEAD", dir), workingSnapshot(dir));
+  if (!files.length) {
+    // Nothing shows as changed and no commit ever held the data files: git
+    // ignores them here (agent-board's own roadmap/), so nothing is ratified.
+    if (!((await git(["log", "-1", "--format=%H", "--", ...Object.values(FILES)], dir)) || "").trim())
+      return unratified("git ignores this board's data files — nothing here is ratified");
+    await readJournal(dir);   // trims what the save ratified
+    return { clean: true, statements: [], files: [] };
+  }
+  const head = await snapshotAt("HEAD", dir), working = workingSnapshot(dir);
+  const statements = withValues(summarizeChanges(head, working), head, working);
+  // Who and when, from the journal: every entry since the last save that
+  // touched the statement's card (or, for a reorder or a config/milestones
+  // edit, its resource). No entry means the change predates this server.
+  const journal = await readJournal(dir);
+  for (const s of statements) {
+    s.sources = journal
+      .filter((e) => e.resource === s.resource && (s.id ? e.id === s.id : !e.id && e.kind === s.kind))
+      .map((e) => ({ source: e.source, at: e.at, text: e.text }));
+  }
   return { clean: false, files, statements };
+}
+
+// ---- the change journal: who and when, between two saves ----
+// Git says what a save would ratify; it cannot say where each unsaved change
+// came from. The server can, at the one grain it knows: a PUT is a page
+// write, and a change the watcher sees that this server did not make is a
+// disk edit (an agent, an editor, a script — the server cannot tell which).
+// Each change is one line of journal.jsonl in the data dir: the statement
+// summarizeChanges() writes, plus the field values before and after, so the
+// page can undo exactly that one change. Working state, never ratified
+// history: not one of FILES (unwatched, never served by /api/board, never
+// scaffolded), kept out of git by the data dir's .gitignore, trimmed to the
+// entries since the last commit touching the data files, and capped for a
+// board whose data git does not hold.
+const JOURNAL = "journal.jsonl";
+const JOURNAL_CAP = 300;
+const known = new Map();   // data dir -> the last state this server knew it held
+
+// The six resources as parsed now; a file that will not parse (an agent
+// mid-edit without an atomic rename) reads as undefined — "unknown, try
+// again" — rather than as empty, which would journal every card removed.
+function readSnapshot(dir) {
+  const snap = {};
+  for (const key of Object.keys(FILES)) {
+    try { snap[key] = readData(key, dir); } catch (e) { snap[key] = undefined; }
+  }
+  return snap;
+}
+function knownSnapshot(dir) {
+  dir = dir || DATA;
+  if (!known.has(dir)) known.set(dir, readSnapshot(dir));
+  return known.get(dir);
+}
+
+// Every key two records (or two objects) disagree on, updated_at and the
+// lane included, with the values on each side — absent keys left out of
+// before/after, so a revert can tell "was absent" from "was null".
+function fieldDiff(o, n) {
+  const fields = [...new Set([...Object.keys(o || {}), ...Object.keys(n || {})])]
+    .filter((f) => JSON.stringify((o || {})[f]) !== JSON.stringify((n || {})[f]));
+  const pick = (x) => Object.fromEntries(fields.filter((f) => x && Object.prototype.hasOwnProperty.call(x, f)).map((f) => [f, x[f]]));
+  return { fields, before: pick(o), after: pick(n) };
+}
+// The values behind each statement: enough to restore that one change.
+function withValues(statements, oldSnap, newSnap) {
+  for (const s of statements) {
+    const olds = oldSnap[s.resource], news = newSnap[s.resource];
+    if (!Array.isArray(news) || !Array.isArray(olds)) {
+      Object.assign(s, fieldDiff(olds, news));
+    } else if (s.kind === "reordered") {
+      const oldIds = new Set(olds.map((x) => x.id)), newIds = new Set(news.map((x) => x.id));
+      s.before = olds.filter((x) => newIds.has(x.id)).map((x) => x.id);
+      s.after = news.filter((x) => oldIds.has(x.id)).map((x) => x.id);
+    } else if (s.kind === "added") {
+      s.after = news.find((x) => x.id === s.id);
+    } else if (s.kind === "removed") {
+      s.index = olds.findIndex((x) => x.id === s.id);
+      s.before = olds[s.index];
+    } else {
+      Object.assign(s, fieldDiff(olds.find((x) => x.id === s.id), news.find((x) => x.id === s.id)));
+    }
+  }
+  return statements;
+}
+
+// Journal what differs between the last known state and `next`, as one
+// source, and make `next` the known state. A resource that did not parse
+// keeps its last known value and is compared next time.
+function journalChanges(dir, next, source) {
+  dir = dir || DATA;
+  const prev = knownSnapshot(dir);
+  const merged = {};
+  for (const key of Object.keys(FILES)) merged[key] = next[key] === undefined ? prev[key] : next[key];
+  known.set(dir, merged);
+  const before = {}, after = {};
+  for (const key of Object.keys(FILES)) {
+    const both = prev[key] === undefined || merged[key] === undefined;
+    before[key] = both ? merged[key] : prev[key];
+    after[key] = merged[key];
+    if (before[key] === undefined) before[key] = after[key] = DEFAULTS[key];
+  }
+  const at = new Date().toISOString();
+  const entries = withValues(summarizeChanges(before, after), before, after)
+    .map((s) => Object.assign({ at, source }, s));
+  if (!entries.length) return entries;
+  // The journal is a convenience: failing to write it never fails a save.
+  try { fs.appendFileSync(path.join(dir, JOURNAL), entries.map((e) => JSON.stringify(e)).join("\n") + "\n"); }
+  catch (e) { console.warn("[journal] " + e.message); return entries; }
+  readJournal(dir).catch(() => {});   // trims past the last save and the cap
+  return entries;
+}
+
+// The entries not yet ratified — each newer than the last commit of the data
+// file it names (all of them where git holds none) — newest last, at most JOURNAL_CAP; rewrites the
+// file when that drops anything. A missing journal is an empty one.
+async function readJournal(dir) {
+  dir = dir || DATA;
+  const file = path.join(dir, JOURNAL);
+  if (!fs.existsSync(file)) return [];
+  // Per file, because a save may commit one data file and not another: an
+  // entry goes only once the file it names has been committed after it.
+  const since = {};
+  for (const [key, name] of Object.entries(FILES)) {
+    const last = ((await git(["log", "-1", "--format=%ct", "--", name], dir)) || "").trim();
+    since[key] = last ? Number(last) * 1000 : null;
+  }
+  const ratified = (e) => since[e.resource] != null && Date.parse(e.at) < since[e.resource];
+  // Read after the await, so an append that landed meanwhile is kept.
+  let lines;
+  try { lines = fs.readFileSync(file, "utf8").split("\n").filter(Boolean); } catch (e) { return []; }
+  const parsed = lines.map((l) => { try { return JSON.parse(l); } catch (e) { return null; } });
+  let kept = parsed.filter((e) => e && !ratified(e));
+  if (kept.length > JOURNAL_CAP) kept = kept.slice(-JOURNAL_CAP);
+  if (kept.length !== lines.length) {
+    const tmp = file + "." + process.pid + ".tmp";
+    fs.writeFileSync(tmp, kept.map((e) => JSON.stringify(e)).join("\n") + (kept.length ? "\n" : ""));
+    fs.renameSync(tmp, file);
+  }
+  return kept;
 }
 
 /* Split an optional leading /<project> off a request path. In single-project
@@ -332,6 +478,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === "GET" && url === "/api/pending") {
+      // A board no page is watching has no watcher: catch up on disk edits
+      // here, so they are attributed (at the time they were noticed).
+      journalChanges(dir, readSnapshot(dir), "disk");
       return sendJSON(res, 200, await pendingChanges(dir));
     }
     // Ratification history: the data dir's commits, newest first — and,
@@ -422,7 +571,11 @@ const server = http.createServer(async (req, res) => {
             revision: current,
           });
         }
+        // Disk edits the watcher has not reported yet are the disk's, not
+        // this write's; then this write is the page's.
+        journalChanges(dir, readSnapshot(dir), "disk");
         const revision = writeData(key, body, dir);
+        journalChanges(dir, Object.assign({}, knownSnapshot(dir), { [key]: JSON.parse(JSON.stringify(body)) }), "page");
         return sendJSON(res, 200, { ok: true, count: expectArray ? body.length : undefined, revision });
       }
     }
@@ -446,6 +599,9 @@ server.on("error", (err) => {
 // Single-project mode watches immediately; multi-project waits for a client
 // to say which board it is looking at.
 if (!MULTI) watchData(null);
+// Every registered board's state as of start, so the first change to one is
+// journalled against it rather than becoming the baseline itself.
+else for (const d of Object.values(PROJECTS)) if (fs.existsSync(d)) knownSnapshot(d);
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  agent-board  →  http://localhost:${PORT}\n`);

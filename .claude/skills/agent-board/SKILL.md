@@ -65,7 +65,11 @@ rediscover it): the Board's **work queue** renders the selection rule
 same "what's next" you compute · **WIP limits and closed gates are visible** on lanes
 and cards (advisory — enforcement is still yours, PROTOCOL §3) ·
 **pending badge + ratify panel** show every uncommitted change as
-card-level statements before the human says "save" · the **History**
+card-level statements before the human says "save", each with where it
+came from (`page` or `disk` — never which agent) and when, and a
+**↩ revert** that undoes that one change (the journal behind it,
+`journal.jsonl`, is working state: never edit or commit it — AGENTS.md
+§3) · the **History**
 page and **briefing banner** answer "what shipped" and "what changed
 since I last looked" from git · the Board's **milestone panel** shows a
 selected milestone's outcome, exit criteria and deliverable roll-up

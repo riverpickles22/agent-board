@@ -498,6 +498,23 @@ which part of the lens drives your recommendation.
   an older server (no `/api/events`) does the old warning apply: tell
   them to reload after your edits, or the page's stale state clobbers
   them.
+- **The change journal.** A running server appends every change it sees
+  to `journal.jsonl` in the data dir — one JSON line per card-level
+  statement (the text the pending panel shows), its `source`, its time
+  (`at`), and the field values before and after, so one change can be
+  undone. `source` is `page` (a write from a board page) or `disk` (an
+  edit to a data file the server did not make — you, another agent, an
+  editor). **That is all it can tell: it never knows which agent made a
+  disk edit**, and a change made while no server was running has no
+  entry at all. The pending panel reads it to say who and when beside
+  each statement and to offer **↩ revert** on one change, through the
+  page's normal conditional save. It is working state, not history:
+  never edit it, never read it as a record of who did what, and never
+  commit it — it is not a data file (not in `FILES`, not served by
+  `/api/board`, ignored by the doctor), each data dir's `.gitignore`
+  lists it, and the server drops entries older than the last commit
+  touching the data files (§4) and caps it at 300 entries for a board
+  git does not hold.
 - Never fork or copy the app into a project. One codebase; per-project
   differences belong in that project's `config.json` and data.
 
@@ -596,6 +613,10 @@ Board data is versioned by the **project's own repo** (the
 - **Edit freely; commit only on an explicit "save" / "commit" /
   "ratify" from the user.** Uncommitted edits are the working state; the
   commit is the user's ratification of it.
+- A save also closes the change journal's window (§3): the server drops
+  every entry older than the commit the next time it reads the journal.
+  Never `git add` the journal — commit the data files by name, or rely
+  on the data dir's `.gitignore` listing `journal.jsonl`.
 - Commit board data with a clear message ("Board: groom epic O1 into 4
   stories", "Board: O1-2 done"). Code changes from building a story are
   committed in the code repo, separately, under that repo's own rules —

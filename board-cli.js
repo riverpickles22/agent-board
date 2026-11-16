@@ -359,12 +359,25 @@ function cmdNew(name, dir) {
     fs.writeFileSync(target, JSON.stringify(val, null, 2) + "\n");
     made.push(file);
   }
+  // The server's change journal (journal.jsonl, AGENTS.md §3) is working
+  // state, never ratified: keep it out of the commit that saves the board.
+  // A .gitignore of the data dir's own is written only where none exists;
+  // an existing one is the owner's, so it gets a hint instead of an edit.
+  const ignore = path.join(dir, ".gitignore");
+  let ignoreNote = null;
+  if (!fs.existsSync(ignore)) {
+    fs.writeFileSync(ignore, "# The board server's change journal — working state between saves, never committed.\njournal.jsonl\n");
+    made.push(".gitignore");
+  } else if (!/^\/?journal\.jsonl\s*$/m.test(fs.readFileSync(ignore, "utf8"))) {
+    ignoreNote = ignore + " does not list journal.jsonl — add that line so a save never commits the journal.";
+  }
   reg[name] = dir;
   fs.writeFileSync(REGISTRY, JSON.stringify(reg, null, 2) + "\n");
 
   console.log(green("✓ ") + bold(name) + " registered → " + dir);
   if (made.length) console.log("  created: " + made.join(", "));
   if (kept.length) console.log("  adopted as-is (already existed): " + kept.join(", "));
+  if (ignoreNote) console.log(yellow("  note: ") + ignoreNote);
   console.log("\n  Serve it:    ./board " + name + "   → http://localhost:4300/" + name + "/");
   console.log("  Contract:    " + path.join(ROOT, "AGENTS.md") + " (schemas, rules — also served at /AGENTS.md)");
   // Commits are how the board is ratified (AGENTS.md §4); a board outside

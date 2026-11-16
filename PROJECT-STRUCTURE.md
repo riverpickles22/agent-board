@@ -30,6 +30,8 @@ projects created for this workspace.
       capabilities.json            optional; reusable capabilities — the shared
                                    registry is on agent-board's own board
       archive/                     clearly labelled historical material
+      .gitignore                   lists journal.jsonl — the server's change
+                                   journal is working state, never committed
   <code-repo>/
     AGENTS.md                      local implementation and verification rules;
                                    links to the project briefing
@@ -54,6 +56,10 @@ satisfy the layout. Its design index is `design/DESIGN.md`.
   to `roadmap/milestones.json` and the live epics; it is not a second queue.
 - `roadmap/` records current progress. CSVs and prose lists may be dated
   snapshots or generated exports, never a separately maintained backlog.
+  The running server also writes `roadmap/journal.jsonl` (who changed what
+  since the last save, AGENTS.md §3); it is working state and stays out of
+  git through `roadmap/.gitignore`. `./board new` writes that file when the
+  data dir has none; an existing project adds the one line `journal.jsonl`.
 - Code repos hold implementation details and their checks. Cross-project
   schemas and workflow rules live in agent-board's `AGENTS.md` and
   `PROTOCOL.md`; project briefings link to them rather than fork them.

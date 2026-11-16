@@ -887,6 +887,13 @@
   .pp-group:first-child h4{margin-top:0}
   .pp-group .cnt{font-family:var(--mono);font-weight:500}
   .pp-line{font-size:13px;color:var(--ink-2);padding:5px 0;border-bottom:1px solid var(--line-2);line-height:1.45}
+  .pp-meta{display:flex;align-items:center;gap:8px;margin-top:2px}
+  .pp-src{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+  .pp-src.unknown{font-style:italic}
+  .pp-rev{margin-left:auto;border:1px solid var(--line);background:none;color:var(--ink-2);font-size:11.5px;
+    border-radius:6px;padding:1px 8px;cursor:pointer}
+  .pp-rev:hover{color:var(--ink);border-color:var(--ink-3)}
+  .pp-rev:disabled{opacity:.5;cursor:default}
   .idlink{font-family:var(--mono);font-size:.92em;font-weight:600;color:var(--accent);text-decoration:none}
   .idlink:hover{text-decoration:underline}
   .pp-files{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:14px}
@@ -960,7 +967,7 @@
     <div class="pp-head"><h2>Pending ratification</h2>
       <button class="pp-x" id="pp-close" type="button" title="Close">✕</button></div>
     <div class="pp-body"></div>
-    <div class="pp-foot">Reviewing only — say <b>"save"</b> in conversation (or commit the data dir) to ratify.</div>
+    <div class="pp-foot">Say <b>"save"</b> in conversation (or commit the data dir) to ratify; <b>↩ revert</b> undoes one change and keeps the rest.</div>
   </aside>
 
   <div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="m-title">
@@ -2977,7 +2984,8 @@ function stepIdea(ev){
 /* ---- pending ratification (ratify review panel) ---- */
 // The header badge + slide-over review what a "save" would ratify —
 // card-level statements from the server's semantic differ (/api/pending).
-// Read-only by design: the panel reviews, the human ratifies.
+// The panel reviews and can undo one change at a time (through the normal
+// conditional save); it never ratifies — the human does, in conversation or git.
 let pendingData = null;
 async function updatePending(){
   try{
@@ -2987,27 +2995,126 @@ async function updatePending(){
   }catch(err){ return; }
   const b = document.getElementById("pending-badge");
   const n = (pendingData.statements||[]).length;
-  const show = pendingData.clean === false && n > 0;
+  // A board git does not hold has nothing to ratify against, but its
+  // journal still lists what changed here — the badge opens that list.
+  const jn = pendingData.clean === null ? (pendingData.journal||[]).length : 0;
+  const show = (pendingData.clean === false && n > 0) || jn > 0;
   b.classList.toggle("on", show);
-  if(show) b.textContent = n + " pending";
+  if(show) b.textContent = jn ? jn + (jn === 1 ? " change" : " changes") : n + " pending";
   if(document.getElementById("pending-panel").classList.contains("on")) renderPending();
 }
 const PENDING_RES_LABEL = { epics:"Epics", stories:"Stories", ideas:"Ideas", config:"Config", milestones:"Milestones", capabilities:"Capabilities" };
+// Who and when, from the server's journal: "page" is a write from a board
+// page, "disk" an edit to the file by anything else (an agent, an editor) —
+// the server cannot tell which agent. No entry: made before it was watching.
+function pendingWhen(iso){
+  const t = new Date(iso); if(isNaN(t)) return "";
+  const today = new Date().toDateString() === t.toDateString();
+  return (today ? "" : t.toLocaleDateString([], {month:"short", day:"numeric"})+" ") +
+    t.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+}
+function pendingSource(srcs){
+  if(!srcs || !srcs.length) return '<span class="pp-src unknown" title="No journal entry — changed before this server was watching the files">source not recorded</span>';
+  const kinds = [...new Set(srcs.map(x => x.source))];
+  const last = srcs[srcs.length-1];
+  const tip = srcs.map(x => x.source+" · "+pendingWhen(x.at)+" — "+x.text).join("\n");
+  return '<span class="pp-src" title="'+esc(tip).replace(/"/g,"&quot;")+'">'+kinds.map(esc).join(" + ")+" · "+esc(pendingWhen(last.at))+
+    (srcs.length > 1 ? " · "+srcs.length+" changes" : "")+'</span>';
+}
+// A statement can be undone when it names its values: a card added,
+// removed, moved or edited, or a config/milestones key edited. A reorder
+// is not — drag it back.
+function revertable(c){
+  if(!c || c.kind === "reordered") return false;
+  if(c.kind === "added") return !!c.after;
+  if(c.kind === "removed") return !!c.before;
+  return Array.isArray(c.fields) && c.fields.length > 0 &&
+    (Array.isArray(state[c.resource]) ? !!c.id : !c.id);
+}
+function pendingLine(c, i, srcs){
+  return '<div class="pp-line"><div class="pp-txt">'+linkIds(c.text)+'</div><div class="pp-meta">'+pendingSource(srcs)+
+    (revertable(c) ? '<button class="pp-rev" type="button" data-i="'+i+'" title="Undo just this change — every other unsaved change stays">↩ revert</button>'
+                   : c.kind === "reordered" ? '<span class="pp-src">drag to undo</span>' : "")+'</div></div>';
+}
+let pendingItems = [];   // what each ↩ revert button's data-i points at
 function renderPending(){
   const body = document.querySelector("#pending-panel .pp-body");
   const d = pendingData;
+  pendingItems = [];
+  if(d && d.clean === null && (d.journal||[]).length){
+    // No commit to diff against: the journal's own entries, newest first,
+    // each undone from its own before-values.
+    pendingItems = d.journal;
+    body.innerHTML = '<div class="pp-empty">'+esc(d.reason)+' — so nothing can be ratified. These are the recent changes the server journalled.</div>'+
+      '<div class="pp-group"><h4>Recent changes <span class="cnt">'+d.journal.length+'</span></h4>'+
+      d.journal.map((e, i) => pendingLine(e, i, [e])).join("")+'</div>';
+    return;
+  }
   if(!d || d.clean !== false || !(d.statements||[]).length){
     body.innerHTML = '<div class="pp-empty">'+
       (d && d.clean === null ? esc(d.reason) : "Everything ratified — board matches HEAD.")+'</div>';
     return;
   }
+  pendingItems = d.statements;
   const groups = {};
-  d.statements.forEach(s => (groups[s.resource] = groups[s.resource] || []).push(s));
+  d.statements.forEach((s, i) => (groups[s.resource] = groups[s.resource] || []).push(i));
   body.innerHTML =
     Object.keys(PENDING_RES_LABEL).filter(k => groups[k]).map(k =>
       '<div class="pp-group"><h4>'+PENDING_RES_LABEL[k]+' <span class="cnt">'+groups[k].length+'</span></h4>'+
-      groups[k].map(s => '<div class="pp-line">'+linkIds(s.text)+'</div>').join("")+'</div>').join("")+
+      groups[k].map(i => pendingLine(d.statements[i], i, d.statements[i].sources)).join("")+'</div>').join("")+
     '<div class="pp-files">'+ (d.files||[]).map(esc).join(" · ") +'</div>';
+}
+// Undo one change through the page's normal conditional save: restore only
+// the fields that change touched, so other unsaved changes — to this card
+// too — survive. If the card changed again since (its value is no longer
+// the one the change produced), say so and change nothing.
+function revertChange(c){
+  const res = c.resource, cur = state[res];
+  const has = (o, f) => !!o && Object.prototype.hasOwnProperty.call(o, f);
+  const stale = why => { showToast("Not reverted — "+(c.id || res)+" "+why+". Nothing was changed."); return false; };
+  const restore = rec => {
+    // updated_at moves with every edit, so it alone is not "changed again".
+    for(const f of c.fields) if(f !== "updated_at" &&
+        (has(rec, f) !== has(c.after, f) || (has(rec, f) && !sameJSON(rec[f], c.after[f])))) return false;
+    const out = Object.assign({}, rec);
+    for(const f of c.fields){ if(has(c.before, f)) out[f] = JSON.parse(JSON.stringify(c.before[f])); else delete out[f]; }
+    return out;
+  };
+  const strip = r => { const o = Object.assign({}, r); delete o.updated_at; return o; };
+  let next;
+  if(!Array.isArray(cur)){
+    if(Array.isArray(c.before) || c.id) return stale("is not in the shape this change describes");
+    next = restore(cur || {});
+    if(!next) return stale("changed again since");
+  } else {
+    const at = cur.findIndex(x => x && x.id === c.id);
+    if(c.kind === "added"){
+      if(at < 0) return stale("is already gone");
+      if(!sameJSON(strip(cur[at]), strip(c.after))) return stale("changed again since it was added");
+      next = cur.filter((_, i) => i !== at);
+    } else if(c.kind === "removed"){
+      if(at >= 0) return stale("is already back");
+      next = cur.slice();
+      next.splice(Math.max(0, Math.min(c.index == null ? next.length : c.index, next.length)), 0, JSON.parse(JSON.stringify(c.before)));
+    } else {
+      if(at < 0) return stale("is no longer on the board");
+      const rec = restore(cur[at]);
+      if(!rec) return stale("changed again since");
+      next = cur.slice(); next[at] = rec;
+    }
+  }
+  state[res] = next;
+  if(res === "config"){
+    // Lanes, priorities and vocab are derived from config in applyBoard();
+    // keep the baseline and revisions, which describe disk, not this edit.
+    const keepRevs = revisions, keepBase = Object.assign({}, baseline);
+    applyBoard(Object.assign(diskView(), { revisions }));
+    revisions = keepRevs; baseline = keepBase;
+  }
+  renderFilters(); render(); route();
+  persistResource(res, next);
+  showToast("Reverted: "+c.text);
+  return true;
 }
 function wirePending(){
   const badge = document.getElementById("pending-badge");
@@ -3017,6 +3124,12 @@ function wirePending(){
     renderPending(); panel.classList.add("on");
   });
   document.getElementById("pp-close").addEventListener("click", () => panel.classList.remove("on"));
+  panel.querySelector(".pp-body").addEventListener("click", ev => {
+    const btn = ev.target.closest && ev.target.closest(".pp-rev");
+    if(!btn) return;
+    const c = pendingItems[Number(btn.dataset.i)];
+    if(c && revertChange(c)) btn.disabled = true;   // the refresh after the write redraws the panel
+  });
   document.addEventListener("click", ev => {
     if(panel.classList.contains("on") && !panel.contains(ev.target) && !badge.contains(ev.target))
       panel.classList.remove("on");
