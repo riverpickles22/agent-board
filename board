@@ -226,7 +226,7 @@ Set up
   ./board default           show the default board
   ./board default <name>    set it (--none clears it)
 
-Read (safe anytime; next/status/show take --json)
+Read (safe anytime; next/status/show/capabilities take --json)
   ./board status <name>     orientation: what waits on you, who needs you,
                             what's in flight, what's pickable (or why not),
                             lane counts, data health
@@ -234,13 +234,16 @@ Read (safe anytime; next/status/show take --json)
                             and why the rest of the first lane is excluded
   ./board show <id> <name>  one card: a story with its epic's test plan,
                             context docs, gate/deps and sibling lanes; an
-                            epic with its stories; or an idea — read one
+                            epic with its stories; an idea; or a
+                            capability with its linked cards — read one
                             card instead of the whole stories.json
+  ./board capabilities <name>  the registry of reusable capabilities: each
+                            one's state and its adoption in every project
   ./board doctor <name>     the contract, checked (exit 1 on errors)
 
 Create
   ./board new <name> <dir>  scaffold a fresh project's data dir with the
-                            five files and register it — or adopt a dir
+                            six files and register it — or adopt a dir
                             that already has board data (never overwrites)
 
 For agents (Claude Code and friends)
@@ -434,7 +437,7 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   exit 0
 fi
 
-if [ "$1" = "next" ] || [ "$1" = "status" ] || [ "$1" = "show" ]; then
+if [ "$1" = "next" ] || [ "$1" = "status" ] || [ "$1" = "show" ] || [ "$1" = "capabilities" ]; then
   cmd="$1"; shift
   exec node "$HERE/board-cli.js" "$cmd" "$@"
 fi

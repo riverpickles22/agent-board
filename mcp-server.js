@@ -27,7 +27,7 @@
  */
 const Q = require("./queue.js");
 const { diagnose, counts } = require("./doctor.js");
-const { resolveDir } = require("./resolve.js");
+const { resolveDir, capabilityReport } = require("./resolve.js");
 const { read } = require("./read-data.js");
 const { writeData } = require("./write-data.js");
 
@@ -43,6 +43,7 @@ function load(dir) {
   return {
     config: read("config", dir), epics: read("epics", dir), stories: read("stories", dir),
     ideas: read("ideas", dir), milestones: read("milestones", dir),
+    capabilities: read("capabilities", dir),
   };
 }
 
@@ -64,6 +65,12 @@ function toolStatus({ project }) {
   const dx = counts(diagnose(data));
   const title = (data.config.view || {}).title || name;
   return { project: name, title, ...sum, doctor: dx };
+}
+
+function toolCapabilities({ project }) {
+  const resolved = resolveDir(project);
+  if (!resolved) throw new Error(unresolvedMessage(project));
+  return capabilityReport(resolved.name, load(resolved.dir));
 }
 
 function toolNext({ project }) {
@@ -307,6 +314,12 @@ const TOOLS = [
     description: "The pickable queue, ranked by PROTOCOL.md §3 (priority, then unblock count, then file order), with exclusion reasons. Same as `./board next`.",
     inputSchema: { type: "object", properties: PROJECT_PROPERTY, required: [] },
     handler: toolNext,
+  },
+  {
+    name: "capabilities",
+    description: "The registry of reusable capabilities on a board (AGENTS.md §2): each capability in order of impact then dependencies, its derived state (in use | building | proposed | skipped | retired), its adoption per project, and its linked cards resolved to lanes across boards. Read-only. Same as `./board capabilities --json`. The shared registry lives on the `board` project.",
+    inputSchema: { type: "object", properties: PROJECT_PROPERTY, required: [] },
+    handler: toolCapabilities,
   },
   {
     name: "release",

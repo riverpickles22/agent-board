@@ -221,5 +221,62 @@
     };
   }
 
-  return { pickable, nextUp, inFlight, needsYou, waitingOnYou, staleClaims, summary, isStale, CLAIM_STALE_MS };
+  /* ---- capabilities (AGENTS.md §2): the registry's fixed words and the one
+   * derived answer, "where does this capability stand". The doctor, the CLI,
+   * the MCP tool and the page all read these, so they cannot disagree. ---- */
+  const CAP_KINDS = ["code", "skill", "agent", "rule", "practice"];
+  const CAP_IMPACTS = ["high", "medium", "low"];
+  const CAP_ADOPTION = ["wanted", "building", "in use", "not needed"];
+  const CAP_STATUSES = ["skipped", "retired"];          // the only stored ones; the human's
+  const CAP_STATES = ["in use", "building", "proposed", "skipped", "retired"];
+
+  // Overall state is derived from adoption, never stored — except the two
+  // the human sets, which win.
+  function capabilityState(cap) {
+    if (cap && CAP_STATUSES.includes(cap.status)) return cap.status;
+    const states = arr(cap && cap.adoption).map(a => a && a.state);
+    if (states.includes("in use")) return "in use";
+    if (states.includes("building")) return "building";
+    return "proposed";
+  }
+
+  // "arc:A68" names a card on another board; a bare id is this board's.
+  function parseRef(ref) {
+    const s = String(ref == null ? "" : ref).trim(), i = s.indexOf(":");
+    return i > 0 ? { ref: s, project: s.slice(0, i), id: s.slice(i + 1) } : { ref: s, project: null, id: s };
+  }
+
+  // Registry order: impact first, then a capability after the ones it
+  // depends on, then file order. A cycle (the doctor's to report) falls
+  // back to file order for the cards in it.
+  function capabilityOrder(caps) {
+    const list = arr(caps).filter(c => c && c.id);
+    const byId = Object.fromEntries(list.map(c => [c.id, c]));
+    const tier = c => { const i = CAP_IMPACTS.indexOf(c.impact); return i < 0 ? CAP_IMPACTS.length : i; };
+    const sorted = list.map((c, i) => [c, i]).sort((a, b) => tier(a[0]) - tier(b[0]) || a[1] - b[1]).map(x => x[0]);
+    const out = [], placed = new Set(), visiting = new Set();
+    const place = c => {
+      if (placed.has(c.id) || visiting.has(c.id)) return;
+      visiting.add(c.id);
+      arr(c.deps).forEach(d => { if (byId[d]) place(byId[d]); });
+      visiting.delete(c.id);
+      placed.add(c.id); out.push(c);
+    };
+    sorted.forEach(place);
+    return out;
+  }
+
+  // What ./board capabilities prints: every record in registry order with
+  // its derived state, the projects any record names, and the counts.
+  function capabilities(data) {
+    const caps = capabilityOrder(data && data.capabilities).map(c => Object.assign({}, c, { state: capabilityState(c) }));
+    const projects = [];
+    caps.forEach(c => arr(c.adoption).forEach(a => { if (a && a.project && !projects.includes(a.project)) projects.push(a.project); }));
+    const counts = Object.fromEntries(CAP_STATES.map(s => [s, caps.filter(c => c.state === s).length]));
+    return { projects, capabilities: caps, counts };
+  }
+
+  return { pickable, nextUp, inFlight, needsYou, waitingOnYou, staleClaims, summary, isStale, CLAIM_STALE_MS,
+           capabilities, capabilityState, capabilityOrder, parseRef,
+           CAP_KINDS, CAP_IMPACTS, CAP_ADOPTION, CAP_STATUSES, CAP_STATES };
 });

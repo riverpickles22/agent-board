@@ -1,13 +1,13 @@
 # agent-board — what it can do
 
-*The medium-altitude view, for humans and agents. As of 2026-11-14.
+*The medium-altitude view, for humans and agents. As of 2026-11-15.
 Served by the running board at `/docs` and `/llms.txt`. Details:
 [README.md](README.md) (humans) · [AGENTS.md](AGENTS.md) +
 [PROTOCOL.md](PROTOCOL.md) (agent contract — also served at `/AGENTS.md`
 and `/PROTOCOL.md`) · [design/](design/DESIGN.md) (UI specs).*
 
 **Agents: start at [AGENTS.md](AGENTS.md) §0** — a one-page orientation
-(the five data files, the lifecycle, the five inviolable rules, where
+(the six data files, the lifecycle, the five inviolable rules, where
 depth lives). This document is the capability inventory; that one is the
 contract.
 
@@ -183,12 +183,27 @@ everything that needs the human, pickable count and why it is zero,
 health), `./board next` (the pickable queue, the same ranked list the
 Ready strip shows, computed by the same shared module, with the rest of
 the first lane's exclusions counted by reason), `./board show <id>` (one
-epic, story or idea with its parent context — read one card instead of
-the whole file), `./board new` (scaffold and
+epic, story, idea or capability with its parent context — read one card
+instead of the whole file), `./board capabilities` (the capability
+registry, below), `./board new` (scaffold and
 register a fresh project from the server's own defaults), `./board help`
 (discovery, with an agent orientation block), `--json` on the read
 commands. Agents orient and pick from the terminal; the board stays the
 visualization of the same answers.
+
+A **capability registry** tracks reusable work across every project. A
+capability is anything one project built or needs that another could use
+— shared code, a skill, a subagent, a rule, a practice — kept as a
+standing record in `capabilities.json` on agent-board's own board: what
+it does, where it lives, which project needed it first, where each
+project stands on adopting it (wanted, building, in use, not needed),
+and the cards that build it on any board (`arc:A68`). Its overall state
+is derived from adoption; only "skipped" and "retired" are set by hand,
+by the human. `./board capabilities` lists it by state and impact,
+`./board show` opens one with its linked cards' lanes, the MCP server
+offers the same read, and the doctor checks it. Agents in any project
+record reusable work there (AGENTS.md §6). Not this document: this one
+lists what the tool itself does.
 
 A **board doctor** checks the data against the contract this document
 describes — ids that don't resolve, a story pointing at a missing epic, a

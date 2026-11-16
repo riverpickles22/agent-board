@@ -982,7 +982,7 @@ const opts = (arr,sel) => arr.map(x=>'<option'+(x===sel?' selected':'')+'>'+esc(
     ? '<option value="'+esc(sel).replace(/"/g,"&quot;")+'" selected>'+esc(sel)+' (not in vocabulary)</option>' : "");
 const today = () => new Date().toISOString().slice(0,10);
 
-let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overview: null, milestones: [] } };
+let state = { epics: [], stories: [], ideas: [], config: {}, milestones: { overview: null, milestones: [] }, capabilities: [] };
 let COLUMNS = [], PRIOS = [], THEMES = [], MILESTONES = [];
 let filterMS = "all", filterTheme = "all", filterTag = "all";
 /* ---- which board am I looking at? ----
@@ -1379,6 +1379,7 @@ function applyBoard(data){
   state.stories = state.stories || [];
   state.ideas = state.ideas || [];
   state.config = state.config || {};
+  state.capabilities = Array.isArray(state.capabilities) ? state.capabilities : [];
   state.milestones = (state.milestones && !Array.isArray(state.milestones))
     ? state.milestones : { overview: null, milestones: state.milestones || [] };
   COLUMNS = state.config.lanes && state.config.lanes.length ? state.config.lanes : ["Ready","In Progress","Review","Done"];
@@ -2991,7 +2992,7 @@ async function updatePending(){
   if(show) b.textContent = n + " pending";
   if(document.getElementById("pending-panel").classList.contains("on")) renderPending();
 }
-const PENDING_RES_LABEL = { epics:"Epics", stories:"Stories", ideas:"Ideas", config:"Config", milestones:"Milestones" };
+const PENDING_RES_LABEL = { epics:"Epics", stories:"Stories", ideas:"Ideas", config:"Config", milestones:"Milestones", capabilities:"Capabilities" };
 function renderPending(){
   const body = document.querySelector("#pending-panel .pp-body");
   const d = pendingData;
@@ -3036,7 +3037,7 @@ function wirePending(){
 function diskView(){
   const unrescue = x => rawColumns.has(x.id) ? Object.assign({}, x, { column: rawColumns.get(x.id) }) : x;
   return { config: state.config, epics: state.epics.map(unrescue), stories: state.stories.map(unrescue),
-           ideas: state.ideas, milestones: state.milestones };
+           ideas: state.ideas, milestones: state.milestones, capabilities: state.capabilities };
 }
 function runDoctor(){
   if(typeof BoardDoctor === "undefined") return [];
@@ -3183,7 +3184,7 @@ function showToast(msg){
    nothing) when the file changed since — an agent edited it while a modal
    was open. Then the page refetches, re-applies only what the human changed
    against the baseline it loaded (mergeResource), and writes again. ---- */
-const RESOURCES = ["epics","stories","ideas","config","milestones"];
+const RESOURCES = ["epics","stories","ideas","config","milestones","capabilities"];
 const saveTimers = {};   // per-resource, so an epics save can't cancel a stories save
 let savesPending = 0;    // live refresh holds off while our own writes are in flight
 let revisions = {};      // resource -> revision of the disk state `baseline` holds
@@ -3392,7 +3393,8 @@ async function refresh(){
     const revs = data.revisions;
     delete data.revisions;
     const current = JSON.stringify({ epics: state.epics, stories: state.stories,
-      ideas: state.ideas, config: state.config, milestones: state.milestones });
+      ideas: state.ideas, config: state.config, milestones: state.milestones,
+      capabilities: state.capabilities });
     if(JSON.stringify(data) === current){
       // Same content: adopt its revisions (a byte-only rewrite on disk would
       // otherwise send the next save round a needless merge) — but not while

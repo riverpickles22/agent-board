@@ -16,7 +16,7 @@ const path = require("path");
 const Q = require("./queue.js");
 const { diagnose, counts } = require("./doctor.js");
 const { FILES, DEFAULTS } = require("./defaults.js");
-const { projects, resolveDir: resolveDirShared, REGISTRY } = require("./resolve.js");
+const { projects, resolveDir: resolveDirShared, capabilityReport, REGISTRY } = require("./resolve.js");
 const { read: readShared } = require("./read-data.js");
 
 const ROOT = __dirname;
@@ -46,6 +46,7 @@ function read(key, dir) {
 const load = dir => ({
   config: read("config", dir), epics: read("epics", dir), stories: read("stories", dir),
   ideas: read("ideas", dir), milestones: read("milestones", dir),
+  capabilities: read("capabilities", dir),
 });
 
 const since = iso => {
@@ -125,7 +126,8 @@ function cmdStatus(ref, json) {
 
   const closingOwed = findings.filter(f => f.code === "no-architecture-line" || f.code === "no-code-health")
     .map(f => ({ id: f.ids[0], review: f.code === "no-architecture-line" ? "architecture" : "code-health" }));
-  if (json) return out({ project: name, title, ...sum, closingOwed, doctor: dx });
+  const caps = Q.capabilities(data);
+  if (json) return out({ project: name, title, ...sum, closingOwed, capabilities: caps.counts, doctor: dx });
 
   console.log(bold(title) + dim(" · " + sum.epics.total + " epics · " + sum.stories.total +
     " stories · " + (data.ideas || []).length + " ideas · lanes: " + sum.lanes.join(" | ")));
@@ -166,8 +168,60 @@ function cmdStatus(ref, json) {
   const laneLine = obj => sum.lanes.map(l => l + " " + (obj[l] || 0)).join(dim(" · "));
   console.log(dim("  epics:   ") + laneLine(sum.epics.byLane) + (sum.epics.archived ? dim("  (+" + sum.epics.archived + " shipped)") : ""));
   console.log(dim("  stories: ") + laneLine(sum.stories.byLane));
+  if (caps.capabilities.length) console.log("\n" + bold("Capabilities · " + caps.capabilities.length) +
+    dim("  (" + capCountLine(caps.counts) + ")   (./board capabilities " + name + ")"));
   console.log("\n" + (dx.errors ? red("⚕ " + dx.errors + " errors") : green("⚕ no errors")) +
     (dx.warnings ? dim(" · ") + yellow(dx.warnings + " warnings") : "") + dim("   (./board doctor " + name + ")"));
+}
+
+/* ---- capabilities: the registry of reusable work, against every project ---- */
+const capCountLine = counts => Q.CAP_STATES.filter(s => counts[s]).map(s => counts[s] + " " + s).join(" · ");
+const linkLine = l => l.found
+  ? l.ref + dim(" · " + l.type + " · " + (l.archived ? "shipped" : l.lane || "?") + (l.name ? " · " + l.name : ""))
+  : l.ref + yellow(" ⚠ " + l.why);
+function cmdCapabilities(ref, json) {
+  const { name, dir } = resolveDir(ref);
+  const rep = capabilityReport(name, load(dir));
+  if (json) return out(rep);
+  if (!rep.capabilities.length) {
+    console.log(bold("Capabilities · 0") + dim("  — " + name + " holds no capabilities.json (AGENTS.md §2)"));
+    return;
+  }
+  console.log(bold("Capabilities · " + rep.capabilities.length) + dim("  (" + capCountLine(rep.counts) + ") · " + name));
+  console.log(dim("  by impact, then dependencies · adoption: ● in use  ◐ building  ○ wanted  – not needed"));
+  const mark = { "in use": green("●"), "building": yellow("◐"), "wanted": "○", "not needed": dim("–") };
+  Q.CAP_STATES.forEach(state => {
+    const list = rep.capabilities.filter(c => c.state === state);
+    if (!list.length) return;
+    console.log("\n" + bold(state[0].toUpperCase() + state.slice(1) + " · " + list.length));
+    list.forEach(c => {
+      const cells = (c.adoption || []).filter(a => a && a.project)
+        .map(a => (mark[a.state] || "?") + " " + a.project).join("  ");
+      console.log("  " + bold(c.id) + " " + (c.name || "") + dim([" ", c.impact, c.kind, c.area].filter(Boolean).join(" · ")));
+      if (cells) console.log("      " + cells);
+      if ((state === "skipped" || state === "retired") && c.reason) console.log(dim("      " + c.reason));
+    });
+  });
+}
+function showCapability(cap, name, data, json) {
+  const rep = capabilityReport(name, Object.assign({}, data, { capabilities: [cap] }));
+  const c = rep.capabilities[0];
+  const dependents = (data.capabilities || []).filter(x => x && (x.deps || []).includes(cap.id)).map(x => x.id);
+  if (json) return out({ project: name, type: "capability", capability: c, dependents });
+  console.log(bold(c.id) + " " + (c.name || ""));
+  console.log(dim(["capability", c.state, c.impact && "impact " + c.impact, c.kind, c.area,
+    c.origin && "first needed by " + c.origin].filter(Boolean).join(" · ") + " · " + name));
+  const f = (label, v) => { if (v) console.log("\n" + bold(label) + "\n  " + String(v).split("\n").join("\n  ")); };
+  f("Summary", c.summary); f("Home", c.home); f("Reason", c.reason);
+  if ((c.adoption || []).length) {
+    console.log("\n" + bold("Adoption"));
+    c.adoption.forEach(a => console.log("  " + String(a.project).padEnd(10) + " " + String(a.state).padEnd(11) +
+      dim([a.since, a.evidence].filter(Boolean).join(" · "))));
+  }
+  if ((c.deps || []).length) f("Depends on", c.deps.join(", "));
+  if (dependents.length) f("Needed by", dependents.join(", "));
+  if (c.links.length) { console.log("\n" + bold("Linked cards")); c.links.forEach(l => console.log("  " + linkLine(l))); }
+  f("Notes", c.notes);
 }
 
 /* ---- show: one card (or idea) with the context a builder needs ---- */
@@ -190,8 +244,10 @@ function cmdShow(id, ref, json) {
   const find = list => list.find(x => x && x.id === id) ||
     list.find(x => x && typeof x.id === "string" && x.id.toLowerCase() === String(id).toLowerCase());
   const story = find(data.stories), epic = !story && find(data.epics), idea = !story && !epic && find(data.ideas || []);
+  const cap = !story && !epic && !idea && find(data.capabilities || []);
+  if (cap) return showCapability(cap, name, data, json);
   if (!story && !epic && !idea) {
-    console.error("No epic, story or idea with id \"" + id + "\" in project " + name + " (" + dir + ")");
+    console.error("No epic, story, idea or capability with id \"" + id + "\" in project " + name + " (" + dir + ")");
     process.exit(1);
   }
 
@@ -327,5 +383,6 @@ const args = rest.filter(a => a !== "--json");
 if (cmd === "next") cmdNext(args[0], json);
 else if (cmd === "status") cmdStatus(args[0], json);
 else if (cmd === "show") cmdShow(args[0], args[1], json);
+else if (cmd === "capabilities") cmdCapabilities(args[0], json);
 else if (cmd === "new") cmdNew(args[0], args[1]);
-else { console.error("Usage: board-cli.js next|status|show|new …"); process.exit(2); }
+else { console.error("Usage: board-cli.js next|status|show|capabilities|new …"); process.exit(2); }

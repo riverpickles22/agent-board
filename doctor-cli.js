@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Terminal front end for doctor.js — loads a project's five files and prints
+/* Terminal front end for doctor.js — loads a project's six files and prints
  * what the shared check function found. All the judgment lives in doctor.js;
  * this file only reads, formats, and picks the exit code.
  *
@@ -36,9 +36,10 @@ const data = {
   stories: read("stories", [], true),
   ideas: read("ideas", [], true),
   milestones: read("milestones", { milestones: [] }, false),
+  capabilities: read("capabilities", [], true),
 };
 
-const findings = diagnose(data).concat(contextDocFindings());
+const findings = diagnose(data).concat(contextDocFindings(), capabilityFindings());
 const rank = { error: 0, warning: 1 };
 findings.sort((a, b) => rank[a.severity] - rank[b.severity] || a.code.localeCompare(b.code));
 const { errors, warnings } = counts(findings);
@@ -55,6 +56,32 @@ function contextRoot(dir) {
     probe = path.dirname(probe);
   }
   return path.dirname(path.resolve(dir));   // no git: the data dir's parent
+}
+/* A capability may name another board — an adoption's project, or a
+ * "<project>:<id>" link. Only the registry and that board's files can say
+ * whether it is real, so these two checks live here beside the other
+ * filesystem one. Function declarations hoist, so `data` is read at call. */
+function capabilityFindings() {
+  const { projects, findCard } = require("./resolve.js");
+  const { parseRef } = require("./queue.js");
+  const reg = projects(), cache = {}, found = [];
+  data.capabilities.forEach(c => {
+    if (!c || !c.id) return;
+    const unknown = new Set((Array.isArray(c.adoption) ? c.adoption : [])
+      .map(a => a && typeof a.project === "string" ? a.project.trim() : "").filter(p => p && !reg[p]));
+    unknown.forEach(project => {
+      const a = { project };
+        found.push({ severity: "warning", code: "capability-project-unknown", ids: [c.id, a.project],
+          message: "adoption names project \"" + a.project + "\" — not registered in projects.json" });
+    });
+    (Array.isArray(c.links) ? c.links : []).forEach(l => {
+      if (!parseRef(l).project) return;                       // own-board links are doctor.js's
+      const r = findCard(l, data, cache);
+      if (!r.found) found.push({ severity: "warning", code: "capability-link-missing", ids: [c.id, r.ref],
+        message: "capability links " + r.ref + " — " + r.why });
+    });
+  });
+  return found;
 }
 function contextDocFindings() {
   const root = contextRoot(DIR);
@@ -83,7 +110,8 @@ const scale = [
   data.epics.length + " epic" + (data.epics.length === 1 ? "" : "s"),
   data.stories.length + " stor" + (data.stories.length === 1 ? "y" : "ies"),
   data.ideas.length + " idea" + (data.ideas.length === 1 ? "" : "s"),
-].join(", ");
+].concat(data.capabilities.length ? [data.capabilities.length + " capabilit" + (data.capabilities.length === 1 ? "y" : "ies")] : [])
+.join(", ");
 
 if (!findings.length) {
   console.log(green("✓ no issues") + dim(" · " + NAME + " · " + scale));

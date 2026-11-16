@@ -27,6 +27,8 @@ projects created for this workspace.
       epics.json                   the sole live epic backlog
       stories.json                 buildable slices and verification evidence
       milestones.json              outcomes and deliverables linked to epics
+      capabilities.json            optional; reusable capabilities — the shared
+                                   registry is on agent-board's own board
       archive/                     clearly labelled historical material
   <code-repo>/
     AGENTS.md                      local implementation and verification rules;

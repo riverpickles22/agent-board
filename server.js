@@ -165,7 +165,7 @@ function git(args, dir) {
   });
 }
 
-// The five data files as parsed JSON at a given commit (DEFAULTS where a
+// The six data files as parsed JSON at a given commit (DEFAULTS where a
 // file didn't exist yet — so brand-new files read as "everything added").
 async function snapshotAt(ref, dir) {
   const prefix = ((await git(["rev-parse", "--show-prefix"], dir)) || "").trim();
@@ -194,7 +194,7 @@ function summarizeChanges(oldSnap, newSnap) {
     const l = x.name || x.title || "";
     return l.length > 48 ? l.slice(0, 45) + "…" : l;
   };
-  for (const key of ["epics", "stories", "ideas"]) {
+  for (const key of ["epics", "stories", "ideas", "capabilities"]) {
     const olds = oldSnap[key] || [], news = newSnap[key] || [];
     const oldBy = new Map(olds.map((x) => [x.id, x]));
     const newBy = new Map(news.map((x) => [x.id, x]));
@@ -202,7 +202,7 @@ function summarizeChanges(oldSnap, newSnap) {
     for (const n of news) {
       if (!oldBy.has(n.id)) {
         statements.push({ resource: key, id: n.id, kind: "added",
-          text: `${n.id} '${label(n)}' added (${n[lane] || "?"})` });
+          text: `${n.id} '${label(n)}' added` + (lane ? ` (${n[lane] || "?"})` : "") });
         continue;
       }
       const o = oldBy.get(n.id);
@@ -392,7 +392,7 @@ const server = http.createServer(async (req, res) => {
     // on — see the PUT below.
     if (req.method === "GET" && url === "/api/board") {
       const out = { revisions: {} };
-      for (const key of ["epics", "stories", "ideas", "config", "milestones"]) {
+      for (const key of Object.keys(FILES)) {
         const { value, revision } = readRevised(key, dir);
         out[key] = value;
         out.revisions[key] = revision;

@@ -18,7 +18,7 @@ closed, or already claimed wastes effort.
 
 All projects use the context and backlog layout in
 [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md). Design and strategy explain
-the work; the five JSON files in `roadmap/` record its live state. Historical
+the work; the JSON files in `roadmap/` record its live state. Historical
 CSVs and prose lists are not separate queues to synchronize.
 
 The board is not a second backlog. `epics.json` (and `ideas.json`) *are*

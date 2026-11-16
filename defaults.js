@@ -1,4 +1,4 @@
-/* What a project *is*, shared: the five resource files and the defaults a
+/* What a project *is*, shared: the six resource files and the defaults a
  * brand-new (or partially-populated) data directory gets. Required by both
  * server.js and the `./board new` scaffold, so the two can never drift on
  * what a fresh board looks like.
@@ -10,6 +10,7 @@ const FILES = {
   ideas: "ideas.json",
   config: "config.json",
   milestones: "milestones.json",
+  capabilities: "capabilities.json",
 };
 
 // Resources whose whole value is an object rather than an array.
@@ -32,6 +33,9 @@ const DEFAULTS = {
     view: { title: "Board", default_page: "board", default_milestone: "all", default_theme: "all" },
   },
   milestones: { overview: null, milestones: [] },
+  // The registry of reusable capabilities (AGENTS.md §2). Optional: most
+  // boards hold none, and the board that holds the shared one says so.
+  capabilities: [],
 };
 
 

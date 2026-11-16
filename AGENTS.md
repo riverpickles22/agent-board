@@ -15,7 +15,7 @@ human lens, never a dependency. You operate on the files directly, and
 git is the only persistence: **a commit is the human ratifying your
 work**, so you edit freely and never commit unasked.
 
-**The five files** (in a project's data dir — find it via
+**The six files** (in a project's data dir — find it via
 `BOARD_DATA_DIR` → [`projects.json`](projects.json) → §1):
 
 | File | Holds | Grain |
@@ -25,6 +25,7 @@ work**, so you edit freely and never commit unasked.
 | `ideas.json` | the inbox — anything worth considering | pre-work; graduates into epics |
 | `milestones.json` | the narrative + deliverables | why the work matters |
 | `config.json` | **all vocabulary** — lanes, priorities, themes, milestones, gates, WIP limits, saved view | nothing is hardcoded; read it before writing anything |
+| `capabilities.json` | the registry of reusable capabilities and where each is adopted — optional; the shared one is on agent-board's own board | standing records that outlive the cards that build them |
 
 **Where to capture reusable development ideas.** When an idea from any project could improve how applications are developed across projects, look for an existing idea on agent-board's own board (project `board`). Capture or extend the shared proposal there. Name the originating project, a concrete use case, and any likely adopters. Track approved shared work there through epic and stories. Product-specific integration work belongs on the consuming board, linked by project name and card ID. See [the roadmap](strategy/roadmap.md).
 
@@ -107,7 +108,8 @@ view over them; you do not need it running. Edit the JSON directly.
 ├── ideas.json       # the inbox: not-yet-decided requests
 ├── epics.json       # decided work, by theme + milestone
 ├── stories.json     # buildable slices under epics
-└── milestones.json  # what each milestone accomplishes; deliverables -> epics; context docs
+├── milestones.json  # what each milestone accomplishes; deliverables -> epics; context docs
+└── capabilities.json # optional: reusable capabilities and their adoption per project
 ```
 
 **The context directory.** The git repo containing the data dir (the
@@ -134,6 +136,8 @@ real — they are what makes "read the context before building" possible.
             "default_milestone": "M0 Reliable foundation", "default_theme": "all",
             "default_board_mode": "epics" } }
 ```
+An optional `capability_areas` list (`["Context","Contract","Line","Loop"]`)
+names the groups a capability registry files its records under (below).
 The **first** lane is the todo lane; the **last** lane is the done lane —
 the dependency and selection rules key off position, not name.
 `default_page` names a tab (`ideas` / `board` / `history` / `docs`);
@@ -275,6 +279,52 @@ that milestone is selected in the filter; `overview`, `roi` and
 ids must exist in `epics.json`; the panel rolls up done-counts from
 them, and an epic that carries the milestone but sits under no
 deliverable is not counted — keep the links current when scope changes.
+
+**Capability** (`capabilities.json` — an array, optional; the registry
+of reusable work):
+```json
+{ "id": "cap-commit-gate", "name": "Commit gate",
+  "summary": "what it does, in a sentence or two",
+  "kind": "code", "area": "Line", "impact": "high",
+  "deps": ["cap-fresh-reader-reviewer"],
+  "origin": "arc", "home": "arc/arc-cli/dev.sh",
+  "adoption": [ {"project": "arc", "state": "in use", "since": "2026-09-13", "evidence": "arc:A68"},
+                {"project": "chaim", "state": "wanted"} ],
+  "links": ["idea-workbench-kit", "arc:A68"],
+  "status": null, "reason": "", "notes": "", "updated_at": null }
+```
+A capability is anything one project built or needs that another could
+use: shared code, a skill, a subagent, a rule, a working practice. It is
+a **standing record** — it outlives the ideas and epics that build it,
+which is why it is not a card. **The shared registry lives on
+agent-board's own board** (project `board`); another board may keep one
+for capabilities that are only its own. Not to be confused with
+[`CAPABILITIES.md`](CAPABILITIES.md), which lists what this tool itself
+does.
+
+`kind` ∈ `code | skill | agent | rule | practice`. `impact` ∈ `high |
+medium | low`. `area` comes from config `capability_areas` when that
+list exists. `origin` is the project that needed it first; `home` is
+where it lives (a repo path, or empty until built). `deps` name other
+capabilities that must exist first. Ids are `cap-<slug>`, permanent.
+
+`adoption` holds one entry per project that has a stake:
+`state` ∈ `wanted | building | in use | not needed`, with `since` (a
+date) and `evidence` (a path or a card) once it is `in use`. **You
+record adoption, with evidence** — it is a fact about the code, like a
+lane. A project with no entry has not been considered.
+
+**Overall state is derived, never stored**: `in use` if any project uses
+it, else `building` if any is building it, else `proposed`. `status` is
+stored only for the two the human sets — `skipped` (decided against,
+for now or for good) and `retired` — each with a `reason`. Never write
+`skipped` or `retired` yourself; propose it.
+
+`links` name the cards that shape or build it: a bare id is a card on
+this board, `<project>:<id>` a card on another registered board
+(`arc:A68`). This is the one place a record points across boards. The
+link runs one way; ideas and epics carry no capability field, and "which
+capability does this card serve" is read from the registry.
 
 **Idea**:
 ```json
@@ -485,13 +535,17 @@ checkout — and they run the **same shared modules the UI renders**
   An unknown or missing priority ranks after every known one.
 - `./board show <id> <project>` — one card instead of a whole file: a
   story with its epic's name, test_plan, context_docs, gate and deps
-  state and its siblings' lanes; an epic with its stories; or an idea.
-  An unknown id exits 1 and names the id and project.
-- `./board new <name> <dir>` — scaffold a fresh project (the five files,
+  state and its siblings' lanes; an epic with its stories; an idea; or a
+  capability with its adoption and its linked cards' lanes, on this board
+  and others. An unknown id exits 1 and names the id and project.
+- `./board capabilities <project>` — the registry (§2): every capability
+  by derived state, in order of impact then dependencies, with its
+  adoption in each project. `status` carries a one-line count.
+- `./board new <name> <dir>` — scaffold a fresh project (the six files,
   from the same defaults the server uses) and register it in
   projects.json; adopts an existing data dir without overwriting.
 - `./board help` — every command, plus the agent orientation block.
-- `next`/`status`/`show` take `--json`.
+- `next`/`status`/`show`/`capabilities` take `--json`.
 
 The CLI reads; **writes stay direct JSON edits under this contract**.
 Nothing here claims, moves, or saves for you.
@@ -514,7 +568,13 @@ epic archived after 2026-11-14 with no `Code health:` line (or a queued
 line naming a missing story), a
 `view` default naming no vocab entry, an unknown priority, and (CLI only,
 it needs the filesystem) a live epic's or milestone's `context_docs` path
-that does not exist under the context repo root. It warns, once per
+that does not exist under the context repo root. On a board with a
+capability registry it errors on a duplicate capability id, a `deps`
+entry naming no capability and a dependency cycle, and warns on a
+`kind`, `impact`, `status` or adoption state outside its values, an
+`area` outside `capability_areas`, `skipped`/`retired` with no reason,
+and a link that resolves to no card (links and adoption projects on
+other boards are checked from the CLI). It warns, once per
 milestone, when live epics carry a milestone that has deliverables but
 no deliverable links them.
 
@@ -670,6 +730,20 @@ into the docs that carry it (this file, the skill, `PROTOCOL.md`, the
 `design/` specs) **in the same change**, so the next agent inherits it
 instead of rediscovering it. A value driver that lives only in the code
 or in one conversation is lost.
+
+**Reusable work goes in the capability registry.** Whichever project
+you are working in: when an idea describes something another project
+could use, or an epic you are closing built it, propose or update the
+capability on **agent-board's own board** (`capabilities.json` under
+project `board`, §2) in the same session. A new one lands with
+`origin` set to the project that needed it, that project's adoption
+entry, a `wanted` entry for each project you can name a reason for,
+and a link to the card (`<project>:<id>`). When a project starts or
+finishes adopting one, update its adoption entry with the evidence.
+The idea for building it as shared work is captured on agent-board's
+Ideas page; a project's own integration stays a card on its own board,
+linked from the capability. Report the registry edit like any other —
+it is uncommitted working state until "save".
 
 Any **medium-or-larger** capability change also updates
 [`CAPABILITIES.md`](CAPABILITIES.md) — the medium-altitude inventory the

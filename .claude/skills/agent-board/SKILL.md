@@ -13,7 +13,7 @@ human lens, not a dependency.
 ## 1. Read the contract first
 
 **Start with `<agent-board>/AGENTS.md` §0 (Orientation)** — one page that
-maps the whole tool: the five data files, the lifecycle, the five
+maps the whole tool: the six data files, the lifecycle, the five
 inviolable rules, and where every detail lives. Read it before touching
 data; it tells you which of the deeper sections you actually need
 (schemas §2, edit rules §3, git §4, grooming §5, build §6, curation §7).
@@ -43,8 +43,13 @@ answer "what does agent-board do?"), read
 - `./board doctor <project>` — the contract, checked (exit 1 on errors).
   Run it after grooming or curation, before calling a board clean.
 - `./board new <name> <dir>` — scaffold and register a fresh project
-  (five default files; adopts existing data without overwriting).
-- `next`, `status` and `show` take `--json` for machine-readable output.
+  (six default files; adopts existing data without overwriting).
+- `./board capabilities <project>` — the registry of reusable
+  capabilities and where each project stands on adopting them;
+  `./board show <cap id> <project>` for one, with its linked cards'
+  lanes across boards. The shared registry is on project `board`.
+- `next`, `status`, `show` and `capabilities` take `--json` for
+  machine-readable output.
 
 Every card has a URL on a running board: `/<project>/#/board/<id>`
 opens it. Give the human that link when you point them at a card.
@@ -192,6 +197,15 @@ the agent-board repo (`Design: …` message) — never one without the
 other, never mixed with `Board:` data commits. Never edit the UI
 without touching its spec. An unapproved UX proposal is an idea card,
 not a spec edit.
+
+**Record reusable work** (in any project). When an idea or a finished
+epic produced something another project could use — shared code, a
+skill, a subagent, a rule, a practice — propose or update its record in
+the capability registry on agent-board's own board
+(`<agent-board>/roadmap/capabilities.json`, AGENTS.md §2): `origin`,
+adoption per project with evidence, a `<project>:<id>` link to the
+card. Adoption states are yours to record; `skipped` and `retired` are
+the human's. Run `./board doctor board` afterwards.
 
 **Save.** Board edits are free; git commits happen when the user says
 "save"/"commit"/"ratify" — commit the *project's* data repo with a

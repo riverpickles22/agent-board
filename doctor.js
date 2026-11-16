@@ -7,7 +7,7 @@
  * milestone roll-up silently — and the roll-up is what a human trusts to
  * answer "where are we".
  *
- * One pure function over the five resources, no I/O and no dependencies, so
+ * One pure function over the six resources, no I/O and no dependencies, so
  * the same checks serve both callers with no chance of drift:
  *   - `./board doctor <project>` requires this file directly
  *   - the UI loads it as a <script> and renders the same findings in a panel
@@ -53,7 +53,7 @@
   const HEALTH_SINCE = "2026-11-14";
 
   /**
-   * @param {{config?:object, epics?:array, stories?:array, ideas?:array, milestones?:object}} data
+   * @param {{config?:object, epics?:array, stories?:array, ideas?:array, milestones?:object, capabilities?:array}} data
    * @param {{now?:number}} [opts]  now is injectable so results are reproducible
    * @returns {Array<{severity:"error"|"warning", code:string, ids:string[], message:string}>}
    */
@@ -372,6 +372,64 @@
       colour[id] = 2;
     };
     epics.forEach(e => { if (e && e.id) walk(e.id, []); });
+
+    /* ---- capabilities: the registry of reusable work (AGENTS.md §2).
+     * A board without the file has none and is checked for nothing. A link
+     * or adoption naming another board is the CLI's to resolve — this
+     * function sees one board. ---- */
+    const caps = arr(data && data.capabilities);
+    if (caps.length) {
+      const Q = queue();
+      const capById = Object.fromEntries(caps.filter(c => c && c.id).map(c => [c.id, c]));
+      const areas = arr(cfg.capability_areas);
+      dupes(caps, "capability");
+      caps.forEach(c => {
+        if (!c || !c.id) { err("capability-no-id", [], "a capability has no id"); return; }
+        if (!str(c.name)) warn("capability-no-name", [c.id], "capability has no name");
+        if (c.kind != null && c.kind !== "" && !Q.CAP_KINDS.includes(c.kind))
+          warn("capability-kind", [c.id], "capability kind \"" + c.kind + "\" is not one of " + Q.CAP_KINDS.join(" | "));
+        if (c.impact != null && c.impact !== "" && !Q.CAP_IMPACTS.includes(c.impact))
+          warn("capability-impact", [c.id], "capability impact \"" + c.impact + "\" is not one of " + Q.CAP_IMPACTS.join(" | "));
+        if (areas.length && str(c.area) && !areas.includes(c.area))
+          warn("vocab-capability-area", [c.id], "capability area \"" + c.area + "\" is not in config.capability_areas");
+        if (c.status != null && c.status !== "" && !Q.CAP_STATUSES.includes(c.status))
+          warn("capability-status", [c.id], "capability status \"" + c.status + "\" is stored — only " +
+            Q.CAP_STATUSES.join(" | ") + " are; the rest is derived from adoption (AGENTS.md §2)");
+        else if (Q.CAP_STATUSES.includes(c.status) && !str(c.reason))
+          warn("capability-no-reason", [c.id], "capability is " + c.status + " with no reason");
+        const seen = new Set();
+        arr(c.adoption).forEach(a => {
+          if (!a || !str(a.project)) { warn("capability-adoption", [c.id], "an adoption entry names no project"); return; }
+          if (!Q.CAP_ADOPTION.includes(a.state))
+            warn("capability-adoption", [c.id, a.project], "adoption state \"" + a.state + "\" for " + a.project +
+              " is not one of " + Q.CAP_ADOPTION.join(" | "));
+          if (seen.has(a.project)) warn("capability-adoption", [c.id, a.project], "adoption lists " + a.project + " twice");
+          seen.add(a.project);
+        });
+        arr(c.deps).forEach(d => {
+          if (!capById[d]) err("capability-dep-missing", [c.id, d], "capability depends on " + d + " — no such capability");
+        });
+        arr(c.links).forEach(l => {
+          const r = Q.parseRef(l);
+          if (r.project) return;                                  // another board: doctor-cli.js checks it
+          if (!epicIds.has(r.id) && !storyIds.has(r.id) && !ideaIds.has(r.id))
+            warn("capability-link-missing", [c.id, r.id], "capability links " + r.id + " — no such epic, story or idea on this board");
+        });
+      });
+      const capColour = {};
+      const capWalk = (id, path) => {
+        if (capColour[id] === 2) return;
+        if (capColour[id] === 1) {
+          const loop = path.slice(path.indexOf(id)).concat(id);
+          err("capability-dep-cycle", loop.slice(0, -1), "capability dependency cycle: " + loop.join(" → "));
+          return;
+        }
+        capColour[id] = 1;
+        arr(capById[id] && capById[id].deps).forEach(d => { if (capById[d]) capWalk(d, path.concat(id)); });
+        capColour[id] = 2;
+      };
+      caps.forEach(c => { if (c && c.id) capWalk(c.id, []); });
+    }
 
     const rank = { error: 0, warning: 1 };
     out.sort((a, b) => rank[a.severity] - rank[b.severity] || a.code.localeCompare(b.code));

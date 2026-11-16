@@ -39,7 +39,7 @@ decision of *what to build next* never leaves your head — so the one thing an
 agent can't help with is the thing that actually gates your progress.
 
 A board only fixes that if the agent can read it. Hosted trackers put
-your backlog behind an API and a login. agent-board puts it in your repo as five
+your backlog behind an API and a login. agent-board puts it in your repo as a handful of
 JSON files, so the agent reads it the same way it reads your source — and every
 change lands in a diff you review like any other.
 
@@ -272,6 +272,7 @@ way the CLI does.
 |---|---|
 | `status` | Same as `./board status` |
 | `next` | Same as `./board next` |
+| `capabilities` | Same as `./board capabilities --json` — read-only |
 | `release` | Clear a claim on an epic/story, optionally with a `notes` explanation |
 | `needs-human` | Set or clear the `needs` flag — "I cannot continue without you" |
 | `propose-idea` | Capture a new idea into the funnel, same as the UI's "+ idea" |
@@ -304,7 +305,7 @@ Nothing to install. Verify with `node --version` — 18 or higher.
 
 For this workspace, follow [the shared project structure](PROJECT-STRUCTURE.md):
 keep the live board in `<project>-context/roadmap/`, technical context
-in `design/`, and direction in `strategy/`. `board new` scaffolds the five
+in `design/`, and direction in `strategy/`. `board new` scaffolds the six
 board files only; create the context and agent entry points as that contract
 describes. All registered projects use this convention.
 
@@ -315,7 +316,7 @@ repo is a good home; so is a `roadmap/` folder in the code repo itself.
 ./board new myproject ~/code/myproject/roadmap
 ```
 
-That creates the five JSON files with working defaults, registers the name, and
+That creates the six JSON files with working defaults, registers the name, and
 warns you if the directory isn't inside a git repository. It **adopts** an
 existing directory without overwriting anything, so it's safe to re-run.
 
@@ -396,12 +397,14 @@ board                       # open your default board
 
 ./board status <name>       # what needs you, what's in flight, health
 ./board next <name>         # the pickable queue
+./board show <id> <name>    # one story, epic, idea or capability
+./board capabilities <name> # reusable capabilities and their adoption per project
 ./board doctor <name>       # validate against the contract (exit 1 on errors)
 ./board new <name> <dir>    # scaffold and register a project
 ./board help                # everything
 ```
 
-`status` and `next` take `--json`. **The CLI never edits board data** — `new` is
+`status`, `next`, `show` and `capabilities` take `--json`. **The CLI never edits board data** — `new` is
 the one writer, and it only scaffolds a new project. Changing a card means
 editing the JSON, by hand or by agent.
 
@@ -438,7 +441,7 @@ Every vocabulary is per-project — the app hardcodes none of it. Edit
 Set the filters you like in the UI and click **★ set as default view** to write
 them back.
 
-### The five data files
+### The six data files
 
 | File | Holds |
 |---|---|
@@ -447,6 +450,7 @@ them back.
 | `stories.json` | Buildable slices: acceptance criteria, how to test, context, `ready` flag |
 | `milestones.json` | Milestone narrative and deliverables |
 | `config.json` | The vocabularies above |
+| `capabilities.json` | Optional registry of reusable capabilities (shared code, skills, subagents, rules, practices) and where each project stands on adopting them |
 
 Full schemas and edit rules: **[AGENTS.md](AGENTS.md)**. An empty directory is
 valid — every file has a working default.
