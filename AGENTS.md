@@ -26,6 +26,8 @@ work**, so you edit freely and never commit unasked.
 | `milestones.json` | the narrative + deliverables | why the work matters |
 | `config.json` | **all vocabulary** — lanes, priorities, themes, milestones, gates, WIP limits, saved view | nothing is hardcoded; read it before writing anything |
 
+**Where to capture reusable development ideas.** When an idea from any project could improve how applications are developed across projects, look for an existing idea on agent-board's own board (project `board`). Capture or extend the shared proposal there. Name the originating project, a concrete use case, and any likely adopters. Track approved shared work there through epic and stories. Product-specific integration work belongs on the consuming board, linked by project name and card ID. See [the roadmap](strategy/roadmap.md).
+
 **The lifecycle**, end to end — the spine of everything you do:
 
 ```
@@ -601,7 +603,11 @@ When the user says to build a story (e.g. "begin O1-2"):
    diagram the epic's `context_docs` link with what the epic built.
    Where they no longer match, update the diagram, the parts table and
    the status line's checked date, and mark anything described but not
-   yet built as proposed (PROJECT-STRUCTURE.md). Then write the
+   yet built as proposed (PROJECT-STRUCTURE.md). Design docs the
+   epic's commits added or changed under `design/` are part of the
+   check whether or not `context_docs` links them: read them, bring the
+   map in line, and link a new one from `hld.md` (proposed where it
+   is not built) — but never edit the design doc itself. Then write the
    epic's `Architecture:` line (§2) — what changed, or `no change` and
    why — and name the doc edit in your report. **Where your harness runs
    subagents, hand this step to the architecture reviewer**

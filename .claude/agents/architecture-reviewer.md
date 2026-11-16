@@ -30,6 +30,12 @@ pointer to where to look, never as evidence.
 3. The context repo is the git repo holding the board's data dir
    (`git -C <data dir> rev-parse --show-toplevel`). Its architecture map is
    `design/hld.md`; the epic's `context_docs` paths resolve from its root.
+4. List the design docs the epic wrote: every file under `design/` in
+   the context repo (and in the code repos it touched) that its commits
+   or working tree added or changed — `git show --stat <hash>`,
+   `git diff --stat` — whether or not `context_docs` links it. Read each
+   one. They are the epic's own statement of its architecture, so they
+   are input to the comparison, not something you curate.
 
 ## Compare
 
@@ -41,6 +47,13 @@ diagram, the parts table, the invariants, the status line:
 - Does any sentence now describe the system wrongly?
 - Is something described that is not built? Mark it proposed
   (PROJECT-STRUCTURE.md).
+- Does a design doc the epic wrote describe a part or flow the map does
+  not show, or show differently? Bring the map in line with what was
+  built; where the design goes beyond what was built, that part is
+  proposed.
+- Is a design doc the epic added unreachable from the map? Link it from
+  `hld.md` where its part sits — or in the parts table — marked proposed
+  if what it describes is not yet built.
 
 Ignore what the epic did not touch; you are not curating the whole map.
 
@@ -48,16 +61,19 @@ Ignore what the epic did not touch; you are not curating the whole map.
 
 You may edit only `design/hld.md` and the diagrams the epic's
 `context_docs` link. Fix what no longer matches, in the doc's own style,
-and set the status line's checked date to today, naming the epic. Never
-edit board JSON, code, AGENTS.md or any other doc — if something outside
-your files is wrong, say so in your answer. Do not commit.
+add links to the epic's new design docs, and set the status line's
+checked date to today, naming the epic. Never edit the design docs the
+epic wrote — they are the author's; if one contradicts what was built,
+say so under `Noticed:`. Never edit board JSON, code, AGENTS.md or any
+other doc — if something outside your files is wrong, say so in your
+answer. Do not commit.
 
 ## Answer
 
 Return exactly this, nothing more:
 
 ```
-Architecture: <what changed in the map, or "no change — <why nothing moved>">
+Architecture: <what changed in the map (name any design doc now linked), or "no change — <why nothing moved>">
 Edited: <paths, or "none">
 Noticed: <anything wrong outside your files, or "nothing">
 ```

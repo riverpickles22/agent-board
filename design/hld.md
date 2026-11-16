@@ -1,6 +1,6 @@
 # hld.md — agent-board architecture map
 
-**Status: Current — checked against the code 2026-11-14** (after epics B40–B45 and B47).
+**Status: Current — checked against the code 2026-11-15** (after epics B40–B45, B47 and B49).
 
 Where each part of the tool lives and what it owns. Everything here is
 **built** unless marked *proposed*; proposals live as cards in
@@ -61,7 +61,7 @@ those files directly; none of them is required for the others to work.
 | `data/` | Example defaults a new project is scaffolded from — not a live board. |
 | `roadmap/` | This checkout's own live board (gitignored). |
 | `.claude/skills/agent-board/` | The agent skill that operates boards by editing JSON directly — the one source file. `./board` links it into `~/.claude/skills/`; `.agents/skills/agent-board/SKILL.md` is a tracked link to the same file, which is where Codex looks. |
-| `.claude/agents/architecture-reviewer.md` | The subagent that does AGENTS.md §6 step 8 when an epic closes, on a Fable model: reads the epic through `./board show` and its commits, updates that project's `design/hld.md` (the only kind of file it may edit, with the diagrams the epic links), returns the epic's `Architecture:` line; the builder writes the line, since it never writes board JSON. `./board` links it into `~/.claude/agents/` (when it serves, lists or runs `setup`) so any project's session can dispatch it; a harness without subagents does the step itself (B47). |
+| `.claude/agents/architecture-reviewer.md` | The subagent that does AGENTS.md §6 step 8 when an epic closes, on a Fable model: reads the epic through `./board show` and its commits, updates that project's `design/hld.md` (the only kind of file it may edit, with the diagrams the epic links), also reads every design doc under `design/` that the epic's commits or working tree added or changed, linked from `context_docs` or not, and links a new one from `hld.md` (marked proposed where it is not built) without ever editing the design doc itself (B49), returns the epic's `Architecture:` line; the builder writes the line, since it never writes board JSON. `./board` links it into `~/.claude/agents/` (on every run, read-only commands included) so any project's session can dispatch it; a harness without subagents does the step itself (B47). |
 
 ## Invariants
 
