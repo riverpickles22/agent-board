@@ -339,7 +339,9 @@ The work queue (then the Next-up strip) was the first UI reader of `config.open_
 `state.epics` filtered by `epicShown()` (milestone AND theme AND tag);
 stories via `storiesOf(epicId)`; vocab from `COLUMNS`/`PRIOS`/`THEMES`/
 `MILESTONES`; lane color by position (`laneVar`), priority pill class by
-index (`prioClass`). New-epic ids suggested as `NEW1…` (`suggestId()`),
+index (`prioClass`). New-epic ids — + add card, Promote to Board, the Closing reviews
+epic — come from one generator, `nextEpicId()`: the board's prevailing
+prefix, one past its highest number (`B48` → `B49`; `E1` on an empty board),
 story ids `<epic_id>-<n>` (`suggestStoryId()`).
 `boardMode` ("epics" | "rows") defaults from the last toggle click
 remembered in this browser (`savedBoardMode()`, `localStorage` keyed by

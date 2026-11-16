@@ -1863,13 +1863,12 @@ function wireStoryDrop(cell){
 
 /* ---- modal (edit + create + delete) ---- */
 function blankEpic(col){
-  return { id: suggestId(), name:"", description:"", notes:"",
+  return { id: nextEpicId(), name:"", description:"", notes:"",
     theme:(filterTheme!=="all"?filterTheme:""), milestone:(filterMS!=="all"?filterMS:""),
     priority:PRIOS[0], status:"", gate:"none", test_plan:"",
     systems:[], context_docs:[],
     tags:[], deps:[], column:col||COLUMNS[0], claimed_by:null, claimed_at:null, updated_at:null };
 }
-function suggestId(){ const ids=new Set(state.epics.map(e=>e.id)); let n=1; while(ids.has("NEW"+n)) n++; return "NEW"+n; }
 function openEdit(id){ const e = byId()[id]; if(!e) return; modalMode="edit"; editingId=id; renderModal(e); }
 function openCreate(col){ modalMode="create"; editingId=null; renderModal(blankEpic(col)); }
 
@@ -2625,12 +2624,14 @@ function isReviewsEpic(e){
   return typeof BoardDoctor !== "undefined" && !!BoardDoctor.isReviewsEpic && BoardDoctor.isReviewsEpic(e);
 }
 // A new epic id in the board's own style: the prefix most of its ids use,
-// one past the highest number (B44 → B45). "CH1" on a board with none.
+// one past the highest number (B44 → B45). "E1" on a board with none.
+// Every new epic takes its id from here: + add card, Promote to Board, and
+// the standing Closing reviews epic.
 function nextEpicId(){
   const ids = new Set(state.epics.map(e => e.id)), by = {};
   state.epics.forEach(e => { const m = /^([A-Za-z]+)(\d+)$/.exec(e.id||""); if(m){ const b = by[m[1]] = by[m[1]] || {n:0, max:0}; b.n++; b.max = Math.max(b.max, +m[2]); } });
   const top = Object.keys(by).sort((a,b) => by[b].n - by[a].n)[0];
-  let pre = top || "CH", n = top ? by[top].max + 1 : 1;
+  let pre = top || "E", n = top ? by[top].max + 1 : 1;
   while(ids.has(pre+n)) n++;
   return pre+n;
 }
@@ -4427,7 +4428,7 @@ function promoteIdea(id){
     setTimeout(() => { const f = document.getElementById("i-valid"); if(f){ f.focus(); f.scrollIntoView({block:"center"}); } }, 60);
     return;
   }
-  const eid = suggestId();
+  const eid = nextEpicId();
   const bits = [i.why_now && ("Why now: "+i.why_now), i.constraints && ("Constraints: "+i.constraints),
                 i.acceptance && ("Acceptance boundary: "+i.acceptance)].filter(Boolean);
   state.epics.push(Object.assign(blankEpic(COLUMNS[0]), {
